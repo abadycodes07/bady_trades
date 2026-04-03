@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import type { CsvTradeData, CsvCommissionData } from '@/app/(app)/dashboard/page';
+import { isMarketHoliday, getHoliday, isWeekend as isWeekendDay, detectAsset, getAssetEmoji, type AssetClass } from '@/lib/market-holidays';
 
 interface Currency {
     code: string;
@@ -249,6 +250,29 @@ const formatTotalCurrency = (value: number, currency: Currency): React.ReactNode
 
 export function TradingCalendar({selectedCurrency, tradeData, commissionData, onUploadCommissionsClick, showFeesInPnl, onShowFeesToggle}: TradingCalendarProps) {
     const [currentMonthDate, setCurrentMonthDate] = useState(startOfMonth(new Date()));
+    const [showWeekends, setShowWeekends] = useState(true);
+
+    // Detect which asset classes appear in uploaded trades (for icons)
+    const tradedAssets = useMemo((): Set<AssetClass> => {
+        const assets = new Set<AssetClass>();
+        tradeData.forEach(t => {
+            if (t.Symbol) assets.add(detectAsset(t.Symbol));
+        });
+        return assets;
+    }, [tradeData]);
+
+    // Build a map of dateKey -> unique assets traded that day
+    const dailyAssets = useMemo((): Record<string, AssetClass[]> => {
+        const map: Record<string, Set<AssetClass>> = {};
+        tradeData.forEach(t => {
+            if (!t.Date || !t.Symbol) return;
+            if (!map[t.Date]) map[t.Date] = new Set();
+            map[t.Date].add(detectAsset(t.Symbol));
+        });
+        const result: Record<string, AssetClass[]> = {};
+        Object.entries(map).forEach(([k, v]) => { result[k] = Array.from(v); });
+        return result;
+    }, [tradeData]);
 
     const dayData = useMemo(() => calculateDailySummaries(tradeData, commissionData), [tradeData, commissionData]);
 
@@ -273,8 +297,19 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, on
     }, [tradeData]);
 
     const monthStart = startOfMonth(currentMonthDate);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 0 }); // Assuming Sunday is start of week
-    const days: Date[] = Array.from({ length: 35 }, (_, i) => addDays(startDate, i)); // 5 weeks * 7 days
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
+
+    // Column indices: if showWeekends=false, hide Sun(0) and Sat(6)
+    const visibleDayIndices = showWeekends ? [0,1,2,3,4,5,6] : [1,2,3,4,5];
+    const numCols = visibleDayIndices.length;
+
+    // Build 5 full weeks, then filter only visible days
+    const allDays: Date[] = Array.from({ length: 35 }, (_, i) => addDays(startDate, i));
+    const days = allDays.filter(d => visibleDayIndices.includes(getDay(d)));
+
+    // Day labels matching visible columns
+    const allDayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayLabels = visibleDayIndices.map(i => allDayLabels[i]);
 
     const weeklySummaryData = useMemo(() => calculateWeeklySummaries(startDate, dayData), [startDate, dayData]);
 
@@ -311,7 +346,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, on
                     <Button variant="ghost" size="icon" className="h-7 w-7 hover-effect" onClick={handleNextMonth}><ChevronRight className="h-5 w-5" /></Button>
                     <Button variant="outline" size="sm" className="h-7 px-2 text-xs hover-effect" onClick={handleToday}>This month</Button>
                 </div>
-                <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-2 text-xs flex-wrap">
                      <span>Monthly stats:</span>
                      <Badge variant={pnlForMonthlyHeader >= 0 ? "default" : "destructive"} className={cn("font-semibold", pnlForMonthlyHeader >= 0 ? "bg-green-600/20 text-green-700 dark:bg-green-800/30 dark:text-green-400 border-green-600/30" : "bg-red-600/20 text-red-700 dark:bg-red-800/30 dark:text-red-400 border-red-600/30")}>
                           P&L: {formatTotalCurrency(pnlForMonthlyHeader, selectedCurrency)}
@@ -323,9 +358,24 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, on
                      )}
                      <Badge variant="secondary">Trades: {monthlyDaysTraded} day{monthlyDaysTraded !== 1 ? 's' : ''}</Badge>
 
+                     {/* Assets being traded */}
+                     {tradedAssets.size > 0 && (
+                         <div className="flex items-center gap-1">
+                             {Array.from(tradedAssets).map(asset => (
+                                 <span key={asset} title={asset} className="text-base" style={{ lineHeight: 1 }}>{getAssetEmoji(asset)}</span>
+                             ))}
+                         </div>
+                     )}
+
                      <div className="flex items-center space-x-2">
                         <Switch id="fees-toggle" checked={showFeesInPnl} onCheckedChange={onShowFeesToggle} className="hover-effect"/>
                         <Label htmlFor="fees-toggle" className="text-xs">Include Fees</Label>
+                     </div>
+
+                     {/* Weekend toggle */}
+                     <div className="flex items-center space-x-2">
+                        <Switch id="weekend-toggle" checked={showWeekends} onCheckedChange={setShowWeekends} className="hover-effect"/>
+                        <Label htmlFor="weekend-toggle" className="text-xs">Weekends</Label>
                      </div>
 
                      <Button onClick={onUploadCommissionsClick} variant="outline" size="sm" className="h-7 px-2 text-xs hover-effect"><UploadCloud className="mr-1.5 h-3 w-3"/>Commissions</Button>
@@ -334,26 +384,30 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, on
             </CardHeader>
             <CardContent className="flex-grow p-0 overflow-hidden flex">
                 <div className="flex flex-col flex-grow">
-                     <div className="grid grid-cols-7 gap-0">
-                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayLabel, index) => (
-                            <div key={`${dayLabel}-${index}`} className={cn("text-center text-xs font-medium text-muted-foreground p-1 border-b", headerHeight, "flex items-center justify-center", index < 6 && "border-r")}>{dayLabel}</div>
+                     <div className={cn("grid gap-0", `grid-cols-${numCols}` )}>
+                        {dayLabels.map((dayLabel, index) => (
+                            <div key={`${dayLabel}-${index}`} className={cn("text-center text-xs font-medium text-muted-foreground p-1 border-b", headerHeight, "flex items-center justify-center", index < numCols - 1 && "border-r")}>{dayLabel}</div>
                         ))}
                     </div>
-                    <div className="grid grid-cols-7 grid-rows-5 gap-0 flex-grow">
+                    <div className={cn("grid gap-0 flex-grow", `grid-cols-${numCols}`, `grid-rows-5`)}>
                         {days.map((dayItem, index) => {
                             const dateKey = format(dayItem, 'yyyy-MM-dd');
                             const summary = dayData[dateKey];
                             const isCurrentMonthDay = isSameMonth(dayItem, currentMonthDate);
                             const isTodayDate = isSameDay(dayItem, new Date());
+                            const holiday = getHoliday(dayItem);
+                            const isHoliday = !!holiday;
+                            const isWknd = isWeekendDay(dayItem);
+                            const assetsOnDay = dailyAssets[dateKey] ?? [];
 
                             const pnlForCellDisplay = showFeesInPnl
-                                ? (summary?.profitloss || 0) // If toggle ON, show Net P&L (from trades)
-                                : (summary?.grossProfitloss || 0); // If toggle OFF, show Gross P&L (from trades)
+                                ? (summary?.profitloss || 0)
+                                : (summary?.grossProfitloss || 0);
 
                             const trades = summary?.trades;
                             const rValue = summary?.rValue;
                             const dailyNetCash = summary?.netCash || 0;
-                            const dailyUploadedCommissions = summary?.commission || 0; // From commission CSV
+                            const dailyUploadedCommissions = summary?.commission || 0;
                             const dailyTotalSECFee = summary?.totalSECFee || 0;
                             const dailyTotalFee1 = summary?.totalFee1 || 0;
                             const dailyTotalFee2 = summary?.totalFee2 || 0;
@@ -361,30 +415,55 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, on
                             const dailyTotalFee4 = summary?.totalFee4 || 0;
                             const dailyTotalFee5 = summary?.totalFee5 || 0;
 
-                            // Calculate "Other Fees" for the popover
                             const otherFeesForPopover = dailyUploadedCommissions + dailyTotalSECFee + dailyTotalFee1 + dailyTotalFee2 + dailyTotalFee3 + dailyTotalFee4 + dailyTotalFee5 + dailyNetCash;
 
                             const pnlColor = pnlForCellDisplay === 0 ? 'text-muted-foreground' : pnlForCellDisplay > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400';
-                            const dayBgColor = pnlForCellDisplay === 0 ? '' : pnlForCellDisplay > 0 ? 'bg-green-500/10 dark:bg-green-900/30' : 'bg-red-500/10 dark:bg-red-900/30';
+                            const dayBgColor = isHoliday ? 'bg-purple-500/10 dark:bg-purple-900/20' : isWknd && isCurrentMonthDay ? 'bg-muted/60' : pnlForCellDisplay === 0 ? '' : pnlForCellDisplay > 0 ? 'bg-green-500/10 dark:bg-green-900/30' : 'bg-red-500/10 dark:bg-red-900/30';
 
-                            const isLastCol = (index + 1) % 7 === 0;
-                            const rowNum = Math.floor(index / 7);
+                            // Determine column position in visible set for border logic
+                            const dayOfWeek = getDay(dayItem);
+                            const colPosition = visibleDayIndices.indexOf(dayOfWeek);
+                            const isLastCol = colPosition === numCols - 1;
+
+                            // Row: based on index in filtered days array
+                            const rowNum = Math.floor(index / numCols);
                             const isLastRow = rowNum === 4;
 
                             const formattedDisplayedPnl = formatCalendarCurrency(pnlForCellDisplay, selectedCurrency, true);
                             const formattedGrossPnlForPopover = formatCalendarCurrency(summary?.grossProfitloss, selectedCurrency, true);
                             const formattedNetPnlFromTradesForPopover = formatCalendarCurrency(summary?.profitloss, selectedCurrency, true);
                             const formattedOtherFeesForPopover = formatCalendarCurrency(otherFeesForPopover, selectedCurrency);
-                            const finalPnlInPopover = (summary?.profitloss || 0); // Final P&L in popover is Net P&L from trades
-
+                            const finalPnlInPopover = (summary?.profitloss || 0);
                             const formattedFinalPnlInPopover = formatCalendarCurrency(finalPnlInPopover, selectedCurrency, true);
 
                             const cellContent = (
                                 <div className={cn("p-1.5 text-xs flex flex-col justify-start items-start relative transition-colors duration-150 flex-grow h-full", !isLastRow && "border-b", !isLastCol && "border-r", cellMinHeight, isCurrentMonthDay ? 'text-foreground hover:shadow-inner hover:bg-accent/50 cursor-default' : 'text-muted-foreground/50 bg-muted/20 pointer-events-none', isTodayDate && 'bg-blue-500/10 ring-1 ring-blue-500', dayBgColor)} aria-label={`Data for ${format(dayItem, 'PPP')}`}>
+                                    {/* Day number */}
                                     <span className={cn("font-medium mb-0.5", isTodayDate ? "text-blue-600 dark:text-blue-400 font-bold" : "", !isCurrentMonthDay ? "text-muted-foreground/30" : "")}>{format(dayItem, 'd')}</span>
+
+                                    {/* Market closed badges */}
+                                    {isCurrentMonthDay && isHoliday && (
+                                        <span className="text-[9px] font-medium text-purple-600 dark:text-purple-400 leading-tight">
+                                            🚫 {holiday!.shortName}
+                                        </span>
+                                    )}
+                                    {isCurrentMonthDay && isWknd && !isHoliday && !showWeekends && (
+                                        <span className="text-[9px] text-muted-foreground">🌙 Weekend</span>
+                                    )}
+
+                                    {/* P&L */}
                                     {isCurrentMonthDay && formattedDisplayedPnl && (<span className={cn("font-bold text-sm mt-0.5 flex items-center", pnlColor)}>{formattedDisplayedPnl}</span>)}
                                     {isCurrentMonthDay && (trades || 0) > 0 && (<span className="text-[10px] text-muted-foreground mt-0.5">{trades} trade{trades !== 1 ? 's' : ''}</span>)}
                                     {isCurrentMonthDay && (rValue || 0) !== 0 && (trades || 0) > 0 && (<span className="text-[10px] text-muted-foreground mt-0.5">{rValue?.toFixed(1)}R</span>)}
+
+                                    {/* Asset icons - bottom right corner */}
+                                    {isCurrentMonthDay && assetsOnDay.length > 0 && (
+                                        <div className="absolute bottom-0.5 right-0.5 flex gap-0.5">
+                                            {assetsOnDay.slice(0, 3).map(a => (
+                                                <span key={a} title={a} className="text-[10px]" style={{ lineHeight: 1 }}>{getAssetEmoji(a)}</span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             );
 
@@ -395,11 +474,13 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, on
                                         <PopoverContent className="w-auto p-3 text-xs" side="top" align="center">
                                             <div className="space-y-1">
                                                 <p className="font-semibold text-sm">{format(dayItem, 'MMM dd, yyyy')}</p>
+                                                {isHoliday && <p className="text-purple-600 dark:text-purple-400">🚫 {holiday!.name}</p>}
                                                 {formattedGrossPnlForPopover && <div className="flex justify-between"><span>Gross P&L:</span><span className={cn("font-medium", (summary?.grossProfitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedGrossPnlForPopover}</span></div>}
                                                 {formattedNetPnlFromTradesForPopover && <div className="flex justify-between"><span>Net P&L (Trades):</span><span className={cn("font-medium", (summary?.profitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedNetPnlFromTradesForPopover}</span></div>}
                                                 {formattedFinalPnlInPopover && <div className="flex justify-between border-t pt-1 mt-1"><span>Final P&L:</span><span className={cn("font-medium", finalPnlInPopover >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedFinalPnlInPopover}</span></div>}
                                                 {formattedOtherFeesForPopover && <div className="flex justify-between"><span>Other Fees:</span><span className="font-medium text-muted-foreground">{formattedOtherFeesForPopover}</span></div>}
                                                 {(trades || 0) > 0 && <div className="flex justify-between"><span>Trades:</span><span className="font-medium">{trades}</span></div>}
+                                                {assetsOnDay.length > 0 && <div className="flex justify-between"><span>Instruments:</span><span className="font-medium">{assetsOnDay.map(a => getAssetEmoji(a)).join(' ')}</span></div>}
                                             </div>
                                         </PopoverContent>
                                     </Popover>

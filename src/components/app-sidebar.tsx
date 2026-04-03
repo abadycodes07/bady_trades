@@ -35,17 +35,18 @@ import {
   PlayCircle,
   Library,
   Pencil,
-  RotateCw, // Changed from ArrowAround
-  Users, // Changed from PersonBoard
+  RotateCw,
+  Users,
   GraduationCap,
   Menu,
-  UserCircle, // Added UserCircle icon
-  Settings, // Added Settings icon
-  LogOut, // Added LogOut icon
-  PlusCircle, // Added PlusCircle for add account action
-  Check, // Added Check icon for active account
-  Replace, // Use Replace icon for switching accounts
-  Target, // Added Target icon for Tracking
+  UserCircle,
+  Settings,
+  LogOut,
+  PlusCircle,
+  Check,
+  Replace,
+  Target,
+  Newspaper,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
@@ -67,7 +68,8 @@ const rightNavItems = [
   { href: '/trades', label: 'Trades', icon: Table },
   { href: '/notebook', label: 'Notebook', icon: Notebook },
   { href: '/reports', label: 'Reports', icon: BarChart },
-  { href: '/tracking', label: 'Tracking', icon: Target }, // Added Tracking page
+  { href: '/tracking', label: 'Tracking', icon: Target },
+  { href: '/news', label: 'News', icon: Newspaper },
   { href: '/playbooks', label: 'Playbooks', icon: ClipboardList },
   { href: '/progress-tracker', label: 'Progress Tracker', icon: TrendingUp },
   { href: '/trade-replay', label: 'Trade Replay', icon: PlayCircle },
