@@ -1,0 +1,15 @@
+[status]
+  # Explicitly set the installation and build phases for Nixpacks
+  # This forces Railway to run npm install and next build
+  
+[phases.setup]
+  nixPkgs = ["nodePackages.npm", "nodejs"]
+
+[phases.install]
+  cmds = ["npm install"]
+
+[phases.build]
+  cmds = ["npm run build"]
+
+[start]
+  cmd = "npm run start"
