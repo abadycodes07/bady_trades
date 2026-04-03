@@ -73,13 +73,22 @@ export interface CsvTradeData {
 }
 
 export interface CsvCommissionData {
-  DateAsOf?: string; // Original date string from commission CSV
-  Date?: string; // Standardized date YYYY-MM-DD
-  TotalCommission?: string; // Original commission string
-  Commission?: string; // Standardized commission value as string
+  DateAsOf?: string;
+  Date?: string;
+  TotalCommission?: string;
+  Commission?: string;
   id?: string;
 }
 
+// Balance operations: deposits, withdrawals, initial capital from MT4 statements
+export interface BalanceOperation {
+  id: string;
+  date: string;          // YYYY-MM-DD
+  amount: number;        // positive = deposit, negative = withdrawal
+  type: 'deposit' | 'withdrawal' | 'credit';
+  comment?: string;
+  isInitialCapital?: boolean; // true for the very first deposit
+}
 
 const initialLayouts = {
   lg: [
@@ -143,6 +152,7 @@ export default function DashboardPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { tradeData, addTrades, isLoading: tradeDataLoading, setIsLoading: setTradeDataLoading } = useTradeData();
   const [commissionData, setCommissionData] = useState<CsvCommissionData[]>([]);
+  const [balanceOperations, setBalanceOperations] = useState<BalanceOperation[]>([]);
   const commissionFileInputRef = useRef<HTMLInputElement>(null);
   const [showFeesInPnl, setShowFeesInPnl] = useState(false);
 
@@ -682,7 +692,7 @@ export default function DashboardPage() {
          return <MetricCard title="Max Drawdown" value={<span className="text-red-600 dark:text-red-500">{convertCurrency(maxDrawdownData.value)}</span>} metric={formattedDrawdownDate} color="red" className="h-full"/>;
        case 'cumulative-pnl': return <CumulativePnLChart selectedCurrency={selectedCurrency} data={tradeData} commissionData={commissionData} showFeesInPnl={showFeesInPnl}/>;
        case 'bady-score': return <BadyScoreChart data={tradeData} overallScore={badyScore} />;
-       case 'trading-calendar': return <TradingCalendar selectedCurrency={selectedCurrency} tradeData={tradeData} commissionData={commissionData} onUploadCommissionsClick={triggerCommissionFileInput} showFeesInPnl={showFeesInPnl} onShowFeesToggle={setShowFeesInPnl}/>;
+       case 'trading-calendar': return <TradingCalendar selectedCurrency={selectedCurrency} tradeData={tradeData} commissionData={commissionData} balanceOperations={balanceOperations} onUploadCommissionsClick={triggerCommissionFileInput} showFeesInPnl={showFeesInPnl} onShowFeesToggle={setShowFeesInPnl}/>;
        case 'progress-tracker': return <ProgressTrackerHeatmap data={tradeData} />;
        case 'recent-trades': return <RecentTradesTable selectedCurrency={selectedCurrency} data={tradeData as RecentTradesCsvTradeData[]}/>;
        default: return <Card className="h-full flex items-center justify-center"><CardContent>Unknown Widget: {key}</CardContent></Card>;

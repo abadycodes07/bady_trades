@@ -26,7 +26,7 @@ import { ChevronLeft, ChevronRight, Info, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import type { CsvTradeData, CsvCommissionData } from '@/app/(app)/dashboard/page';
+import type { CsvTradeData, CsvCommissionData, BalanceOperation } from '@/app/(app)/dashboard/page';
 import { isMarketHoliday, getHoliday, isWeekend as isWeekendDay, detectAsset, getAssetEmoji, type AssetClass } from '@/lib/market-holidays';
 
 interface Currency {
@@ -213,6 +213,7 @@ interface TradingCalendarProps {
     selectedCurrency: Currency;
     tradeData: CsvTradeData[];
     commissionData: CsvCommissionData[];
+    balanceOperations?: BalanceOperation[];
     onUploadCommissionsClick: () => void;
     showFeesInPnl: boolean;
     onShowFeesToggle: (checked: boolean) => void;
@@ -248,7 +249,7 @@ const formatTotalCurrency = (value: number, currency: Currency): React.ReactNode
     return <span className="flex items-center">{sign}{displaySymbol}{formattedAmount}</span>;
 };
 
-export function TradingCalendar({selectedCurrency, tradeData, commissionData, onUploadCommissionsClick, showFeesInPnl, onShowFeesToggle}: TradingCalendarProps) {
+export function TradingCalendar({selectedCurrency, tradeData, commissionData, balanceOperations = [], onUploadCommissionsClick, showFeesInPnl, onShowFeesToggle}: TradingCalendarProps) {
     const [currentMonthDate, setCurrentMonthDate] = useState(startOfMonth(new Date()));
     const [showWeekends, setShowWeekends] = useState(true);
 
@@ -273,6 +274,53 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, on
         Object.entries(map).forEach(([k, v]) => { result[k] = Array.from(v); });
         return result;
     }, [tradeData]);
+
+    // Build daily balance operations map
+    const dailyBalanceOps = useMemo((): Record<string, BalanceOperation[]> => {
+        const map: Record<string, BalanceOperation[]> = {};
+        balanceOperations.forEach(op => {
+            if (!map[op.date]) map[op.date] = [];
+            map[op.date].push(op);
+        });
+        return map;
+    }, [balanceOperations]);
+
+    // Compute running account balance per trading day
+    // Balance on day D = initial capital + all P&L before D + all balance ops before/on D
+    const dailyRunningBalance = useMemo((): Record<string, number> => {
+        if (balanceOperations.length === 0) return {};
+
+        // Sort all balance ops and trades by date
+        const sortedOps = [...balanceOperations].sort((a, b) => a.date.localeCompare(b.date));
+        
+        // Collect all unique dates with any activity
+        const allDateKeys = new Set<string>();
+        tradeData.forEach(t => { if (t.Date) allDateKeys.add(t.Date); });
+        balanceOperations.forEach(op => allDateKeys.add(op.date));
+        const sortedDates = Array.from(allDateKeys).sort();
+
+        // Build cumulative balance for each date
+        let runningBalance = 0;
+        // Start with initial capital (first deposit)
+        const firstDeposit = sortedOps.find(op => op.isInitialCapital);  
+        if (firstDeposit) runningBalance = firstDeposit.amount;
+
+        const result: Record<string, number> = {};
+        
+        sortedDates.forEach(dateKey => {
+            // Add balance ops on this date
+            (dailyBalanceOps[dateKey] ?? []).forEach(op => {
+                if (!op.isInitialCapital) runningBalance += op.amount;
+            });
+            // Add trade P&L from this date
+            tradeData
+                .filter(t => t.Date === dateKey)
+                .forEach(t => { runningBalance += parseFloat(t.NetPnL || '0'); });
+            result[dateKey] = runningBalance;
+        });
+
+        return result;
+    }, [balanceOperations, tradeData, dailyBalanceOps]);
 
     const dayData = useMemo(() => calculateDailySummaries(tradeData, commissionData), [tradeData, commissionData]);
 
@@ -417,6 +465,13 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, on
 
                             const otherFeesForPopover = dailyUploadedCommissions + dailyTotalSECFee + dailyTotalFee1 + dailyTotalFee2 + dailyTotalFee3 + dailyTotalFee4 + dailyTotalFee5 + dailyNetCash;
 
+                            // Balance ops for this day
+                            const dayBalOps = dailyBalanceOps[dateKey] ?? [];
+                            const dayDeposits = dayBalOps.filter(op => op.type === 'deposit' || op.type === 'credit').reduce((s, op) => s + op.amount, 0);
+                            const dayWithdrawals = Math.abs(dayBalOps.filter(op => op.type === 'withdrawal').reduce((s, op) => s + op.amount, 0));
+                            const dayRunningBalance = dailyRunningBalance[dateKey];
+                            const hasBalanceData = dayBalOps.length > 0 || dayRunningBalance !== undefined;
+
                             const pnlColor = pnlForCellDisplay === 0 ? 'text-muted-foreground' : pnlForCellDisplay > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400';
                             const dayBgColor = isHoliday ? 'bg-purple-500/10 dark:bg-purple-900/20' : isWknd && isCurrentMonthDay ? 'bg-muted/60' : pnlForCellDisplay === 0 ? '' : pnlForCellDisplay > 0 ? 'bg-green-500/10 dark:bg-green-900/30' : 'bg-red-500/10 dark:bg-red-900/30';
 
@@ -467,17 +522,46 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, on
                                 </div>
                             );
 
-                            const hasPopoverData = isCurrentMonthDay && summary && (summary.grossProfitloss || summary.profitloss || otherFeesForPopover || summary.trades);
+                            const hasPopoverData = isCurrentMonthDay && (
+                                hasBalanceData || 
+                                (summary && (summary.grossProfitloss || summary.profitloss || otherFeesForPopover || summary.trades))
+                            );
                             if (hasPopoverData) {
                                 return (
                                     <Popover key={dateKey}><PopoverTrigger asChild>{cellContent}</PopoverTrigger>
-                                        <PopoverContent className="w-auto p-3 text-xs" side="top" align="center">
-                                            <div className="space-y-1">
-                                                <p className="font-semibold text-sm">{format(dayItem, 'MMM dd, yyyy')}</p>
+                                        <PopoverContent className="w-56 p-3 text-xs" side="top" align="center">
+                                            <div className="space-y-1.5">
+                                                <p className="font-semibold text-sm border-b pb-1">{format(dayItem, 'MMM dd, yyyy')}</p>
                                                 {isHoliday && <p className="text-purple-600 dark:text-purple-400">🚫 {holiday!.name}</p>}
+
+                                                {/* Account balance section */}
+                                                {dayRunningBalance !== undefined && (
+                                                    <div className="flex justify-between items-center bg-muted/30 rounded px-1.5 py-0.5">
+                                                        <span className="text-muted-foreground">Account Balance:</span>
+                                                        <span className="font-bold text-blue-600 dark:text-blue-400">{selectedCurrency.symbol}{(dayRunningBalance * selectedCurrency.rate).toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Deposits */}
+                                                {dayDeposits > 0 && (
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-blue-500">💰 Deposit:</span>
+                                                        <span className="font-medium text-blue-500">+{selectedCurrency.symbol}{(dayDeposits * selectedCurrency.rate).toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Withdrawals */}
+                                                {dayWithdrawals > 0 && (
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-orange-500">🏧 Withdrawal:</span>
+                                                        <span className="font-medium text-orange-500">-{selectedCurrency.symbol}{(dayWithdrawals * selectedCurrency.rate).toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* PnL section */}
+                                                {(formattedGrossPnlForPopover || formattedNetPnlFromTradesForPopover) && <div className="border-t pt-1 mt-1"/>}
                                                 {formattedGrossPnlForPopover && <div className="flex justify-between"><span>Gross P&L:</span><span className={cn("font-medium", (summary?.grossProfitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedGrossPnlForPopover}</span></div>}
-                                                {formattedNetPnlFromTradesForPopover && <div className="flex justify-between"><span>Net P&L (Trades):</span><span className={cn("font-medium", (summary?.profitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedNetPnlFromTradesForPopover}</span></div>}
-                                                {formattedFinalPnlInPopover && <div className="flex justify-between border-t pt-1 mt-1"><span>Final P&L:</span><span className={cn("font-medium", finalPnlInPopover >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedFinalPnlInPopover}</span></div>}
+                                                {formattedNetPnlFromTradesForPopover && <div className="flex justify-between"><span>Net P&L:</span><span className={cn("font-medium", (summary?.profitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedNetPnlFromTradesForPopover}</span></div>}
                                                 {formattedOtherFeesForPopover && <div className="flex justify-between"><span>Other Fees:</span><span className="font-medium text-muted-foreground">{formattedOtherFeesForPopover}</span></div>}
                                                 {(trades || 0) > 0 && <div className="flex justify-between"><span>Trades:</span><span className="font-medium">{trades}</span></div>}
                                                 {assetsOnDay.length > 0 && <div className="flex justify-between"><span>Instruments:</span><span className="font-medium">{assetsOnDay.map(a => getAssetEmoji(a)).join(' ')}</span></div>}
