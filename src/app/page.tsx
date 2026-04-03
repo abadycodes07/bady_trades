@@ -44,44 +44,8 @@ export default function RootPage() {
           title="BadyTrades Landing Page"
         />
 
-        {/* Floating "Bridge" UI to Local App */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-            <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-full px-6 py-3 flex items-center gap-4 shadow-2xl pointer-events-auto animate-fade-in-up">
-                <div className="flex items-center gap-2 pr-4 border-r border-white/10">
-                    <BadyTradesLogo className="h-5 w-auto" />
-                    <span className="text-sm font-bold tracking-tight text-white/90">LOCAL PREVIEW</span>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                    <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-xs font-semibold text-white/70 hover:text-white hover:bg-white/5 rounded-full px-4"
-                        onClick={() => router.push('/login')}
-                    >
-                        Login
-                    </Button>
-                    <Button 
-                        size="sm" 
-                        className="text-xs font-bold bg-primary hover:bg-primary/80 text-white rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2 group"
-                        onClick={() => router.push('/signup')}
-                    >
-                        Get Started
-                        <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                </div>
-            </div>
-        </div>
-
-        {/* Floating Dashboard Shortcut */}
-        <div className="absolute bottom-10 right-10 z-50 animate-bounce">
-             <Button 
-                onClick={() => router.push('/dashboard')}
-                className="rounded-full h-14 w-14 p-0 bg-primary/20 backdrop-blur-md border border-primary/40 text-primary hover:bg-primary hover:text-white transition-all duration-300 shadow-2xl"
-             >
-                <LayoutDashboard className="h-6 w-6" />
-             </Button>
-        </div>
+        {/* Floating "Bridge" UI to Local App (REMOVED) */}
+        {/* Floating Dashboard Shortcut (REMOVED) */}
       </div>
     );
   }
