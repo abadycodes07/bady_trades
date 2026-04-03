@@ -276,59 +276,69 @@ export default function DashboardPage() {
                    const hasTradeDateColumn = csvHeaders.includes('t/d');
                    const hasNetProceedsColumn = csvHeaders.includes('net proceeds');
                    const hasGrossProceedsColumn = csvHeaders.includes('gross proceeds');
+                   
+                   const isStandardFormat = hasTradeDateColumn && hasNetProceedsColumn && hasGrossProceedsColumn;
+                   const isMT4Format = csvHeaders.includes('ticket') && csvHeaders.includes('closing_time_utc') && csvHeaders.includes('profit');
 
-                   if (!hasTradeDateColumn) {
+                   if (!isStandardFormat && !isMT4Format) {
                        toast({
                            title: 'CSV Format Error',
-                           description: "The CSV file must contain a 'T/D' column (case-insensitive, for Trade Date).",
+                           description: "Unrecognized CSV format. Please use Standard format (requires 'T/D', 'Net Proceeds', 'Gross Proceeds') or MetaTrader format.",
                            variant: 'destructive',
                            duration: 7000,
                        });
+                       return;
                    }
-                    if (!hasNetProceedsColumn) {
-                        toast({
-                            title: 'CSV Format Error',
-                            description: "The CSV file must contain a 'Net Proceeds' column (case-insensitive) for P&L calculations.",
-                            variant: 'destructive',
-                            duration: 7000,
-                        });
-                    }
-                     if (!hasGrossProceedsColumn) {
-                        toast({
-                            title: 'CSV Format Error',
-                            description: "The CSV file must contain a 'Gross Proceeds' column (case-insensitive) for P&L calculations.",
-                            variant: 'destructive',
-                            duration: 7000,
-                        });
-                    }
 
 
-                   if (results.data.length > 0 && hasTradeDateColumn && hasNetProceedsColumn && hasGrossProceedsColumn) {
+                   if (results.data.length > 0 && (isStandardFormat || isMT4Format)) {
                        const normalizedData = results.data.map((row, index) => {
                            const newRow: Partial<CsvTradeData> = { id: `csv-trade-${Date.now()}-${index}` };
-                           const headerMap: { [csvHeader: string]: keyof CsvTradeData } = {
-                               'account': 'Account', 't/d': 'T/D', 's/d': 'S/D',
-                               'currency': 'Currency', 'type': 'Type', 'side': 'Side',
-                               'symbol': 'Symbol', 'qty': 'Qty', 'price': 'Price',
-                               'exec time': 'Exec Time', 'comm': 'Comm', 'sec': 'SEC',
-                               'taf': 'TAF', 'nscc': 'NSCC', 'nasdaq': 'Nasdaq',
-                               'ecn remove': 'ECN Remove', 'ecn add': 'ECN Add',
-                               'gross proceeds': 'Gross Proceeds', 'net proceeds': 'Net Proceeds',
-                               'clr broker': 'Clr Broker', 'liq': 'Liq', 'note': 'Note',
-                               'netcash': 'NetCash',
-                               'totalsecfee': 'TotalSECFee',
-                               'totalfee1': 'TotalFee1',
-                               'totalfee2': 'TotalFee2',
-                               'totalfee3': 'TotalFee3',
-                               'totalfee4': 'TotalFee4',
-                               'totalfee5': 'TotalFee5',
-                           };
 
-                           for (const rawCsvHeader in row) {
-                               const csvHeader = rawCsvHeader.trim().toLowerCase();
-                               const targetKey = headerMap[csvHeader];
-                               if (targetKey) {
-                                   newRow[targetKey] = row[rawCsvHeader];
+                           if (isMT4Format) {
+                               const getRowVal = (key: string) => row[Object.keys(row).find(k => k.trim().toLowerCase() === key) || ''] || '';
+                               
+                               const rawDate = getRowVal('closing_time_utc') || getRowVal('time');
+                               newRow['T/D'] = rawDate ? rawDate.split(' ')[0].split('T')[0] : '';
+                               newRow['Symbol'] = getRowVal('symbol');
+                               newRow['Side'] = getRowVal('type');
+                               newRow['Qty'] = getRowVal('lots') || getRowVal('volume');
+                               newRow['Price'] = getRowVal('closing_price') || getRowVal('price');
+                               newRow['Exec Time'] = rawDate;
+                               
+                               const profit = parseFloat(getRowVal('profit') || '0');
+                               const comm = parseFloat(getRowVal('commission') || '0');
+                               const swap = parseFloat(getRowVal('swap') || '0');
+                               
+                               newRow['Gross Proceeds'] = profit.toString();
+                               newRow['Net Proceeds'] = (profit + comm + swap).toString();
+                               newRow['Comm'] = comm.toString();
+                               newRow['Account'] = 'MetaTrader';
+                           } else {
+                               const headerMap: { [csvHeader: string]: keyof CsvTradeData } = {
+                                   'account': 'Account', 't/d': 'T/D', 's/d': 'S/D',
+                                   'currency': 'Currency', 'type': 'Type', 'side': 'Side',
+                                   'symbol': 'Symbol', 'qty': 'Qty', 'price': 'Price',
+                                   'exec time': 'Exec Time', 'comm': 'Comm', 'sec': 'SEC',
+                                   'taf': 'TAF', 'nscc': 'NSCC', 'nasdaq': 'Nasdaq',
+                                   'ecn remove': 'ECN Remove', 'ecn add': 'ECN Add',
+                                   'gross proceeds': 'Gross Proceeds', 'net proceeds': 'Net Proceeds',
+                                   'clr broker': 'Clr Broker', 'liq': 'Liq', 'note': 'Note',
+                                   'netcash': 'NetCash',
+                                   'totalsecfee': 'TotalSECFee',
+                                   'totalfee1': 'TotalFee1',
+                                   'totalfee2': 'TotalFee2',
+                                   'totalfee3': 'TotalFee3',
+                                   'totalfee4': 'TotalFee4',
+                                   'totalfee5': 'TotalFee5',
+                               };
+    
+                               for (const rawCsvHeader in row) {
+                                   const csvHeader = rawCsvHeader.trim().toLowerCase();
+                                   const targetKey = headerMap[csvHeader];
+                                   if (targetKey) {
+                                       newRow[targetKey] = row[rawCsvHeader];
+                                   }
                                }
                            }
 
@@ -369,7 +379,7 @@ export default function DashboardPage() {
                        });
 
                        addTrades(normalizedData);
-                   } else if (results.data.length > 0 && (!hasTradeDateColumn || !hasNetProceedsColumn || !hasGrossProceedsColumn)) {
+                   } else if (results.data.length > 0 && (!isStandardFormat && !isMT4Format)) {
                        // Specific error messages handled above
                    } else if (results.data.length === 0) {
                         toast({
