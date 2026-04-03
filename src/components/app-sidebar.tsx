@@ -49,8 +49,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
-import { auth } from '@/lib/firebase/clientApp'; // Import Firebase auth instance
-import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import Avatar
 import { BadyTradesLogo } from '@/components/icons/badytrades-logo';
@@ -113,26 +111,26 @@ export function AppSidebar() {
         }
     }
 
-    if (user && !initialAccounts.some(acc => acc.id === user.uid)) {
+    if (user && !initialAccounts.some(acc => acc.id === user.id)) {
         initialAccounts.push({
-            id: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
+            id: user.id,
+            email: user.email ?? null,
+            displayName: user.user_metadata?.name ?? null,
+            photoURL: user.user_metadata?.avatar_url ?? null,
             isActive: false, // Will be set correctly below
         });
     }
     
     // Determine the active account
     let currentActiveId = storedActiveId;
-    // If no stored active ID, or stored ID is not in current user list, default to current Firebase user
+    // If no stored active ID, or stored ID is not in current user list, default to current Supabase user
     if (user && (!storedActiveId || !initialAccounts.some(acc => acc.id === storedActiveId))) {
-       currentActiveId = user.uid;
+       currentActiveId = user.id;
     } else if (!user && storedActiveId && !initialAccounts.some(acc => acc.id === storedActiveId)){
-        // If no firebase user and stored ID is invalid, clear it
+        // If no user and stored ID is invalid, clear it
         currentActiveId = null;
     } else if (!user && !storedActiveId && initialAccounts.length > 0){
-        // If no firebase user, no stored ID, but accounts exist, make the first one active (edge case)
+        // If no user, no stored ID, but accounts exist, make the first one active (edge case)
         currentActiveId = initialAccounts[0].id;
     }
 
@@ -153,16 +151,18 @@ export function AppSidebar() {
         localStorage.removeItem('badytrades_active_account_id');
     }
 
-  }, [user]); // Rerun when Firebase user changes
+  }, [user]); // Rerun when user changes
 
   const activeAccount = accounts.find(acc => acc.id === activeAccountId);
+  // Alias signOut to supabaseSignOut since we already use useAuth
+  const { signOut: supabaseSignOut } = useAuth();
 
   const handleLogout = async () => {
     if (!activeAccountId) return; // No active account to log out from
     const currentActiveAccount = accounts.find(acc => acc.id === activeAccountId);
 
     try {
-      await signOut(auth); // Sign out from Firebase
+      await supabaseSignOut(); // Sign out from Supabase
       
       // Remove the logged-out account from the list
       const remainingAccounts = accounts.filter(acc => acc.id !== activeAccountId);
@@ -212,13 +212,13 @@ export function AppSidebar() {
           toast({ title: 'Switch Account', description: 'This is already the active account.' });
           return;
       }
-      // Sign out current Firebase user *before* switching context
+      // Sign out current user *before* switching context
       try {
-        if (auth.currentUser) { 
-            await signOut(auth);
+        if (user) { 
+            await supabaseSignOut();
         }
       } catch (error: any) {
-        console.error("Error signing out current Firebase user before switch:", error);
+        console.error("Error signing out current user before switch:", error);
         // Non-fatal, proceed with context switch but user might need to re-login for the target account
         toast({ title: 'Warning', description: 'Could not sign out previous session cleanly. You may need to log in again.', variant: 'default', duration: 6000 });
       }
@@ -294,7 +294,7 @@ export function AppSidebar() {
                         isActive={pathname === item.href}
                         tooltip={item.label}
                         className="hover-effect justify-center !p-2 !size-10"
-                        variant="ghost"
+                        variant="default"
                         onClick={() => isMobile && setOpenMobile(false)}
                       >
                         <item.icon className="h-5 w-5" />
@@ -317,7 +317,7 @@ export function AppSidebar() {
                               isActive={pathname === item.href}
                               tooltip={item.label}
                               className="hover-effect justify-center !p-2 !size-10"
-                              variant="ghost"
+                              variant="default"
                               onClick={() => isMobile && setOpenMobile(false)}
                             >
                               <item.icon className="h-5 w-5" />
@@ -331,7 +331,7 @@ export function AppSidebar() {
                             <SidebarMenuButton
                                 tooltip="Logout Current Account"
                                 className="hover-effect justify-center !p-2 !size-10 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                variant="ghost"
+                                variant="default"
                                 onClick={handleLogout}
                               >
                                 <LogOut className="h-5 w-5" />
@@ -390,7 +390,7 @@ export function AppSidebar() {
                                 <DropdownMenuItem
                                   key={account.id}
                                   onClick={() => handleSwitchAccount(account.id)}
-                                  disabled={account.isActive && auth.currentUser?.uid === account.id} // Disable if active AND current Firebase user matches
+                                  disabled={account.isActive && user?.id === account.id} // Disable if active AND current Supabase user matches
                                   className="cursor-pointer flex items-center gap-2"
                                 >
                                      <Avatar className="h-6 w-6">
@@ -398,8 +398,8 @@ export function AppSidebar() {
                                          <AvatarFallback>{account.email?.[0]?.toUpperCase() ?? 'U'}</AvatarFallback>
                                      </Avatar>
                                      <span className="truncate flex-1">{account.email}</span>
-                                     {account.isActive && auth.currentUser?.uid === account.id && <Check className="ml-auto h-4 w-4 text-primary" />}
-                                     {(!account.isActive || auth.currentUser?.uid !== account.id) && <Replace className="ml-auto h-4 w-4 text-muted-foreground" />}
+                                     {account.isActive && user?.id === account.id && <Check className="ml-auto h-4 w-4 text-primary" />}
+                                     {(!account.isActive || user?.id !== account.id) && <Replace className="ml-auto h-4 w-4 text-muted-foreground" />}
                                 </DropdownMenuItem>
                              ))}
                              {accounts.length === 0 && !loading && (
@@ -410,7 +410,7 @@ export function AppSidebar() {
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 <span>Add Account</span>
                              </DropdownMenuItem>
-                              {activeAccount && auth.currentUser?.uid === activeAccount.id && ( // Only show logout if current Firebase user matches active account
+                              {activeAccount && user?.id === activeAccount.id && ( // Only show logout if current user matches active account
                                  <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
