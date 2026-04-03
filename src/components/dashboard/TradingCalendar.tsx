@@ -324,18 +324,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
 
     const dayData = useMemo(() => calculateDailySummaries(tradeData, commissionData), [tradeData, commissionData]);
 
-    // Cumulative P&L per day (always available, no deposit CSV required)
-    // Shows running total of all net P&L from the very first trade
-    const cumulativePnLByDay = useMemo((): Record<string, number> => {
-        const sortedDates = Object.keys(dayData).sort();
-        let cumulative = 0;
-        const result: Record<string, number> = {};
-        sortedDates.forEach(dateKey => {
-            cumulative += dayData[dateKey]?.profitloss || 0;
-            result[dateKey] = cumulative;
-        });
-        return result;
-    }, [dayData]);
+
 
     useEffect(() => {
         if (tradeData && tradeData.length > 0) {
@@ -522,50 +511,12 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                 (summary && (summary.grossProfitloss || summary.profitloss || otherFeesForPopover || summary.trades))
                             );
                             if (hasPopoverData) {
-                                const cumulPnL = cumulativePnLByDay[dateKey];
                                 return (
                                     <Popover key={dateKey}><PopoverTrigger asChild>{cellContent}</PopoverTrigger>
-                                        <PopoverContent className="w-56 p-3 text-xs" side="top" align="center">
+                                        <PopoverContent className="w-52 p-3 text-xs" side="top" align="center">
                                             <div className="space-y-1.5">
                                                 <p className="font-semibold text-sm border-b pb-1">{format(dayItem, 'MMM dd, yyyy')}</p>
                                                 {isHoliday && <p className="text-purple-600 dark:text-purple-400">🚫 {holiday!.name}</p>}
-
-                                                {/* Always show Cumulative P&L balance (running total from all trades) */}
-                                                {cumulPnL !== undefined && (
-                                                    <div className="flex justify-between items-center bg-blue-500/10 rounded px-1.5 py-1">
-                                                        <span className="text-muted-foreground font-medium">Running P&L Total:</span>
-                                                        <span className={cn("font-bold", cumulPnL >= 0 ? "text-green-500" : "text-red-500")}>
-                                                            {cumulPnL >= 0 ? '+' : ''}{selectedCurrency.symbol}{(cumulPnL * selectedCurrency.rate).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                                        </span>
-                                                    </div>
-                                                )}
-
-                                                {/* Account balance from deposit CSV (if uploaded) */}
-                                                {dayRunningBalance !== undefined && (
-                                                    <div className="flex justify-between items-center bg-muted/30 rounded px-1.5 py-0.5">
-                                                        <span className="text-muted-foreground">Account Balance:</span>
-                                                        <span className="font-bold text-blue-600 dark:text-blue-400">{selectedCurrency.symbol}{(dayRunningBalance * selectedCurrency.rate).toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
-                                                    </div>
-                                                )}
-
-                                                {/* Deposits */}
-                                                {dayDeposits > 0 && (
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-blue-500">💰 Deposit:</span>
-                                                        <span className="font-medium text-blue-500">+{selectedCurrency.symbol}{(dayDeposits * selectedCurrency.rate).toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
-                                                    </div>
-                                                )}
-
-                                                {/* Withdrawals */}
-                                                {dayWithdrawals > 0 && (
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-orange-500">🏧 Withdrawal:</span>
-                                                        <span className="font-medium text-orange-500">-{selectedCurrency.symbol}{(dayWithdrawals * selectedCurrency.rate).toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
-                                                    </div>
-                                                )}
-
-                                                {/* PnL section */}
-                                                {(formattedGrossPnlForPopover || formattedNetPnlFromTradesForPopover) && <div className="border-t pt-1 mt-1"/>}
                                                 {formattedGrossPnlForPopover && <div className="flex justify-between"><span>Gross P&L:</span><span className={cn("font-medium", (summary?.grossProfitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedGrossPnlForPopover}</span></div>}
                                                 {formattedNetPnlFromTradesForPopover && <div className="flex justify-between"><span>Net P&L:</span><span className={cn("font-medium", (summary?.profitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedNetPnlFromTradesForPopover}</span></div>}
                                                 {formattedOtherFeesForPopover && <div className="flex justify-between"><span>Other Fees:</span><span className="font-medium text-muted-foreground">{formattedOtherFeesForPopover}</span></div>}
