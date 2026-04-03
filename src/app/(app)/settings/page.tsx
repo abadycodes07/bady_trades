@@ -1,33 +1,213 @@
-
 'use client';
+
+// src/app/(app)/settings/page.tsx
+// Settings — includes Broker Connections panel with guided import wizards
 
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Palette, Bell, UploadCloud, RotateCcw } from 'lucide-react'; // Import icons
-import { useTheme } from 'next-themes'; 
-import { ModeToggle } from '@/components/theme-toggle'; 
-import { useTradeData } from '@/contexts/TradeDataContext'; // Import useTradeData
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
+import { Settings, Palette, Bell, UploadCloud, RotateCcw, Link2, CheckCircle2, Clock, AlertCircle, ChevronRight, Copy, ExternalLink } from 'lucide-react';
+import { ModeToggle } from '@/components/theme-toggle';
+import { useTradeData } from '@/contexts/TradeDataContext';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
+// ─── Broker definitions ───────────────────────────────────────────────────────
+type ConnectionMethod = 'ea_plugin' | 'guided_csv' | 'coming_soon';
+type ConnectionStatus = 'connected' | 'not_connected' | 'coming_soon';
 
+interface Broker {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
+  bgColor: string;           // Tailwind class
+  accentColor: string;       // Tailwind text class
+  status: ConnectionStatus;
+  method: ConnectionMethod;
+  badge?: string;
+}
+
+const BROKERS: Broker[] = [
+  {
+    id: 'exness',
+    name: 'Exness',
+    description: 'MetaTrader 4/5 via EA Plugin',
+    emoji: '🟢',
+    bgColor: 'bg-green-500/10 border-green-500/30',
+    accentColor: 'text-green-500',
+    status: 'not_connected',
+    method: 'ea_plugin',
+    badge: 'Supported',
+  },
+  {
+    id: 'icmarkets',
+    name: 'IC Markets',
+    description: 'MetaTrader 4/5 · cTrader via EA Plugin',
+    emoji: '🔵',
+    bgColor: 'bg-blue-500/10 border-blue-500/30',
+    accentColor: 'text-blue-500',
+    status: 'not_connected',
+    method: 'ea_plugin',
+    badge: 'Supported',
+  },
+  {
+    id: 'pepperstone',
+    name: 'Pepperstone',
+    description: 'MetaTrader 4/5 · cTrader via EA Plugin',
+    emoji: '🟠',
+    bgColor: 'bg-orange-500/10 border-orange-500/30',
+    accentColor: 'text-orange-500',
+    status: 'not_connected',
+    method: 'ea_plugin',
+    badge: 'Supported',
+  },
+  {
+    id: 'fxpro',
+    name: 'FxPro',
+    description: 'MetaTrader 4/5 via EA Plugin',
+    emoji: '🟣',
+    bgColor: 'bg-purple-500/10 border-purple-500/30',
+    accentColor: 'text-purple-500',
+    status: 'not_connected',
+    method: 'ea_plugin',
+    badge: 'Supported',
+  },
+  {
+    id: 'xm',
+    name: 'XM',
+    description: 'MetaTrader 4/5 via EA Plugin',
+    emoji: '⚫',
+    bgColor: 'bg-slate-500/10 border-slate-500/30',
+    accentColor: 'text-slate-400',
+    status: 'not_connected',
+    method: 'ea_plugin',
+    badge: 'Supported',
+  },
+  {
+    id: 'oanda',
+    name: 'OANDA',
+    description: 'Direct REST API — coming soon',
+    emoji: '🔴',
+    bgColor: 'bg-red-500/10 border-red-500/30',
+    accentColor: 'text-red-500',
+    status: 'coming_soon',
+    method: 'coming_soon',
+    badge: 'Coming Soon',
+  },
+  {
+    id: 'interactive_brokers',
+    name: 'Interactive Brokers',
+    description: 'TWS API — coming soon',
+    emoji: '🟡',
+    bgColor: 'bg-yellow-500/10 border-yellow-500/30',
+    accentColor: 'text-yellow-500',
+    status: 'coming_soon',
+    method: 'coming_soon',
+    badge: 'Coming Soon',
+  },
+  {
+    id: 'mt4_any',
+    name: 'Any MT4/MT5 Broker',
+    description: 'Works with ANY MetaTrader 4 or 5 broker',
+    emoji: '📊',
+    bgColor: 'bg-cyan-500/10 border-cyan-500/30',
+    accentColor: 'text-cyan-500',
+    status: 'not_connected',
+    method: 'ea_plugin',
+    badge: 'Universal',
+  },
+];
+
+// ─── EA Plugin Install Guide ──────────────────────────────────────────────────
+const EA_STEPS = [
+  {
+    step: 1,
+    title: 'Open MetaTrader 4 or 5 on your PC',
+    detail: 'The EA plugin runs locally inside MetaTrader and pushes your trades automatically every 30 seconds.',
+    icon: '💻',
+  },
+  {
+    step: 2,
+    title: 'Open the MQL Editor',
+    detail: 'In MetaTrader: click Tools → MetaQuotes Language Editor (or press F4). This opens the MQL4/MQL5 editor.',
+    icon: '⚙️',
+  },
+  {
+    step: 3,
+    title: 'Create a new Expert Advisor file',
+    detail: 'In the editor: File → New → Expert Advisor. Name it "BadyTrades_Sync". Paste the EA code (download below) and compile it (F7).',
+    icon: '📄',
+  },
+  {
+    step: 4,
+    title: 'Copy your personal API key',
+    detail: 'Your unique key is shown below. Paste it into the EA settings when you attach it to a chart.',
+    icon: '🔑',
+  },
+  {
+    step: 5,
+    title: 'Attach the EA to any chart',
+    detail: 'Drag "BadyTrades_Sync" from the Navigator panel onto any chart. Set the API Key in EA properties. Enable "Allow WebRequest" for badytrades.com in MetaTrader Options → Expert Advisors.',
+    icon: '📈',
+  },
+  {
+    step: 6,
+    title: 'That\'s it — trades sync automatically',
+    detail: 'Every 30 seconds the EA reads your account: balance, all open/closed trades, deposits, withdrawals — and sends them to BadyTrades. Your calendar balance will update live.',
+    icon: '✅',
+  },
+];
+
+// ─── Guided CSV Guide ─────────────────────────────────────────────────────────
+const CSV_STEPS = [
+  {
+    step: 1,
+    title: 'Open MetaTrader on your PC',
+    icon: '💻',
+    detail: 'Open MT4 or MT5. Go to the "Account History" tab at the bottom.',
+  },
+  {
+    step: 2,
+    title: 'Right-click → All History',
+    icon: '🖱️',
+    detail: 'Right-click anywhere in the Account History tab and select "All History" to make sure ALL trades are visible, not just the last month.',
+  },
+  {
+    step: 3,
+    title: 'Save as Detailed Report (IMPORTANT)',
+    icon: '💾',
+    detail: 'Right-click again → "Save as Detailed Report". This saves a file that includes BOTH trades AND balance operations (deposits/withdrawals). Do NOT use "Save as Report" — that version is missing balance info.',
+  },
+  {
+    step: 4,
+    title: 'Save as CSV from the report',
+    icon: '📄',
+    detail: 'Open the .htm file in your browser or MetaTrader. Right-click → Save As → change type to "CSV" or copy the table content. Upload the CSV on your Dashboard.',
+  },
+  {
+    step: 5,
+    title: 'Upload on Dashboard',
+    icon: '📤',
+    detail: 'On the Dashboard, click "Upload Trades CSV". BadyTrades will detect your initial deposit, all trades, and withdrawals automatically.',
+  },
+];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
-  const { clearTrades, isLoading: isTradeDataLoading } = useTradeData(); // Get clearTrades function
+  const { clearTrades, isLoading: isTradeDataLoading } = useTradeData();
   const { toast } = useToast();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -35,141 +215,345 @@ export default function SettingsPage() {
   const [autoImportEnabled, setAutoImportEnabled] = useState(false);
   const [isResetTradesDialogOpen, setIsResetTradesDialogOpen] = useState(false);
 
+  // Broker connect dialog
+  const [selectedBroker, setSelectedBroker] = useState<Broker | null>(null);
+  const [dialogTab, setDialogTab] = useState<'ea' | 'csv'>('ea');
+  const [apiKeyCopied, setApiKeyCopied] = useState(false);
+
+  // Fake API key for demo (in production, generate per user from Supabase)
+  const DEMO_API_KEY = 'bt_ea_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
+
   const handleResetTrades = async () => {
     try {
       await clearTrades();
-      toast({
-        title: "Trades Reset",
-        description: "All trade data has been cleared. You can now upload new CSV files.",
-      });
-    } catch (error) {
-      console.error("Failed to reset trades:", error);
-      toast({
-        title: "Error Resetting Trades",
-        description: "Could not clear trade data. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: 'Trades Reset', description: 'All trade data has been cleared.' });
+    } catch {
+      toast({ title: 'Error Resetting Trades', variant: 'destructive' });
     }
     setIsResetTradesDialogOpen(false);
   };
 
+  const copyApiKey = () => {
+    navigator.clipboard.writeText(DEMO_API_KEY);
+    setApiKeyCopied(true);
+    setTimeout(() => setApiKeyCopied(false), 2000);
+  };
+
+  const openBrokerDialog = (broker: Broker) => {
+    if (broker.method === 'coming_soon') {
+      toast({ title: `${broker.name} — Coming Soon`, description: 'Direct API integration for this broker is in development.' });
+      return;
+    }
+    setSelectedBroker(broker);
+    setDialogTab('ea');
+  };
+
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6 flex items-center gap-2"><Settings /> Settings</h1>
+    <div className="container mx-auto py-8 max-w-6xl">
+      <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+        <Settings className="h-7 w-7" /> Settings
+      </h1>
       <p className="text-muted-foreground mb-8">
-        Manage your account preferences, appearance, and notification settings.
+        Manage your account preferences, broker connections, and data settings.
       </p>
 
-      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      <div className="space-y-8">
 
-        {/* Appearance Settings */}
-        <Card className="hover-effect">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Palette /> Appearance</CardTitle>
-            <CardDescription>Customize the look and feel of BadyTrades.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-             <div className="flex items-center justify-between rounded-lg border p-4">
-               <Label htmlFor="theme-mode" className="font-medium">Theme Mode</Label>
-               <ModeToggle />
-             </div>
-            <div>
-               <Label htmlFor="chart-type">Default Chart Type</Label>
-               <Select value={defaultChartType} onValueChange={setDefaultChartType}>
-                   <SelectTrigger id="chart-type" className="hover-effect">
-                       <SelectValue placeholder="Select chart type" />
-                   </SelectTrigger>
-                   <SelectContent>
-                       <SelectItem value="candlestick">Candlestick</SelectItem>
-                       <SelectItem value="line">Line</SelectItem>
-                       <SelectItem value="area">Area</SelectItem>
-                       <SelectItem value="bar">Bar (OHLC)</SelectItem>
-                   </SelectContent>
-               </Select>
-             </div>
-          </CardContent>
-        </Card>
+        {/* ── Broker Connections ─────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Link2 className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold">Broker Connections</h2>
+            <Badge variant="outline" className="text-xs border-green-500/50 text-green-500">Beta</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Connect your broker to automatically sync trades, deposits, and withdrawals — no manual CSV uploads needed.
+            All supported brokers use the <strong>MT4/MT5 EA Plugin</strong> method which runs on your PC inside MetaTrader.
+          </p>
 
-        {/* Notification Settings */}
-        <Card className="hover-effect">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Bell /> Notifications</CardTitle>
-            <CardDescription>Control how you receive alerts and updates.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-             <div className="flex items-center justify-between rounded-lg border p-4">
-               <div>
+          {/* How it works banner */}
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-5 flex items-start gap-3">
+            <span className="text-2xl flex-shrink-0">💡</span>
+            <div className="text-sm">
+              <p className="font-semibold text-blue-400 mb-1">How auto-sync works</p>
+              <p className="text-muted-foreground">
+                A small Expert Advisor (EA) plugin runs inside your MetaTrader app on your PC.
+                It reads your account every 30 seconds and securely sends your trades, balance, deposits, and withdrawals to BadyTrades.
+                This is the same method used by Tradezella, Edgewonk, and other professional journaling platforms. 
+                <strong> Your broker login credentials are NEVER shared with BadyTrades.</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {BROKERS.map((broker) => (
+              <button
+                key={broker.id}
+                onClick={() => openBrokerDialog(broker)}
+                className={cn(
+                  'relative flex flex-col items-start gap-2 p-4 rounded-xl border text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg',
+                  broker.bgColor,
+                  broker.status === 'coming_soon' ? 'opacity-60 cursor-default' : 'cursor-pointer hover:border-primary/50'
+                )}
+              >
+                {/* Status dot */}
+                <span className="absolute top-2 right-2">
+                  {broker.status === 'connected' ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  ) : broker.status === 'coming_soon' ? (
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <span className="h-3 w-3 rounded-full bg-muted-foreground/30 inline-block" />
+                  )}
+                </span>
+
+                <span className="text-2xl">{broker.emoji}</span>
+                <div>
+                  <p className="font-semibold text-sm">{broker.name}</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{broker.description}</p>
+                </div>
+
+                {broker.badge && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px] px-1.5 py-0 mt-auto',
+                      broker.status === 'not_connected' ? 'border-green-500/40 text-green-500' :
+                      broker.status === 'coming_soon' ? 'border-muted-foreground/30 text-muted-foreground' : 'border-green-500/40 text-green-500'
+                    )}
+                  >
+                    {broker.badge}
+                  </Badge>
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Other settings grid ───────────────────────────────────── */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
+          {/* Appearance */}
+          <Card className="hover-effect">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Palette className="h-4 w-4" /> Appearance</CardTitle>
+              <CardDescription>Customize the look and feel.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <Label htmlFor="theme-mode" className="font-medium">Theme Mode</Label>
+                <ModeToggle />
+              </div>
+              <div>
+                <Label htmlFor="chart-type">Default Chart Type</Label>
+                <Select value={defaultChartType} onValueChange={setDefaultChartType}>
+                  <SelectTrigger id="chart-type" className="hover-effect mt-1">
+                    <SelectValue placeholder="Select chart type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="candlestick">Candlestick</SelectItem>
+                    <SelectItem value="line">Line</SelectItem>
+                    <SelectItem value="area">Area</SelectItem>
+                    <SelectItem value="bar">Bar (OHLC)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Notifications */}
+          <Card className="hover-effect">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Bell className="h-4 w-4" /> Notifications</CardTitle>
+              <CardDescription>Control alerts and updates.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
                   <Label htmlFor="enable-notifications" className="font-medium">Enable Notifications</Label>
                   <p className="text-xs text-muted-foreground">Receive important updates.</p>
-               </div>
-               <Switch
-                id="enable-notifications"
-                checked={notificationsEnabled}
-                onCheckedChange={setNotificationsEnabled}
-                aria-label="Enable Notifications"
-                className="hover-effect"
-              />
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+                <Switch id="enable-notifications" checked={notificationsEnabled} onCheckedChange={setNotificationsEnabled} className="hover-effect" />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <Label htmlFor="auto-import" className="font-medium">Auto Trade Sync</Label>
+                  <p className="text-xs text-muted-foreground">Enable when EA is connected.</p>
+                </div>
+                <Switch id="auto-import" checked={autoImportEnabled} onCheckedChange={setAutoImportEnabled} className="hover-effect" disabled />
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Data & Import Settings */}
-        <Card className="hover-effect">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><UploadCloud /> Data & Import</CardTitle>
-            <CardDescription>Manage data sources and import settings.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-             <div className="flex items-center justify-between rounded-lg border p-4">
-               <div>
-                  <Label htmlFor="auto-import" className="font-medium">Auto Trade Import</Label>
-                  <p className="text-xs text-muted-foreground">Sync trades automatically (if broker connected).</p>
-               </div>
-               <Switch
-                id="auto-import"
-                checked={autoImportEnabled}
-                onCheckedChange={setAutoImportEnabled}
-                aria-label="Enable Auto Import"
-                className="hover-effect"
-                disabled // Disable until broker integration is implemented
-              />
-            </div>
-            <Button variant="outline" className="w-full hover-effect" disabled>Manage Broker Connections</Button>
-            <Button variant="outline" className="w-full hover-effect" disabled>Export Trade Data</Button>
-            
-            <AlertDialog open={isResetTradesDialogOpen} onOpenChange={setIsResetTradesDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full hover-effect" disabled={isTradeDataLoading}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  {isTradeDataLoading ? "Resetting..." : "Reset All Trades"}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure you want to reset all trades?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. All your trade data will be permanently deleted. 
-                    You will be able to upload new CSV files afterwards.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="hover-effect">Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleResetTrades}
-                    className="bg-destructive hover:bg-destructive/90 hover-effect"
-                    disabled={isTradeDataLoading}
-                  >
-                    {isTradeDataLoading ? "Resetting..." : "Yes, Reset Trades"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <p className="text-xs text-muted-foreground text-center">
-              Resetting trades will clear all currently stored trade data.
-            </p>
-          </CardContent>
-        </Card>
+          {/* Data */}
+          <Card className="hover-effect">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><UploadCloud className="h-4 w-4" /> Data Management</CardTitle>
+              <CardDescription>Manage and reset your trade data.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button variant="outline" className="w-full hover-effect" disabled>Export Trade Data (CSV)</Button>
+
+              <AlertDialog open={isResetTradesDialogOpen} onOpenChange={setIsResetTradesDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full hover-effect" disabled={isTradeDataLoading}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    {isTradeDataLoading ? 'Resetting...' : 'Reset All Trades'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset all trades?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This cannot be undone. All trade data will be permanently deleted.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetTrades} className="bg-destructive hover:bg-destructive/90" disabled={isTradeDataLoading}>
+                      {isTradeDataLoading ? 'Resetting...' : 'Yes, Reset'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <p className="text-xs text-muted-foreground text-center">Resetting clears all stored trade data.</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {/* ── Broker Connection Dialog ───────────────────────────────── */}
+      <Dialog open={!!selectedBroker} onOpenChange={(open) => !open && setSelectedBroker(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <span className="text-2xl">{selectedBroker?.emoji}</span>
+              Connect {selectedBroker?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Choose your preferred sync method below.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Method tabs */}
+          <div className="flex gap-2 mt-2">
+            <Button
+              variant={dialogTab === 'ea' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDialogTab('ea')}
+              className="flex-1"
+            >
+              🤖 EA Auto-Sync (Recommended)
+            </Button>
+            <Button
+              variant={dialogTab === 'csv' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDialogTab('csv')}
+              className="flex-1"
+            >
+              📄 Guided CSV Import
+            </Button>
+          </div>
+
+          {/* EA Tab */}
+          {dialogTab === 'ea' && (
+            <div className="space-y-4 mt-2">
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm">
+                <p className="font-semibold text-green-400 mb-1">🤖 Fully Automatic — Recommended</p>
+                <p className="text-muted-foreground text-xs">
+                  The EA plugin runs inside MetaTrader on your PC and syncs trades every 30 seconds.
+                  Works with <strong>any MT4/MT5 broker</strong> including Exness. Your broker password is never shared.
+                </p>
+              </div>
+
+              {/* Your API Key */}
+              <div>
+                <Label className="text-sm font-medium">Your BadyTrades API Key</Label>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <code className="flex-1 bg-muted text-xs p-2.5 rounded-lg font-mono truncate">
+                    {DEMO_API_KEY}
+                  </code>
+                  <Button variant="outline" size="sm" onClick={copyApiKey}>
+                    {apiKeyCopied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">Paste this key into the EA settings in MetaTrader.</p>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-3">
+                {EA_STEPS.map((s) => (
+                  <div key={s.step} className="flex gap-3 p-3 rounded-lg border bg-card">
+                    <div className="flex-shrink-0 h-7 w-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">
+                      {s.step}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm flex items-center gap-1.5">
+                        <span>{s.icon}</span> {s.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{s.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Button className="w-full" variant="outline" asChild>
+                <a href="https://github.com/abadycodes07/bady_trades/blob/main/ea/BadyTrades_Sync.mq4" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Download EA Plugin (.mq4 file)
+                </a>
+              </Button>
+
+              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
+                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-yellow-500" />
+                <p>
+                  In MetaTrader, you must enable <strong>Allow WebRequests for listed URLs</strong> and add
+                  <code className="mx-1 bg-muted px-1 rounded">badytrades-production.up.railway.app</code>
+                  to the list. This is in MetaTrader → Tools → Options → Expert Advisors.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* CSV Tab */}
+          {dialogTab === 'csv' && (
+            <div className="space-y-4 mt-2">
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm">
+                <p className="font-semibold text-blue-400 mb-1">📄 Guided Full Account Statement Export</p>
+                <p className="text-muted-foreground text-xs">
+                  Export the <strong>detailed report</strong> (not just trade history) from MetaTrader.
+                  This includes your initial deposit, deposits, withdrawals, and all trades — so BadyTrades can calculate your exact account balance per day.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {CSV_STEPS.map((s) => (
+                  <div key={s.step} className="flex gap-3 p-3 rounded-lg border bg-card">
+                    <div className="flex-shrink-0 h-7 w-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">
+                      {s.step}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm flex items-center gap-1.5">
+                        <span>{s.icon}</span> {s.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{s.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-yellow-500" />
+                <p>
+                  <strong>Critical:</strong> You MUST use <strong>"Save as Detailed Report"</strong>, not "Save as Report". 
+                  Only the Detailed Report includes balance rows (your deposits/withdrawals and initial capital).
+                  Without those rows, BadyTrades cannot calculate your account balance.
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
