@@ -110,11 +110,21 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
+    // Track IDs already used in THIS batch to prevent duplicates within the same upload
+    // (e.g. two partial-close trades with identical fields will map to the same contentKey)
+    const idsUsedInThisBatch = new Set<string | number>();
+
     for (const inputTrade of newTradesInput) {
       const contentKey = `${inputTrade.Date || ''}-${inputTrade.Symbol || ''}-${inputTrade['Exec Time'] || ''}-${inputTrade.Side || ''}-${inputTrade.Qty || ''}-${inputTrade.Price || ''}`;
       
-      const tradeId = existingContentKeyToIdMap.get(contentKey) || uuidv4();
+      let tradeId: string | number = existingContentKeyToIdMap.get(contentKey) || uuidv4();
       
+      // If this ID is already in the current batch, always generate a fresh unique one
+      if (idsUsedInThisBatch.has(tradeId)) {
+        tradeId = uuidv4();
+      }
+      idsUsedInThisBatch.add(tradeId);
+
       if (user) {
         tradesToUpsert.push({
           id: tradeId,

@@ -251,7 +251,7 @@ const formatTotalCurrency = (value: number, currency: Currency): React.ReactNode
 
 export function TradingCalendar({selectedCurrency, tradeData, commissionData, balanceOperations = [], onUploadCommissionsClick, showFeesInPnl, onShowFeesToggle}: TradingCalendarProps) {
     const [currentMonthDate, setCurrentMonthDate] = useState(startOfMonth(new Date()));
-    const [showWeekends, setShowWeekends] = useState(true);
+
 
     // Detect which asset classes appear in uploaded trades (for icons)
     const tradedAssets = useMemo((): Set<AssetClass> => {
@@ -324,6 +324,19 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
 
     const dayData = useMemo(() => calculateDailySummaries(tradeData, commissionData), [tradeData, commissionData]);
 
+    // Cumulative P&L per day (always available, no deposit CSV required)
+    // Shows running total of all net P&L from the very first trade
+    const cumulativePnLByDay = useMemo((): Record<string, number> => {
+        const sortedDates = Object.keys(dayData).sort();
+        let cumulative = 0;
+        const result: Record<string, number> = {};
+        sortedDates.forEach(dateKey => {
+            cumulative += dayData[dateKey]?.profitloss || 0;
+            result[dateKey] = cumulative;
+        });
+        return result;
+    }, [dayData]);
+
     useEffect(() => {
         if (tradeData && tradeData.length > 0) {
             const validDates = tradeData
@@ -347,17 +360,9 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
     const monthStart = startOfMonth(currentMonthDate);
     const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
 
-    // Column indices: if showWeekends=false, hide Sun(0) and Sat(6)
-    const visibleDayIndices = showWeekends ? [0,1,2,3,4,5,6] : [1,2,3,4,5];
-    const numCols = visibleDayIndices.length;
-
-    // Build 5 full weeks, then filter only visible days
-    const allDays: Date[] = Array.from({ length: 35 }, (_, i) => addDays(startDate, i));
-    const days = allDays.filter(d => visibleDayIndices.includes(getDay(d)));
-
-    // Day labels matching visible columns
-    const allDayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dayLabels = visibleDayIndices.map(i => allDayLabels[i]);
+    // Always show all 7 days (weekend toggle removed)
+    const days: Date[] = Array.from({ length: 35 }, (_, i) => addDays(startDate, i));
+    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     const weeklySummaryData = useMemo(() => calculateWeeklySummaries(startDate, dayData), [startDate, dayData]);
 
@@ -420,24 +425,18 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                         <Label htmlFor="fees-toggle" className="text-xs">Include Fees</Label>
                      </div>
 
-                     {/* Weekend toggle */}
-                     <div className="flex items-center space-x-2">
-                        <Switch id="weekend-toggle" checked={showWeekends} onCheckedChange={setShowWeekends} className="hover-effect"/>
-                        <Label htmlFor="weekend-toggle" className="text-xs">Weekends</Label>
-                     </div>
-
                      <Button onClick={onUploadCommissionsClick} variant="outline" size="sm" className="h-7 px-2 text-xs hover-effect"><UploadCloud className="mr-1.5 h-3 w-3"/>Commissions</Button>
                      <Info className="h-3 w-3 text-muted-foreground cursor-pointer" />
                  </div>
             </CardHeader>
             <CardContent className="flex-grow p-0 overflow-hidden flex">
                 <div className="flex flex-col flex-grow">
-                     <div className={cn("grid gap-0", `grid-cols-${numCols}` )}>
+                     <div className={cn("grid gap-0", "grid-cols-7")}>
                         {dayLabels.map((dayLabel, index) => (
-                            <div key={`${dayLabel}-${index}`} className={cn("text-center text-xs font-medium text-muted-foreground p-1 border-b", headerHeight, "flex items-center justify-center", index < numCols - 1 && "border-r")}>{dayLabel}</div>
+                            <div key={`${dayLabel}-${index}`} className={cn("text-center text-xs font-medium text-muted-foreground p-1 border-b", headerHeight, "flex items-center justify-center", index < 6 && "border-r")}>{dayLabel}</div>
                         ))}
                     </div>
-                    <div className={cn("grid gap-0 flex-grow", `grid-cols-${numCols}`, `grid-rows-5`)}>
+                    <div className={cn("grid gap-0 flex-grow", "grid-cols-7", "grid-rows-5")}>
                         {days.map((dayItem, index) => {
                             const dateKey = format(dayItem, 'yyyy-MM-dd');
                             const summary = dayData[dateKey];
@@ -475,13 +474,12 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                             const pnlColor = pnlForCellDisplay === 0 ? 'text-muted-foreground' : pnlForCellDisplay > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400';
                             const dayBgColor = isHoliday ? 'bg-purple-500/10 dark:bg-purple-900/20' : isWknd && isCurrentMonthDay ? 'bg-muted/60' : pnlForCellDisplay === 0 ? '' : pnlForCellDisplay > 0 ? 'bg-green-500/10 dark:bg-green-900/30' : 'bg-red-500/10 dark:bg-red-900/30';
 
-                            // Determine column position in visible set for border logic
+                            // Simple 7-column grid — day of week = column position
                             const dayOfWeek = getDay(dayItem);
-                            const colPosition = visibleDayIndices.indexOf(dayOfWeek);
-                            const isLastCol = colPosition === numCols - 1;
+                            const isLastCol = dayOfWeek === 6; // Saturday
 
-                            // Row: based on index in filtered days array
-                            const rowNum = Math.floor(index / numCols);
+                            // Row: index / 7
+                            const rowNum = Math.floor(index / 7);
                             const isLastRow = rowNum === 4;
 
                             const formattedDisplayedPnl = formatCalendarCurrency(pnlForCellDisplay, selectedCurrency, true);
@@ -501,9 +499,6 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                         <span className="text-[9px] font-medium text-purple-600 dark:text-purple-400 leading-tight">
                                             🚫 {holiday!.shortName}
                                         </span>
-                                    )}
-                                    {isCurrentMonthDay && isWknd && !isHoliday && !showWeekends && (
-                                        <span className="text-[9px] text-muted-foreground">🌙 Weekend</span>
                                     )}
 
                                     {/* P&L */}
@@ -527,6 +522,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                 (summary && (summary.grossProfitloss || summary.profitloss || otherFeesForPopover || summary.trades))
                             );
                             if (hasPopoverData) {
+                                const cumulPnL = cumulativePnLByDay[dateKey];
                                 return (
                                     <Popover key={dateKey}><PopoverTrigger asChild>{cellContent}</PopoverTrigger>
                                         <PopoverContent className="w-56 p-3 text-xs" side="top" align="center">
@@ -534,7 +530,17 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                                 <p className="font-semibold text-sm border-b pb-1">{format(dayItem, 'MMM dd, yyyy')}</p>
                                                 {isHoliday && <p className="text-purple-600 dark:text-purple-400">🚫 {holiday!.name}</p>}
 
-                                                {/* Account balance section */}
+                                                {/* Always show Cumulative P&L balance (running total from all trades) */}
+                                                {cumulPnL !== undefined && (
+                                                    <div className="flex justify-between items-center bg-blue-500/10 rounded px-1.5 py-1">
+                                                        <span className="text-muted-foreground font-medium">Running P&L Total:</span>
+                                                        <span className={cn("font-bold", cumulPnL >= 0 ? "text-green-500" : "text-red-500")}>
+                                                            {cumulPnL >= 0 ? '+' : ''}{selectedCurrency.symbol}{(cumulPnL * selectedCurrency.rate).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {/* Account balance from deposit CSV (if uploaded) */}
                                                 {dayRunningBalance !== undefined && (
                                                     <div className="flex justify-between items-center bg-muted/30 rounded px-1.5 py-0.5">
                                                         <span className="text-muted-foreground">Account Balance:</span>
