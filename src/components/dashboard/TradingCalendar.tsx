@@ -26,6 +26,9 @@ import { ChevronLeft, ChevronRight, Info, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import type { CsvTradeData, CsvCommissionData, BalanceOperation } from '@/app/(app)/dashboard/page';
 import { isMarketHoliday, getHoliday, isWeekend as isWeekendDay, detectAsset, getAssetEmoji, type AssetClass } from '@/lib/market-holidays';
 
@@ -217,6 +220,7 @@ interface TradingCalendarProps {
     onUploadCommissionsClick: () => void;
     showFeesInPnl: boolean;
     onShowFeesToggle: (checked: boolean) => void;
+    onSetInitialBalance?: (date: Date, amount: number) => void;
 }
 
 const formatCalendarCurrency = (value: number | undefined, currency: Currency, showSignForPositive = false): React.ReactNode => {
@@ -249,10 +253,30 @@ const formatTotalCurrency = (value: number, currency: Currency): React.ReactNode
     return <span className="flex items-center">{sign}{displaySymbol}{formattedAmount}</span>;
 };
 
-export function TradingCalendar({selectedCurrency, tradeData, commissionData, balanceOperations = [], onUploadCommissionsClick, showFeesInPnl, onShowFeesToggle}: TradingCalendarProps) {
+export function TradingCalendar({selectedCurrency, tradeData, commissionData, balanceOperations = [], onUploadCommissionsClick, showFeesInPnl, onShowFeesToggle, onSetInitialBalance}: TradingCalendarProps) {
     const [currentMonthDate, setCurrentMonthDate] = useState(startOfMonth(new Date()));
 
+    // Balance Dialog State
+    const [selectedDayForBalance, setSelectedDayForBalance] = useState<Date | null>(null);
+    const [isBalanceDialogOpen, setIsBalanceDialogOpen] = useState(false);
+    const [balanceInput, setBalanceInput] = useState('');
 
+    const handleOpenBalanceDialog = (day: Date) => {
+        setSelectedDayForBalance(day);
+        setBalanceInput(''); 
+        setIsBalanceDialogOpen(true);
+    };
+
+    const handleSetBalance = () => {
+        if (!selectedDayForBalance) return;
+        const amount = parseFloat(balanceInput);
+        if (isNaN(amount) || amount < 0) return;
+        
+        if (onSetInitialBalance) {
+            onSetInitialBalance(selectedDayForBalance, amount);
+        }
+        setIsBalanceDialogOpen(false);
+    };
     // Detect which asset classes appear in uploaded trades (for icons)
     const tradedAssets = useMemo((): Set<AssetClass> => {
         const assets = new Set<AssetClass>();
@@ -510,8 +534,11 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                 hasBalanceData || 
                                 (summary && (summary.grossProfitloss || summary.profitloss || otherFeesForPopover || summary.trades))
                             );
+                            
+                            let cellWrapper = <div key={dateKey} className="flex flex-col h-full">{cellContent}</div>;
+                            
                             if (hasPopoverData) {
-                                return (
+                                cellWrapper = (
                                     <Popover key={dateKey}><PopoverTrigger asChild>{cellContent}</PopoverTrigger>
                                         <PopoverContent className="w-52 p-3 text-xs" side="top" align="center">
                                             <div className="space-y-1.5">
@@ -527,7 +554,19 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                     </Popover>
                                 );
                             }
-                            return <div key={dateKey} className="flex flex-col h-full">{cellContent}</div>;
+
+                            return (
+                                <ContextMenu key={dateKey}>
+                                    <ContextMenuTrigger asChild>
+                                        {cellWrapper}
+                                    </ContextMenuTrigger>
+                                    <ContextMenuContent>
+                                        <ContextMenuItem onSelect={() => handleOpenBalanceDialog(dayItem)}>
+                                            Set Initial Balance
+                                        </ContextMenuItem>
+                                    </ContextMenuContent>
+                                </ContextMenu>
+                            );
                         })}
                     </div>
                 </div>
@@ -596,6 +635,36 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                       })}
                 </div>
             </CardContent>
+
+            <Dialog open={isBalanceDialogOpen} onOpenChange={setIsBalanceDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Set Initial Balance</DialogTitle>
+                        <DialogDescription>
+                            Enter the account balance before any trades took place on {selectedDayForBalance ? format(selectedDayForBalance, 'PPP') : ''}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="balance" className="text-right">
+                                Balance
+                            </Label>
+                            <Input
+                                id="balance"
+                                type="number"
+                                placeholder="500.00"
+                                value={balanceInput}
+                                onChange={(e) => setBalanceInput(e.target.value)}
+                                className="col-span-3"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsBalanceDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleSetBalance}>Save Balance</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Card>
     );
 }

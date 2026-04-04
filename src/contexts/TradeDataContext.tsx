@@ -9,8 +9,21 @@ import { useAuth } from './AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { v4 as uuidv4 } from 'uuid'; 
 
+export interface TradingAccount {
+  id: string;
+  user_id: string;
+  name: string;
+  broker: string | null;
+  initial_balance: number;
+}
+
 interface TradeDataContextType {
   tradeData: CsvTradeData[];
+  accounts: TradingAccount[];
+  selectedAccountId: string | null;
+  setSelectedAccountId: React.Dispatch<React.SetStateAction<string | null>>;
+  createAccount: (name: string, broker?: string) => Promise<TradingAccount | null>;
+  updateAccountInitialBalance: (accountId: string, amount: number) => Promise<void>;
   addTrades: (newTrades: CsvTradeData[]) => void;
   clearTrades: () => void;
   isLoading: boolean;
@@ -21,9 +34,11 @@ const TradeDataContext = createContext<TradeDataContextType | undefined>(undefin
 
 export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
   const [tradeData, setTradeData] = useState<CsvTradeData[]>([]);
+  const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth(); 
+  const { user, loading: authLoading } = useAuth();
 
   const sortTrades = useCallback((trades: CsvTradeData[]): CsvTradeData[] => {
     return trades.sort((a, b) => {
@@ -47,8 +62,9 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
 
+  // --- Fetch Accounts & Trades ---
   useEffect(() => {
-    const loadUserTrades = async () => {
+    const loadData = async () => {
       if (!supabase) {
         setIsLoading(false);
         return;
@@ -57,14 +73,36 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
       if (user && !authLoading) {
         setIsLoading(true);
         try {
-          const { data, error } = await supabase
-            .from('trades')
+          // 1. Try to load accounts (graceful fail if migration not run)
+          const { data: accData, error: accErr } = await supabase
+            .from('trading_accounts')
             .select('*')
             .eq('user_id', user.id);
 
+          let currentAccounts: TradingAccount[] = [];
+          if (!accErr && accData) {
+              currentAccounts = accData as TradingAccount[];
+              setAccounts(currentAccounts);
+              if (currentAccounts.length > 0 && !selectedAccountId) {
+                 setSelectedAccountId(currentAccounts[0].id);
+              }
+          } else {
+             // Migration not yet run or error
+             setAccounts([]);
+          }
+
+          // 2. Load trades (Filter by selected account if available, else load all)
+          let tradeQuery = supabase.from('trades').select('*').eq('user_id', user.id);
+          // If we have accounts and one is selected, we filter. If migration not run, this won't filter.
+          if (currentAccounts.length > 0 && selectedAccountId) {
+             tradeQuery = tradeQuery.eq('account_id', selectedAccountId);
+          }
+
+          const { data, error } = await tradeQuery;
+
           if (error) throw error;
 
-          const fetchedTrades: CsvTradeData[] = (data || []).map(t => ({
+          const fetchedTrades: CsvTradeData[] = (data || []).map((t: any) => ({
             ...t,
             id: t.id,
             Date: t.date,
@@ -88,11 +126,53 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
         }
       } else if (!user && !authLoading) {
         setTradeData([]); 
+        setAccounts([]);
+        setSelectedAccountId(null);
         setIsLoading(false); 
       }
     };
-    loadUserTrades();
-  }, [user, authLoading, toast, sortTrades]);
+    loadData();
+  }, [user, authLoading, toast, sortTrades, selectedAccountId]);
+
+  // --- Create Account ---
+  const createAccount = useCallback(async (name: string, broker?: string) => {
+      if (!user || !supabase) return null;
+      try {
+          const { data, error } = await supabase.from('trading_accounts').insert({
+              user_id: user.id,
+              name,
+              broker: broker || null
+          }).select().single();
+          
+          if (error) throw error;
+          const newAcc = data as TradingAccount;
+          setAccounts(prev => [...prev, newAcc]);
+          setSelectedAccountId(newAcc.id);
+          return newAcc;
+      } catch (err: any) {
+          console.error("Failed to create account:", err);
+          toast({ title: "Failed to create account", description: err.message, variant: "destructive" });
+          return null;
+      }
+  }, [user, toast]);
+
+  // --- Update Account Balance ---
+  const updateAccountInitialBalance = useCallback(async (accountId: string, amount: number) => {
+      if (!supabase) return;
+      try {
+          const { error } = await supabase
+              .from('trading_accounts')
+              .update({ initial_balance: amount })
+              .eq('id', accountId);
+          if (error) throw error;
+          
+          setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, initial_balance: amount } : a));
+          toast({ title: "Account Updated", description: "Initial balance set successfully." });
+      } catch (err: any) {
+          console.error("Failed to update initial balance:", err);
+          toast({ title: "Failed to update balance", description: err.message, variant: "destructive" });
+      }
+  }, [toast]);
 
   const addTrades = useCallback(async (newTradesInput: CsvTradeData[]) => {
     if (newTradesInput.length === 0) return;
@@ -129,6 +209,8 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
         tradesToUpsert.push({
           id: tradeId,
           user_id: user.id,
+          // Only append account_id if tables exist (we know they do if accounts > 0)
+          ...(accounts.length > 0 && selectedAccountId ? { account_id: selectedAccountId } : {}),
           date: inputTrade.Date,
           symbol: inputTrade.Symbol,
           side: inputTrade.Side,
@@ -156,14 +238,15 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: 'Trades Processed', description: `${tradesToUpsert.length} trades saved/updated.` });
         
         // Reload trades after upsert
-        const { data: freshData, error: loadError } = await supabase
-            .from('trades')
-            .select('*')
-            .eq('user_id', user.id);
+        let loadQuery = supabase.from('trades').select('*').eq('user_id', user.id);
+        if (accounts.length > 0 && selectedAccountId) {
+            loadQuery = loadQuery.eq('account_id', selectedAccountId);
+        }
+        const { data: freshData, error: loadError } = await loadQuery;
         
         if (loadError) throw loadError;
 
-        const fetchedTrades: CsvTradeData[] = (freshData || []).map(t => ({
+        const fetchedTrades: CsvTradeData[] = (freshData || []).map((t: any) => ({
             ...t,
             id: t.id,
             Date: t.date,
@@ -205,10 +288,11 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     if (supabase && user) {
       try {
-        const { error } = await supabase
-          .from('trades')
-          .delete()
-          .eq('user_id', user.id);
+        let delQuery = supabase.from('trades').delete().eq('user_id', user.id);
+        if (accounts.length > 0 && selectedAccountId) {
+            delQuery = delQuery.eq('account_id', selectedAccountId);
+        }
+        const { error } = await delQuery;
 
         if (error) throw error;
 
@@ -225,7 +309,7 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
   }, [user, toast, setIsLoading]);
 
   return (
-    <TradeDataContext.Provider value={{ tradeData, addTrades, clearTrades, isLoading, setIsLoading }}>
+    <TradeDataContext.Provider value={{ tradeData, accounts, selectedAccountId, setSelectedAccountId, createAccount, updateAccountInitialBalance, addTrades, clearTrades, isLoading, setIsLoading }}>
       {children}
     </TradeDataContext.Provider>
   );

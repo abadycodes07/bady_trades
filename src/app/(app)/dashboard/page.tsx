@@ -150,7 +150,7 @@ export default function DashboardPage() {
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(currencies[0]);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { tradeData, addTrades, isLoading: tradeDataLoading, setIsLoading: setTradeDataLoading } = useTradeData();
+  const { tradeData, selectedAccountId, updateAccountInitialBalance, addTrades, isLoading: tradeDataLoading, setIsLoading: setTradeDataLoading } = useTradeData();
   const [commissionData, setCommissionData] = useState<CsvCommissionData[]>([]);
   const [balanceOperations, setBalanceOperations] = useState<BalanceOperation[]>([]);
   const commissionFileInputRef = useRef<HTMLInputElement>(null);
@@ -522,6 +522,14 @@ export default function DashboardPage() {
         commissionFileInputRef.current?.click();
    };
 
+   const handleSetInitialBalance = useCallback(async (date: Date, amount: number) => {
+       if (!selectedAccountId) {
+           toast({ title: 'No Portfolio Selected', description: 'Please select a portfolio to set an initial balance.', variant: 'destructive' });
+           return;
+       }
+       await updateAccountInitialBalance(selectedAccountId, amount);
+       // Optional: Add log or fetch updated user profile to redraw balances.
+   }, [selectedAccountId, updateAccountInitialBalance, toast]);
 
    const renderWidget = useCallback((key: string) => {
      let netPnlCardValue = 0;
@@ -692,12 +700,12 @@ export default function DashboardPage() {
          return <MetricCard title="Max Drawdown" value={<span className="text-red-600 dark:text-red-500">{convertCurrency(maxDrawdownData.value)}</span>} metric={formattedDrawdownDate} color="red" className="h-full"/>;
        case 'cumulative-pnl': return <CumulativePnLChart selectedCurrency={selectedCurrency} data={tradeData} commissionData={commissionData} showFeesInPnl={showFeesInPnl}/>;
        case 'bady-score': return <BadyScoreChart data={tradeData} overallScore={badyScore} />;
-       case 'trading-calendar': return <TradingCalendar selectedCurrency={selectedCurrency} tradeData={tradeData} commissionData={commissionData} balanceOperations={balanceOperations} onUploadCommissionsClick={triggerCommissionFileInput} showFeesInPnl={showFeesInPnl} onShowFeesToggle={setShowFeesInPnl}/>;
+       case 'trading-calendar': return <TradingCalendar selectedCurrency={selectedCurrency} tradeData={tradeData} commissionData={commissionData} balanceOperations={balanceOperations} onUploadCommissionsClick={triggerCommissionFileInput} showFeesInPnl={showFeesInPnl} onShowFeesToggle={setShowFeesInPnl} onSetInitialBalance={handleSetInitialBalance}/>;
        case 'progress-tracker': return <ProgressTrackerHeatmap data={tradeData} />;
        case 'recent-trades': return <RecentTradesTable selectedCurrency={selectedCurrency} data={tradeData as RecentTradesCsvTradeData[]}/>;
        default: return <Card className="h-full flex items-center justify-center"><CardContent>Unknown Widget: {key}</CardContent></Card>;
      }
-   }, [selectedCurrency, convertCurrency, tradeData, commissionData, isEditingLayout, triggerCommissionFileInput, showFeesInPnl, setShowFeesInPnl]);
+   }, [selectedCurrency, convertCurrency, tradeData, commissionData, isEditingLayout, triggerCommissionFileInput, showFeesInPnl, setShowFeesInPnl, handleSetInitialBalance]);
 
 
   if (!isClient || tradeDataLoading) {

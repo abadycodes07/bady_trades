@@ -1,14 +1,20 @@
 
 
 import type {Metadata} from 'next';
-import {GeistSans} from 'geist/font/sans'; // Import GeistSans
-import {GeistMono} from 'geist/font/mono'; // Import GeistMono
+import {GeistSans} from 'geist/font/sans';
+import {GeistMono} from 'geist/font/mono';
+import { Cairo } from 'next/font/google'; // Import Cairo for Arabic
 import './globals.css';
 import {ThemeProvider} from '@/components/theme-provider';
-import {Toaster} from '@/components/ui/toaster'; // Import Toaster
-import { AuthProvider } from '@/contexts/AuthContext'; // Import AuthProvider
+import {Toaster} from '@/components/ui/toaster';
+import { AuthProvider } from '@/contexts/AuthContext';
 
-// Removed individual font definitions as they are directly imported
+const cairo = Cairo({
+  subsets: ['arabic', 'latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-cairo',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'BadyTrades',
@@ -22,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     // Apply font variables to the html tag
-    <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} ${cairo.variable}`}>
       {/* Removed font variables from body className */}
       <body className={`antialiased font-sans`}>
         <AuthProvider> {/* Wrap with AuthProvider */}

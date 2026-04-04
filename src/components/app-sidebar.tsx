@@ -51,9 +51,10 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 import { useToast } from '@/hooks/use-toast';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import Avatar
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BadyTradesLogo } from '@/components/icons/badytrades-logo';
-import { BadyTradesMarkLogo } from '@/components/icons/badytrades-mark-logo'; // Import the new mark logo
+import { BadyTradesMarkLogo } from '@/components/icons/badytrades-mark-logo';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 const leftNavItems = [
@@ -81,121 +82,28 @@ const bottomNavItems = [
     { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
-interface Account {
-    id: string;
-    email: string | null;
-    displayName: string | null;
-    photoURL: string | null;
-    isActive: boolean;
-}
+import { useTradeData } from '@/contexts/TradeDataContext';
+
+// We removed the custom Account interface as we now use TradingAccount
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile, state: sidebarState, open: sidebarOpen } = useSidebar(); // Added sidebarOpen
+  const { isMobile, setOpenMobile, state: sidebarState, open: sidebarOpen } = useSidebar();
   const { user, loading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const { isArabic } = useLanguage();
+  const { accounts, selectedAccountId, setSelectedAccountId } = useTradeData();
 
-  const [accounts, setAccounts] = React.useState<Account[]>([]);
-  const [activeAccountId, setActiveAccountId] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    const storedAccounts = localStorage.getItem('badytrades_accounts');
-    const storedActiveId = localStorage.getItem('badytrades_active_account_id');
-    let initialAccounts: Account[] = [];
-
-    if (storedAccounts) {
-        try {
-            initialAccounts = JSON.parse(storedAccounts);
-        } catch (e) {
-            console.error("Failed to parse stored accounts", e);
-            initialAccounts = [];
-        }
-    }
-
-    if (user && !initialAccounts.some(acc => acc.id === user.id)) {
-        initialAccounts.push({
-            id: user.id,
-            email: user.email ?? null,
-            displayName: user.user_metadata?.name ?? null,
-            photoURL: user.user_metadata?.avatar_url ?? null,
-            isActive: false, // Will be set correctly below
-        });
-    }
-    
-    // Determine the active account
-    let currentActiveId = storedActiveId;
-    // If no stored active ID, or stored ID is not in current user list, default to current Supabase user
-    if (user && (!storedActiveId || !initialAccounts.some(acc => acc.id === storedActiveId))) {
-       currentActiveId = user.id;
-    } else if (!user && storedActiveId && !initialAccounts.some(acc => acc.id === storedActiveId)){
-        // If no user and stored ID is invalid, clear it
-        currentActiveId = null;
-    } else if (!user && !storedActiveId && initialAccounts.length > 0){
-        // If no user, no stored ID, but accounts exist, make the first one active (edge case)
-        currentActiveId = initialAccounts[0].id;
-    }
-
-
-     initialAccounts = initialAccounts.map(acc => ({
-       ...acc,
-       isActive: acc.id === currentActiveId,
-     }));
-
-    setAccounts(initialAccounts);
-    setActiveAccountId(currentActiveId);
-
-    // Persist to localStorage
-    localStorage.setItem('badytrades_accounts', JSON.stringify(initialAccounts));
-    if (currentActiveId) {
-        localStorage.setItem('badytrades_active_account_id', currentActiveId);
-    } else {
-        localStorage.removeItem('badytrades_active_account_id');
-    }
-
-  }, [user]); // Rerun when user changes
-
-  const activeAccount = accounts.find(acc => acc.id === activeAccountId);
   // Alias signOut to supabaseSignOut since we already use useAuth
   const { signOut: supabaseSignOut } = useAuth();
 
   const handleLogout = async () => {
-    if (!activeAccountId) return; // No active account to log out from
-    const currentActiveAccount = accounts.find(acc => acc.id === activeAccountId);
-
     try {
-      await supabaseSignOut(); // Sign out from Supabase
-      
-      // Remove the logged-out account from the list
-      const remainingAccounts = accounts.filter(acc => acc.id !== activeAccountId);
-      let nextActiveId: string | null = null;
-
-      if (remainingAccounts.length > 0) {
-          // If there are other accounts, make the first one active
-          nextActiveId = remainingAccounts[0].id;
-          remainingAccounts[0].isActive = true; 
-      }
-      
-      setAccounts(remainingAccounts);
-      setActiveAccountId(nextActiveId);
-      localStorage.setItem('badytrades_accounts', JSON.stringify(remainingAccounts));
-
-       if (nextActiveId) {
-           localStorage.setItem('badytrades_active_account_id', nextActiveId);
-           toast({
-               title: 'Logged Out & Switched',
-               description: `Signed out of ${currentActiveAccount?.email}. Please log in with ${remainingAccounts[0].email} to continue.`,
-               duration: 7000,
-           });
-           // Redirect to login for the next active account
-           router.push('/login'); 
-       } else {
-           // No accounts left, fully logged out
-           localStorage.removeItem('badytrades_active_account_id');
-           toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
-           if (isMobile) setOpenMobile(false);
-           router.push('/login'); // Redirect to login page after full logout
-       }
+      await supabaseSignOut(); 
+      toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+      if (isMobile) setOpenMobile(false);
+      router.push('/login');
     } catch (error: any) {
       console.error('Logout error:', error);
       toast({ title: 'Logout Failed', description: error.message, variant: 'destructive' });
@@ -203,41 +111,21 @@ export function AppSidebar() {
   };
 
   const handleAddAccountClick = () => {
-      // Intention is to add a new account, so go to login page.
-      // The login page should handle if a user tries to log in with an existing linked account or a new one.
-      router.push('/login?addAccount=true'); // `addAccount` query param can hint the login page behavior
+      // Intention is to add a new trading account. Navigate to settings -> broker connection.
+      router.push('/settings'); 
       if (isMobile) setOpenMobile(false);
-  }
+  };
 
-  const handleSwitchAccount = async (accountId: string) => {
-      if (activeAccountId === accountId) {
-          toast({ title: 'Switch Account', description: 'This is already the active account.' });
-          return;
-      }
-      // Sign out current user *before* switching context
-      try {
-        if (user) { 
-            await supabaseSignOut();
-        }
-      } catch (error: any) {
-        console.error("Error signing out current user before switch:", error);
-        // Non-fatal, proceed with context switch but user might need to re-login for the target account
-        toast({ title: 'Warning', description: 'Could not sign out previous session cleanly. You may need to log in again.', variant: 'default', duration: 6000 });
-      }
-
-      // Update local state and localStorage for active account
-      const updatedAccounts = accounts.map(acc => ({ ...acc, isActive: acc.id === accountId }));
-      const targetAccount = updatedAccounts.find(a => a.id === accountId);
-
-      setAccounts(updatedAccounts);
-      setActiveAccountId(accountId);
-      localStorage.setItem('badytrades_accounts', JSON.stringify(updatedAccounts));
-      localStorage.setItem('badytrades_active_account_id', accountId);
-
-      toast({ title: 'Switching Account', description: `Please log in as ${targetAccount?.email || 'the selected account'}.` });
-      router.push('/login'); // Redirect to login for the new active account
+  const handleSwitchAccount = (accountId: string) => {
+      if (selectedAccountId === accountId) return;
+      setSelectedAccountId(accountId);
+      
+      const targetAccount = accounts.find(a => a.id === accountId);
+      toast({ title: 'Account Switched', description: `Now viewing ${targetAccount?.name || 'portfolio'}.` });
       if (isMobile) setOpenMobile(false);
-  }
+  };
+
+  const activeAccount = accounts.find(acc => acc.id === selectedAccountId);
 
   const SidebarNav = ({ items }: { items: typeof leftNavItems | typeof rightNavItems | typeof bottomNavItems }) => (
      <SidebarMenu>
@@ -267,14 +155,14 @@ export function AppSidebar() {
          <Button
            variant="ghost"
            size="icon"
-           className="fixed top-4 left-4 z-50 md:hidden hover-effect"
+           className={cn("fixed top-4 z-50 md:hidden hover-effect", isArabic ? "right-4" : "left-4")}
            onClick={() => setOpenMobile(true)}
          >
            <Menu />
            <span className="sr-only">Open Sidebar</span>
          </Button>
        )}
-       <Sidebar side="left" variant="sidebar" collapsible="icon">
+       <Sidebar side={isArabic ? "right" : "left"} variant="sidebar" collapsible="icon">
           <SidebarHeader className="p-2 flex items-center justify-between">
             <Link href="/dashboard" passHref legacyBehavior>
                 <a className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 hover:opacity-80 transition-opacity px-1">
@@ -328,10 +216,10 @@ export function AppSidebar() {
                           </Link>
                         </SidebarMenuItem>
                       ))}
-                      {activeAccount && (
+                      {user && (
                           <SidebarMenuItem>
                             <SidebarMenuButton
-                                tooltip="Logout Current Account"
+                                tooltip="Logout"
                                 className="hover-effect justify-center !p-2 !size-10 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 variant="default"
                                 onClick={handleLogout}
@@ -356,14 +244,15 @@ export function AppSidebar() {
                                 aria-label="Account options"
                                 disabled={loading}
                              >
-                                {activeAccount ? (
+                                {user ? (
                                     <>
                                         <Avatar className="h-8 w-8 flex-shrink-0">
-                                            <AvatarImage src={activeAccount.photoURL || undefined} alt={activeAccount.displayName || activeAccount.email || 'User'} />
-                                            <AvatarFallback>{activeAccount.email?.[0]?.toUpperCase() ?? 'U'}</AvatarFallback>
+                                            <AvatarImage src={user.user_metadata?.avatar_url || undefined} alt={user.user_metadata?.name || user.email || 'User'} />
+                                            <AvatarFallback>{user.email?.[0]?.toUpperCase() ?? 'U'}</AvatarFallback>
                                         </Avatar>
-                                        <div className="text-xs truncate flex-1">
-                                            <p className="font-medium">{activeAccount.displayName || activeAccount.email}</p>
+                                        <div className="text-xs truncate flex-1 flex flex-col items-start gap-0.5">
+                                            <p className="font-semibold text-primary">{activeAccount?.name || 'Loading Portfolio...'}</p>
+                                            <p className="font-medium text-muted-foreground opacity-80 text-[10px]">{user.user_metadata?.name || user.email}</p>
                                         </div>
                                     </>
                                 ) : loading ? (
@@ -386,38 +275,33 @@ export function AppSidebar() {
                             </button>
                         </DropdownMenuTrigger>
                          <DropdownMenuContent className="w-56 mb-2 ml-2" side="top" align="start">
-                             <DropdownMenuLabel>My Accounts</DropdownMenuLabel>
+                             <DropdownMenuLabel>My Portfolios</DropdownMenuLabel>
                              <DropdownMenuSeparator />
                              {accounts.map((account) => (
                                 <DropdownMenuItem
                                   key={account.id}
                                   onClick={() => handleSwitchAccount(account.id)}
-                                  disabled={account.isActive && user?.id === account.id} // Disable if active AND current Supabase user matches
+                                  disabled={selectedAccountId === account.id} 
                                   className="cursor-pointer flex items-center gap-2"
                                 >
-                                     <Avatar className="h-6 w-6">
-                                         <AvatarImage src={account.photoURL || undefined} alt={account.displayName || account.email || 'User'} />
-                                         <AvatarFallback>{account.email?.[0]?.toUpperCase() ?? 'U'}</AvatarFallback>
-                                     </Avatar>
-                                     <span className="truncate flex-1">{account.email}</span>
-                                     {account.isActive && user?.id === account.id && <Check className="ml-auto h-4 w-4 text-primary" />}
-                                     {(!account.isActive || user?.id !== account.id) && <Replace className="ml-auto h-4 w-4 text-muted-foreground" />}
+                                     <span className="truncate flex-1">{account.name}</span>
+                                     {selectedAccountId === account.id && <Check className="ml-auto h-4 w-4 text-primary" />}
                                 </DropdownMenuItem>
                              ))}
                              {accounts.length === 0 && !loading && (
-                                 <DropdownMenuItem disabled>No accounts linked</DropdownMenuItem>
+                                 <DropdownMenuItem disabled>No portfolios found</DropdownMenuItem>
                              )}
                               <DropdownMenuSeparator />
                              <DropdownMenuItem onClick={handleAddAccountClick} className="cursor-pointer">
                                 <PlusCircle className="mr-2 h-4 w-4" />
-                                <span>Add Account</span>
+                                <span>Add Portfolio</span>
                              </DropdownMenuItem>
-                              {activeAccount && user?.id === activeAccount.id && ( // Only show logout if current user matches active account
+                              {user && ( 
                                  <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
                                       <LogOut className="mr-2 h-4 w-4" />
-                                      <span>Sign out {activeAccount.email}</span>
+                                      <span>Sign out session</span>
                                     </DropdownMenuItem>
                                  </>
                               )}
