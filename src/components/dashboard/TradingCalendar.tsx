@@ -503,7 +503,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                             const formattedFinalPnlInPopover = formatCalendarCurrency(finalPnlInPopover, selectedCurrency, true);
 
                             const cellContent = (
-                                <div className={cn("p-1.5 text-xs flex flex-col justify-start items-start relative transition-colors duration-150 flex-grow h-full", !isLastRow && "border-b", !isLastCol && "border-r", cellMinHeight, isCurrentMonthDay ? 'text-foreground hover:shadow-inner hover:bg-accent/50 cursor-default' : 'text-muted-foreground/50 bg-muted/20 pointer-events-none', isTodayDate && 'bg-blue-500/10 ring-1 ring-blue-500', dayBgColor)} aria-label={`Data for ${format(dayItem, 'PPP')}`}>
+                                <div className={cn("p-1.5 text-xs flex flex-col justify-start items-start relative transition-colors duration-150 flex-grow h-full", !isLastRow && "border-b", !isLastCol && "border-r", cellMinHeight, isCurrentMonthDay ? 'text-foreground hover:shadow-inner hover:bg-accent/50 cursor-default' : 'text-muted-foreground/50 bg-muted/20 cursor-default', isTodayDate && 'bg-blue-500/10 ring-1 ring-blue-500', dayBgColor)} aria-label={`Data for ${format(dayItem, 'PPP')}`}>
                                     {/* Day number */}
                                     <span className={cn("font-medium mb-0.5", isTodayDate ? "text-blue-600 dark:text-blue-400 font-bold" : "", !isCurrentMonthDay ? "text-muted-foreground/30" : "")}>{format(dayItem, 'd')}</span>
 
@@ -535,38 +535,40 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                 (summary && (summary.grossProfitloss || summary.profitloss || otherFeesForPopover || summary.trades))
                             );
                             
-                            let cellWrapper = <div key={dateKey} className="flex flex-col h-full">{cellContent}</div>;
-                            
-                            if (hasPopoverData) {
-                                cellWrapper = (
-                                    <Popover key={dateKey}><PopoverTrigger asChild>{cellContent}</PopoverTrigger>
-                                        <PopoverContent className="w-52 p-3 text-xs" side="top" align="center">
-                                            <div className="space-y-1.5">
-                                                <p className="font-semibold text-sm border-b pb-1">{format(dayItem, 'MMM dd, yyyy')}</p>
-                                                {isHoliday && <p className="text-purple-600 dark:text-purple-400">🚫 {holiday!.name}</p>}
-                                                {formattedGrossPnlForPopover && <div className="flex justify-between"><span>Gross P&L:</span><span className={cn("font-medium", (summary?.grossProfitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedGrossPnlForPopover}</span></div>}
-                                                {formattedNetPnlFromTradesForPopover && <div className="flex justify-between"><span>Net P&L:</span><span className={cn("font-medium", (summary?.profitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedNetPnlFromTradesForPopover}</span></div>}
-                                                {formattedOtherFeesForPopover && <div className="flex justify-between"><span>Other Fees:</span><span className="font-medium text-muted-foreground">{formattedOtherFeesForPopover}</span></div>}
-                                                {(trades || 0) > 0 && <div className="flex justify-between"><span>Trades:</span><span className="font-medium">{trades}</span></div>}
-                                                {assetsOnDay.length > 0 && <div className="flex justify-between"><span>Instruments:</span><span className="font-medium">{assetsOnDay.map(a => getAssetEmoji(a)).join(' ')}</span></div>}
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
-                                );
-                            }
+                             const finalPopoverContent = hasPopoverData ? (
+                                 <PopoverContent className="w-52 p-3 text-xs" side="top" align="center">
+                                     <div className="space-y-1.5">
+                                         <p className="font-semibold text-sm border-b pb-1">{format(dayItem, 'MMM dd, yyyy')}</p>
+                                         {isHoliday && <p className="text-purple-600 dark:text-purple-400">🚫 {holiday!.name}</p>}
+                                         {formattedGrossPnlForPopover && <div className="flex justify-between"><span>Gross P&L:</span><span className={cn("font-medium", (summary?.grossProfitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedGrossPnlForPopover}</span></div>}
+                                         {formattedNetPnlFromTradesForPopover && <div className="flex justify-between"><span>Net P&L:</span><span className={cn("font-medium", (summary?.profitloss || 0) >= 0 ? 'text-green-600' : 'text-red-600')}>{formattedNetPnlFromTradesForPopover}</span></div>}
+                                         {formattedOtherFeesForPopover && <div className="flex justify-between"><span>Other Fees:</span><span className="font-medium text-muted-foreground">{formattedOtherFeesForPopover}</span></div>}
+                                         {(trades || 0) > 0 && <div className="flex justify-between"><span>Trades:</span><span className="font-medium">{trades}</span></div>}
+                                         {assetsOnDay.length > 0 && <div className="flex justify-between"><span>Instruments:</span><span className="font-medium">{assetsOnDay.map(a => getAssetEmoji(a)).join(' ')}</span></div>}
+                                     </div>
+                                 </PopoverContent>
+                             ) : null;
 
-                            return (
-                                <ContextMenu key={dateKey}>
-                                    <ContextMenuTrigger asChild>
-                                        {cellWrapper}
-                                    </ContextMenuTrigger>
-                                    <ContextMenuContent>
-                                        <ContextMenuItem onSelect={() => handleOpenBalanceDialog(dayItem)}>
-                                            Set Initial Balance
-                                        </ContextMenuItem>
-                                    </ContextMenuContent>
-                                </ContextMenu>
-                            );
+                             return (
+                                 <ContextMenu key={dateKey}>
+                                     <Popover>
+                                         <ContextMenuTrigger asChild>
+                                             <PopoverTrigger asChild>
+                                                 <div key={dateKey} className="flex flex-col h-full overflow-hidden">
+                                                     {cellContent}
+                                                 </div>
+                                             </PopoverTrigger>
+                                         </ContextMenuTrigger>
+                                         {finalPopoverContent}
+                                     </Popover>
+                                     <ContextMenuContent className="w-56">
+                                         <ContextMenuItem onSelect={() => handleOpenBalanceDialog(dayItem)} className="gap-2">
+                                             <UploadCloud className="h-4 w-4" />
+                                             Set Initial Balance
+                                         </ContextMenuItem>
+                                     </ContextMenuContent>
+                                 </ContextMenu>
+                             );
                         })}
                     </div>
                 </div>
