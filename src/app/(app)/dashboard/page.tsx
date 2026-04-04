@@ -32,9 +32,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { useTradeData } from '@/contexts/TradeDataContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
-const ResponsiveGridLayout = WidthProvider(Responsive);
+const ResponsiveGridLayout = WidthProvider(Responsive) as any;
 
 export interface CsvTradeData {
   Account?: string;
@@ -143,6 +144,7 @@ const currencies: Currency[] = [
 
 
 export default function DashboardPage() {
+  const { isArabic, t } = useLanguage();
   const [isEditingLayout, setIsEditingLayout] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [layouts, setLayouts] = useState<ResponsiveLayout | null>(null);
@@ -167,14 +169,13 @@ export default function DashboardPage() {
             const loadedBpLayout = parsedLayouts[bp as keyof typeof parsedLayouts] || [];
             const initialBpLayout = initialLayouts[currentBpKey];
 
-            if (!initialBpLayout) { // Handle case where initialBpLayout might be undefined
-                console.warn(`DashboardPage: Initial layout for breakpoint ${bp} is undefined. Skipping validation.`);
-                if (loadedBpLayout.length > 0) { // If loaded layout exists, use it but set to static
+            if (!initialBpLayout) {
+                if (loadedBpLayout.length > 0) {
                      parsedLayouts[currentBpKey] = loadedBpLayout.map((l: Layout) => ({
                          ...l, isDraggable: isEditingLayout, isResizable: isEditingLayout, static: !isEditingLayout,
                      }));
                 } else {
-                    parsedLayouts[currentBpKey] = []; // Default to empty array if no layout defined
+                    parsedLayouts[currentBpKey] = [];
                 }
                 return;
             }
@@ -266,11 +267,11 @@ export default function DashboardPage() {
            minimumFractionDigits: 2, maximumFractionDigits: 2,
        });
        return (
-           <>
+           <span className="inline-flex items-center" dir="ltr">
                {convertedAmount < 0 && '-'}
                {typeof selectedCurrency.symbol === 'string' ? selectedCurrency.symbol : selectedCurrency.symbol}
                {formattedAmount}
-           </>
+           </span>
        );
    }, [selectedCurrency]);
 
@@ -362,22 +363,18 @@ export default function DashboardPage() {
                                        if (isValid(parsedDateAttempt)) break;
                                    }
 
-                                   if (isValid(parsedDateAttempt)) {
-                                       newRow.Date = format(parsedDateAttempt, 'yyyy-MM-dd');
+                                   if (parsedDateAttempt && isValid(parsedDateAttempt)) {
+                                       newRow.Date = format(parsedDateAttempt as Date, 'yyyy-MM-dd');
                                    } else {
-                                       newRow.Date = rawTradeDate; // Fallback for unparseable but existing date
-                                       console.warn(`Trade Upload Row ${index + 1}: Could not parse trade date: ${rawTradeDate}. Stored as is.`);
-                                       toast({ title: `Date Warning (Row ${index + 2})`, description: `Could not parse trade date '${rawTradeDate}'. Charts might not display correctly. Ensure format is like MM/dd/yy, yyyy-MM-dd, etc.`, variant: 'default', duration: 7000});
+                                       newRow.Date = rawTradeDate;
+                                       toast({ title: `Date Warning (Row ${index + 2})`, description: `Could not parse trade date '${rawTradeDate}'.`, variant: 'default', duration: 7000});
                                    }
                                } catch (e) {
-                                   newRow.Date = rawTradeDate; // Fallback on error
-                                   console.error(`Trade Upload Row ${index + 1}: Error parsing trade date ${rawTradeDate}:`, e);
+                                   newRow.Date = rawTradeDate;
                                    toast({ title: `Date Error (Row ${index + 2})`, description: `Error parsing trade date '${rawTradeDate}'.`, variant: 'destructive', duration: 5000});
                                }
                            } else {
-                               newRow.Date = ''; // Handle missing or empty T/D value
-                               console.warn(`Trade Upload Row ${index + 1}: Missing or empty 'T/D' value for trade. Setting Date to empty string.`);
-                               toast({ title: `Date Missing (Row ${index + 2})`, description: `Missing or empty 'T/D' value for trade. This trade might be ignored or cause issues.`, variant: 'destructive', duration: 7000});
+                               newRow.Date = '';
                            }
 
 
@@ -389,18 +386,9 @@ export default function DashboardPage() {
                        });
 
                        addTrades(normalizedData);
-                   } else if (results.data.length > 0 && (!isStandardFormat && !isMT4Format)) {
-                       // Specific error messages handled above
-                   } else if (results.data.length === 0) {
-                        toast({
-                            title: 'Empty CSV',
-                            description: 'The uploaded CSV file contains no trade data.',
-                            variant: 'default',
-                        });
                    }
                },
                error: (error) => {
-                   console.error('CSV parsing error:', error.message);
                    toast({
                        title: 'CSV Parsing Failed',
                        description: error.message,
@@ -420,314 +408,296 @@ export default function DashboardPage() {
    };
 
    const handleCommissionFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            Papa.parse<Record<string, string>>(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: (results) => {
-                    const csvHeaders = results.meta.fields?.map(h => h.trim().toLowerCase()) || [];
-                    const hasDateColumn = csvHeaders.includes('dateasof');
-                    const hasCommissionColumn = csvHeaders.includes('totalcommission');
+         const file = event.target.files?.[0];
+         if (file) {
+             Papa.parse<Record<string, string>>(file, {
+                 header: true,
+                 skipEmptyLines: true,
+                 complete: (results) => {
+                     const csvHeaders = results.meta.fields?.map(h => h.trim().toLowerCase()) || [];
+                     const hasDateColumn = csvHeaders.includes('dateasof');
+                     const hasCommissionColumn = csvHeaders.includes('totalcommission');
 
-                    if (!hasDateColumn) {
-                        toast({ title: 'Commission CSV Error', description: "CSV must contain a 'DateAsOf' column (case-insensitive).", variant: 'destructive' });
-                        return;
-                    }
-                    if (!hasCommissionColumn) {
-                        toast({ title: 'Commission CSV Error', description: "CSV must contain a 'TotalCommission' column (case-insensitive).", variant: 'destructive' });
-                        return;
-                    }
+                     if (!hasDateColumn) {
+                         toast({ title: 'Commission CSV Error', description: "CSV must contain a 'DateAsOf' column.", variant: 'destructive' });
+                         return;
+                     }
+                     if (!hasCommissionColumn) {
+                         toast({ title: 'Commission CSV Error', description: "CSV must contain a 'TotalCommission' column.", variant: 'destructive' });
+                         return;
+                     }
 
-                    if (results.data.length > 0) {
-                        const normalizedCommissions = results.data.map((row, index) => {
-                            const newRow: Partial<CsvCommissionData> = { id: `csv-comm-${Date.now()}-${index}` };
-                            const headerMap: { [csvHeader: string]: keyof CsvCommissionData } = {
-                                'dateasof': 'DateAsOf',
-                                'totalcommission': 'TotalCommission', // Map to TotalCommission first
-                            };
+                     if (results.data.length > 0) {
+                         const normalizedCommissions = results.data.map((row, index) => {
+                             const newRow: Partial<CsvCommissionData> = { id: `csv-comm-${Date.now()}-${index}` };
+                             const headerMap: { [csvHeader: string]: keyof CsvCommissionData } = {
+                                 'dateasof': 'DateAsOf',
+                                 'totalcommission': 'TotalCommission',
+                             };
 
-                            for (const rawCsvHeader in row) {
-                                const csvHeader = rawCsvHeader.trim().toLowerCase();
-                                const targetKey = headerMap[csvHeader];
-                                if (targetKey) {
-                                    newRow[targetKey] = row[rawCsvHeader];
-                                }
-                            }
-                            newRow.Commission = newRow.TotalCommission; // Then assign to standardized 'Commission'
+                             for (const rawCsvHeader in row) {
+                                 const csvHeader = rawCsvHeader.trim().toLowerCase();
+                                 const targetKey = headerMap[csvHeader];
+                                 if (targetKey) {
+                                     newRow[targetKey] = row[rawCsvHeader];
+                                 }
+                             }
+                             newRow.Commission = newRow.TotalCommission;
 
-                            const rawDate = newRow.DateAsOf;
-                            if (rawDate && rawDate.trim() !== '') {
-                                try {
-                                    let parsedDateAttempt;
-                                    const dateFormatsToTry = [
-                                        'MMddyy', 'yyyyMMdd', // No slash
-                                        'MM/dd/yy', 'yyyy-MM-dd', 'MM/dd/yyyy', // With slash/dash
-                                        'M/d/yy', 'M/dd/yyyy', 'MM/d/yyyy'     // Single digit month/day
-                                    ];
+                             const rawDate = newRow.DateAsOf;
+                             if (rawDate && rawDate.trim() !== '') {
+                                 try {
+                                     let parsedDateAttempt;
+                                     const dateFormatsToTry = [
+                                         'MMddyy', 'yyyyMMdd', 'MM/dd/yy', 'yyyy-MM-dd', 'MM/dd/yyyy', 'M/d/yy', 'M/dd/yyyy', 'MM/d/yyyy'
+                                     ];
 
-                                    for (const fmt of dateFormatsToTry) {
-                                        parsedDateAttempt = parse(rawDate, fmt, new Date());
-                                        if (isValid(parsedDateAttempt)) break;
-                                    }
+                                     for (const fmt of dateFormatsToTry) {
+                                         parsedDateAttempt = parse(rawDate, fmt, new Date());
+                                         if (isValid(parsedDateAttempt)) break;
+                                     }
 
-                                    if (isValid(parsedDateAttempt)) {
-                                        newRow.Date = format(parsedDateAttempt, 'yyyy-MM-dd');
-                                    } else {
-                                        newRow.Date = rawDate;
-                                        console.warn(`Commission Upload Row ${index+2}: Could not parse date '${rawDate}'. Stored as is.`);
-                                        toast({ title: `Commission Date Warning (Row ${index+2})`, description: `Could not parse date '${rawDate}'. Expected formats like MMddyy, yyyyMMdd, MM/dd/yy, etc. Stored as is.`, variant: 'default', duration: 7000 });
-                                    }
-                                } catch (e) {
-                                    newRow.Date = rawDate;
-                                    console.error(`Commission Upload Row ${index+2}: Error parsing date '${rawDate}':`, e);
-                                    toast({ title: `Commission Date Error (Row ${index+2})`, description: `Error parsing date '${rawDate}'.`, variant: 'destructive', duration: 5000 });
-                                }
-                            } else {
-                                newRow.Date = '';
-                                console.warn(`Commission Upload Row ${index+2}: Missing or empty 'DateAsOf'.`);
-                                toast({ title: `Commission Date Missing (Row ${index+2})`, description: `Missing or empty 'DateAsOf'. This entry might be ignored.`, variant: 'destructive', duration: 7000 });
-                            }
-                            return newRow as CsvCommissionData;
-                        }).filter(comm => comm.Date && comm.Commission); // Filter out entries without valid date or commission amount
+                                     if (parsedDateAttempt && isValid(parsedDateAttempt)) {
+                                         newRow.Date = format(parsedDateAttempt as Date, 'yyyy-MM-dd');
+                                     } else {
+                                         newRow.Date = rawDate;
+                                     }
+                                 } catch (e) {
+                                     newRow.Date = rawDate;
+                                 }
+                             } else {
+                                 newRow.Date = '';
+                             }
+                             return newRow as CsvCommissionData;
+                         }).filter(comm => comm.Date && comm.Commission);
 
-                        setCommissionData(prev => {
-                            const updatedCommissions = [...prev];
-                            normalizedCommissions.forEach(newComm => {
-                                const existingIndex = updatedCommissions.findIndex(ec => ec.Date === newComm.Date);
-                                if (existingIndex > -1) {
-                                    updatedCommissions[existingIndex] = newComm;
-                                } else {
-                                    updatedCommissions.push(newComm);
-                                }
-                            });
-                            return updatedCommissions.sort((a, b) => compareAsc(parse(a.Date!, 'yyyy-MM-dd', new Date()), parse(b.Date!, 'yyyy-MM-dd', new Date())));
-                        });
-                        toast({ title: 'Commissions Uploaded', description: `${normalizedCommissions.length} commission entries processed.` });
-                    } else {
-                        toast({ title: 'Empty Commission CSV', description: 'The uploaded CSV file contains no commission data.' });
-                    }
-                },
-                error: (error) => {
-                    toast({ title: 'Commission CSV Parsing Failed', description: error.message, variant: 'destructive' });
-                }
-            });
-            if (commissionFileInputRef.current) {
-                commissionFileInputRef.current.value = '';
-            }
-        }
+                         setCommissionData(prev => {
+                             const updatedCommissions = [...prev];
+                             normalizedCommissions.forEach(newComm => {
+                                 const existingIndex = updatedCommissions.findIndex(ec => ec.Date === newComm.Date);
+                                 if (existingIndex > -1) {
+                                     updatedCommissions[existingIndex] = newComm;
+                                 } else {
+                                     updatedCommissions.push(newComm);
+                                 }
+                             });
+                             return updatedCommissions.sort((a, b) => compareAsc(parse(a.Date!, 'yyyy-MM-dd', new Date()), parse(b.Date!, 'yyyy-MM-dd', new Date())));
+                         });
+                         toast({ title: 'Commissions Uploaded', description: `${normalizedCommissions.length} commission entries processed.` });
+                     } else {
+                         toast({ title: 'Empty Commission CSV', description: 'The uploaded CSV file contains no commission data.' });
+                     }
+                 },
+                 error: (error) => {
+                     toast({ title: 'Commission CSV Parsing Failed', description: error.message, variant: 'destructive' });
+                 }
+             });
+             if (commissionFileInputRef.current) {
+                 commissionFileInputRef.current.value = '';
+             }
+         }
+     };
+
+    const triggerCommissionFileInput = () => {
+         commissionFileInputRef.current?.click();
     };
 
-   const triggerCommissionFileInput = () => {
-        commissionFileInputRef.current?.click();
-   };
+    const handleSetInitialBalance = useCallback(async (date: Date, amount: number) => {
+        if (!selectedAccountId) {
+            toast({ title: 'No Portfolio Selected', description: 'Please select a portfolio to set an initial balance.', variant: 'destructive' });
+            return;
+        }
+        await updateAccountInitialBalance(selectedAccountId, amount);
+    }, [selectedAccountId, updateAccountInitialBalance, toast]);
 
-   const handleSetInitialBalance = useCallback(async (date: Date, amount: number) => {
-       if (!selectedAccountId) {
-           toast({ title: 'No Portfolio Selected', description: 'Please select a portfolio to set an initial balance.', variant: 'destructive' });
-           return;
-       }
-       await updateAccountInitialBalance(selectedAccountId, amount);
-       // Optional: Add log or fetch updated user profile to redraw balances.
-   }, [selectedAccountId, updateAccountInitialBalance, toast]);
+    const renderWidget = useCallback((key: string) => {
+      let netPnlCardValue = 0;
+      const totalUploadedCommissions = commissionData.reduce((sum, comm) => sum + parseFloat(comm.Commission || '0'), 0);
+      const totalNetCashValues = tradeData.reduce((sum, trade) => sum + parseFloat(trade.NetCash || '0'), 0);
+      const totalNetPnlFromTrades = tradeData.reduce((sum, trade) => sum + parseFloat(trade.NetPnL || '0'), 0);
+      const totalGrossPnlFromTrades = tradeData.reduce((sum, trade) => sum + parseFloat(trade.GrossPnl || '0'), 0);
 
-   const renderWidget = useCallback((key: string) => {
-     let netPnlCardValue = 0;
-     const totalUploadedCommissions = commissionData.reduce((sum, comm) => sum + parseFloat(comm.Commission || '0'), 0);
-     const totalNetCashValues = tradeData.reduce((sum, trade) => sum + parseFloat(trade.NetCash || '0'), 0);
-     const totalNetPnlFromTrades = tradeData.reduce((sum, trade) => sum + parseFloat(trade.NetPnL || '0'), 0);
-     const totalGrossPnlFromTrades = tradeData.reduce((sum, trade) => sum + parseFloat(trade.GrossPnl || '0'), 0);
+      if (showFeesInPnl) {
+          netPnlCardValue = totalNetPnlFromTrades - totalUploadedCommissions - totalNetCashValues;
+      } else {
+          netPnlCardValue = totalGrossPnlFromTrades;
+      }
 
-     if (showFeesInPnl) {
-         // If "Include Fees" is ON, Net P&L Card shows: (Sum of NetPnL from trades) - (Sum of uploaded commissions) - (Sum of NetCash from trades)
-         netPnlCardValue = totalNetPnlFromTrades - totalUploadedCommissions - totalNetCashValues;
-     } else {
-         // If "Include Fees" is OFF, Net P&L Card shows: (Sum of GrossPnl from trades)
-         netPnlCardValue = totalGrossPnlFromTrades;
-     }
-
-     const calculateProfitFactor = (data: CsvTradeData[]): number | string => {
-         const grossProfit = data.reduce((sum, trade) => sum + Math.max(0, parseFloat(trade.GrossPnl || '0')), 0);
-         const grossLoss = Math.abs(data.reduce((sum, trade) => sum + Math.min(0, parseFloat(trade.GrossPnl || '0')), 0));
-         if (grossLoss === 0) return grossProfit === 0 ? 0 : Infinity;
-         return (grossProfit / grossLoss);
-     };
-
-     const calculateWinRate = (data: CsvTradeData[]): number => {
-         const totalTrades = data.length;
-         if (totalTrades === 0) return 0;
-         const winningTrades = data.filter(trade => parseFloat(trade.NetPnL || '0') > 0).length;
-         return (winningTrades / totalTrades) * 100;
-     };
-
-      const calculateAvgWinLoss = (data: CsvTradeData[]): { win: number; loss: number; ratio: number | string } => {
-          const winningTrades = data.filter(trade => parseFloat(trade.NetPnL || '0') > 0);
-          const losingTrades = data.filter(trade => parseFloat(trade.NetPnL || '0') < 0);
-
-          const avgWin = winningTrades.length > 0 ? winningTrades.reduce((sum, trade) => sum + parseFloat(trade.NetPnL || '0'), 0) / winningTrades.length : 0;
-          const avgLoss = losingTrades.length > 0 ? losingTrades.reduce((sum, trade) => sum + parseFloat(trade.NetPnL || '0'), 0) / losingTrades.length : 0;
-
-           const ratio = avgLoss === 0 ? (avgWin === 0 ? 0 : Infinity) : Math.abs(avgWin / avgLoss);
-          return { win: avgWin, loss: avgLoss, ratio: isFinite(Number(ratio)) ? Number(ratio).toFixed(2) : '∞' };
+      const calculateProfitFactor = (data: CsvTradeData[]): number | string => {
+          const grossProfit = data.reduce((sum, trade) => sum + Math.max(0, parseFloat(trade.GrossPnl || '0')), 0);
+          const grossLoss = Math.abs(data.reduce((sum, trade) => sum + Math.min(0, parseFloat(trade.GrossPnl || '0')), 0));
+          if (grossLoss === 0) return grossProfit === 0 ? 0 : Infinity;
+          return (grossProfit / grossLoss);
       };
 
-      const calculateMaxDrawdown = (data: CsvTradeData[], includeAllFees: boolean, dailyCommissions: Record<string, number>, dailyNetCashMap: Record<string, number>): { value: number; date: string | null } => {
-         let peak = 0;
-         let maxDrawdownValue = 0;
-         let drawdownDate: string | null = null;
-         let cumulativePnl = 0;
+      const calculateWinRate = (data: CsvTradeData[]): number => {
+          const totalTrades = data.length;
+          if (totalTrades === 0) return 0;
+          const winningTrades = data.filter(trade => parseFloat(trade.NetPnL || '0') > 0).length;
+          return (winningTrades / totalTrades) * 100;
+      };
 
-         const sortedData = [...data].sort((a, b) => {
-             if (!a.Date || !b.Date) return 0;
+       const calculateAvgWinLoss = (data: CsvTradeData[]): { win: number; loss: number; ratio: number | string } => {
+           const winningTrades = data.filter(trade => parseFloat(trade.NetPnL || '0') > 0);
+           const losingTrades = data.filter(trade => parseFloat(trade.NetPnL || '0') < 0);
+
+           const avgWin = winningTrades.length > 0 ? winningTrades.reduce((sum, trade) => sum + parseFloat(trade.NetPnL || '0'), 0) / winningTrades.length : 0;
+           const avgLoss = losingTrades.length > 0 ? losingTrades.reduce((sum, trade) => sum + parseFloat(trade.NetPnL || '0'), 0) / losingTrades.length : 0;
+
+            const ratio = avgLoss === 0 ? (avgWin === 0 ? 0 : Infinity) : Math.abs(avgWin / avgLoss);
+           return { win: avgWin, loss: avgLoss, ratio: isFinite(Number(ratio)) ? Number(ratio).toFixed(2) : '∞' };
+       };
+
+       const calculateMaxDrawdown = (data: CsvTradeData[], includeAllFees: boolean, dailyCommissions: Record<string, number>, dailyNetCashMap: Record<string, number>): { value: number; date: string | null } => {
+          let peak = 0;
+          let maxDrawdownValue = 0;
+          let drawdownDate: string | null = null;
+          let cumulativePnl = 0;
+
+          const sortedData = [...data].sort((a, b) => {
+              if (!a.Date || !b.Date) return 0;
+              try {
+                 let dateA = parse(a.Date, 'yyyy-MM-dd', new Date());
+                 if (!isValid(dateA)) dateA = parse(a.Date, 'MM/dd/yy', new Date());
+                 if (!isValid(dateA)) dateA = parse(a.Date, 'MM/dd/yyyy', new Date());
+
+                 let dateB = parse(b.Date, 'yyyy-MM-dd', new Date());
+                 if (!isValid(dateB)) dateB = parse(b.Date, 'MM/dd/yy', new Date());
+                 if (!isValid(dateB)) dateB = parse(b.Date, 'MM/dd/yyyy', new Date());
+
+                 if (!isValid(dateA) || !isValid(dateB)) return 0;
+                 return dateA.getTime() - dateB.getTime();
+              } catch { return 0; }
+          });
+
+          const dailyPnlMap: Record<string, number> = {};
+          sortedData.forEach(trade => {
+              const dateKey = trade.Date!;
+              const pnl = includeAllFees ? parseFloat(trade.NetPnL || '0') : parseFloat(trade.GrossPnl || '0');
+              dailyPnlMap[dateKey] = (dailyPnlMap[dateKey] || 0) + pnl;
+          });
+
+          if (includeAllFees) {
+              for(const dateKey in dailyPnlMap) {
+                  dailyPnlMap[dateKey] -= (dailyCommissions[dateKey] || 0);
+                  dailyPnlMap[dateKey] -= (dailyNetCashMap[dateKey] || 0);
+              }
+              for(const dateKey in dailyCommissions) {
+                  if (!dailyPnlMap[dateKey]) dailyPnlMap[dateKey] = 0;
+                  dailyPnlMap[dateKey] -= (dailyCommissions[dateKey] || 0);
+              }
+               for(const dateKey in dailyNetCashMap) {
+                  if (!dailyPnlMap[dateKey]) dailyPnlMap[dateKey] = 0;
+                  dailyPnlMap[dateKey] -= (dailyNetCashMap[dateKey] || 0);
+              }
+          }
+
+          const uniqueSortedDates = Object.keys(dailyPnlMap).sort((a, b) => {
              try {
-                let dateA = parse(a.Date, 'yyyy-MM-dd', new Date());
-                if (!isValid(dateA)) dateA = parse(a.Date, 'MM/dd/yy', new Date());
-                if (!isValid(dateA)) dateA = parse(a.Date, 'MM/dd/yyyy', new Date());
+                 const dateA = parse(a, 'yyyy-MM-dd', new Date());
+                 const dateB = parse(b, 'yyyy-MM-dd', new Date());
+                 return dateA.getTime() - dateB.getTime();
+             } catch { return 0; }
+          });
 
-                let dateB = parse(b.Date, 'yyyy-MM-dd', new Date());
-                if (!isValid(dateB)) dateB = parse(b.Date, 'MM/dd/yy', new Date());
-                if (!isValid(dateB)) dateB = parse(b.Date, 'MM/dd/yyyy', new Date());
+          uniqueSortedDates.forEach(dateKey => {
+              cumulativePnl += dailyPnlMap[dateKey];
+              if (cumulativePnl > peak) {
+                  peak = cumulativePnl;
+              }
+              const drawdown = peak - cumulativePnl;
+              if (drawdown > maxDrawdownValue) {
+                  maxDrawdownValue = drawdown;
+                  drawdownDate = dateKey;
+              }
+          });
+          return { value: -maxDrawdownValue, date: drawdownDate };
+       };
 
-                if (!isValid(dateA) || !isValid(dateB)) return 0;
-                return dateA.getTime() - dateB.getTime();
-             } catch (e) {
-                 console.warn("Error sorting data for max drawdown calculation:", e);
-                 return 0;
-             }
-         });
+      const profitFactor = calculateProfitFactor(tradeData);
+      const winRate = calculateWinRate(tradeData);
+      const avgWinLossData = calculateAvgWinLoss(tradeData);
 
-         const dailyPnlMap: Record<string, number> = {};
-         sortedData.forEach(trade => {
-             const dateKey = trade.Date!;
-             const pnl = includeAllFees ? parseFloat(trade.NetPnL || '0') : parseFloat(trade.GrossPnl || '0');
-             dailyPnlMap[dateKey] = (dailyPnlMap[dateKey] || 0) + pnl;
-         });
-
-         if (includeAllFees) {
-             for(const dateKey in dailyPnlMap) {
-                 dailyPnlMap[dateKey] -= (dailyCommissions[dateKey] || 0);
-                 dailyPnlMap[dateKey] -= (dailyNetCashMap[dateKey] || 0);
-             }
-             // Ensure commissions and net cash from days without trades are also accounted for
-             for(const dateKey in dailyCommissions) {
-                 if (!dailyPnlMap[dateKey]) dailyPnlMap[dateKey] = 0; // Initialize if no trade on this day
-                 dailyPnlMap[dateKey] -= (dailyCommissions[dateKey] || 0);
-             }
-              for(const dateKey in dailyNetCashMap) {
-                 if (!dailyPnlMap[dateKey]) dailyPnlMap[dateKey] = 0; // Initialize if no trade on this day
-                 dailyPnlMap[dateKey] -= (dailyNetCashMap[dateKey] || 0);
-             }
+      const dailyCommissionsMap: Record<string,number> = {};
+      commissionData.forEach(comm => {
+         if(comm.Date && comm.Commission) {
+             dailyCommissionsMap[comm.Date] = (dailyCommissionsMap[comm.Date] || 0) + parseFloat(comm.Commission);
          }
+      });
 
-         const uniqueSortedDates = Object.keys(dailyPnlMap).sort((a, b) => {
+      const dailyNetCashMapAgg: Record<string, number> = {};
+      tradeData.forEach(trade => {
+         if (trade.Date && trade.NetCash) {
+             dailyNetCashMapAgg[trade.Date] = (dailyNetCashMapAgg[trade.Date] || 0) + parseFloat(trade.NetCash);
+         }
+      });
+
+      const maxDrawdownData = calculateMaxDrawdown(tradeData, showFeesInPnl, dailyCommissionsMap, dailyNetCashMapAgg);
+
+
+      const badyScoreComponents = [
+         winRate / 100,
+         Math.min(1, (isFinite(Number(profitFactor)) ? Number(profitFactor) : 0) / 3),
+         Math.min(1, (isFinite(Number(avgWinLossData.ratio)) ? Number(avgWinLossData.ratio) : 0) / 3),
+      ].filter(score => isFinite(score) && !isNaN(score));
+      const badyScore = badyScoreComponents.length > 0
+         ? (badyScoreComponents.reduce((a, b) => a + b, 0) / badyScoreComponents.length) * 100
+         : 0;
+
+
+      switch (key) {
+        case 'net-pnl': return <MetricCard title={t("Total Net P&L")} value={<span className={netPnlCardValue >= 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"}>{convertCurrency(netPnlCardValue)}</span>} metric={<span>{/* % change could be vs previous period */}</span>} iconType="info" className="h-full"/>;
+        case 'profit-factor': return <MetricCard title={t("Profit Factor")} value={isFinite(Number(profitFactor)) ? Number(profitFactor).toFixed(2) : '∞'} iconType="progressCircle" progressValue={Math.min(100, (isFinite(Number(profitFactor)) ? Number(profitFactor) : 0) / 3 * 100)} color={Number(profitFactor) >= 1.5 ? 'green' : 'red'} className="h-full"/>;
+        case 'trade-win': return <MetricCard title={t("Trade Win %")} value={`${winRate.toFixed(1)}%`} iconType="gauge" gaugeData={{ wins: tradeData.filter(t => parseFloat(t.NetPnL || '0') > 0).length, losses: tradeData.filter(t => parseFloat(t.NetPnL || '0') < 0).length, breakeven: tradeData.filter(t => parseFloat(t.NetPnL || '0') === 0).length }} color={winRate >= 50 ? 'green' : 'red'} className="h-full"/>;
+        case 'avg-win-loss': return <MetricCard title={t("Avg win/loss trade")} value={avgWinLossData.ratio} iconType="bar" barData={avgWinLossData} color="neutral" selectedCurrency={selectedCurrency} className="h-full"/>;
+        case 'max-drawdown':
+          let formattedDrawdownDate = '';
+          if (maxDrawdownData.date) {
             try {
-                const dateA = parse(a, 'yyyy-MM-dd', new Date());
-                const dateB = parse(b, 'yyyy-MM-dd', new Date());
-                return dateA.getTime() - dateB.getTime();
-            } catch { return 0; }
-         });
+              let parsedDate = parse(maxDrawdownData.date, 'yyyy-MM-dd', new Date());
+              if (!isValid(parsedDate)) parsedDate = parse(maxDrawdownData.date, 'MM/dd/yy', new Date());
+              if (!isValid(parsedDate)) parsedDate = parse(maxDrawdownData.date, 'MM/dd/yyyy', new Date());
 
-
-         uniqueSortedDates.forEach(dateKey => {
-             cumulativePnl += dailyPnlMap[dateKey];
-             if (cumulativePnl > peak) {
-                 peak = cumulativePnl;
-             }
-             const drawdown = peak - cumulativePnl;
-             if (drawdown > maxDrawdownValue) {
-                 maxDrawdownValue = drawdown;
-                 drawdownDate = dateKey;
-             }
-         });
-         return { value: -maxDrawdownValue, date: drawdownDate };
-      };
-
-     const profitFactor = calculateProfitFactor(tradeData);
-     const winRate = calculateWinRate(tradeData);
-     const avgWinLossData = calculateAvgWinLoss(tradeData);
-
-     const dailyCommissionsMap: Record<string,number> = {};
-     commissionData.forEach(comm => {
-        if(comm.Date && comm.Commission) {
-            dailyCommissionsMap[comm.Date] = (dailyCommissionsMap[comm.Date] || 0) + parseFloat(comm.Commission);
-        }
-     });
-
-     const dailyNetCashMapAgg: Record<string, number> = {};
-     tradeData.forEach(trade => {
-        if (trade.Date && trade.NetCash) {
-            dailyNetCashMapAgg[trade.Date] = (dailyNetCashMapAgg[trade.Date] || 0) + parseFloat(trade.NetCash);
-        }
-     });
-
-     const maxDrawdownData = calculateMaxDrawdown(tradeData, showFeesInPnl, dailyCommissionsMap, dailyNetCashMapAgg);
-
-
-     const badyScoreComponents = [
-        winRate / 100,
-        Math.min(1, (isFinite(Number(profitFactor)) ? Number(profitFactor) : 0) / 3),
-        Math.min(1, (isFinite(Number(avgWinLossData.ratio)) ? Number(avgWinLossData.ratio) : 0) / 3),
-     ].filter(score => isFinite(score) && !isNaN(score));
-     const badyScore = badyScoreComponents.length > 0
-        ? (badyScoreComponents.reduce((a, b) => a + b, 0) / badyScoreComponents.length) * 100
-        : 0;
-
-
-     switch (key) {
-       case 'net-pnl': return <MetricCard title="Net P&L" value={<span className={netPnlCardValue >= 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"}>{convertCurrency(netPnlCardValue)}</span>} metric={<span>{/* % change could be vs previous period */}</span>} iconType="info" className="h-full"/>;
-       case 'profit-factor': return <MetricCard title="Profit Factor" value={isFinite(Number(profitFactor)) ? Number(profitFactor).toFixed(2) : '∞'} iconType="progressCircle" progressValue={Math.min(100, (isFinite(Number(profitFactor)) ? Number(profitFactor) : 0) / 3 * 100)} color={Number(profitFactor) >= 1.5 ? 'green' : 'red'} className="h-full"/>;
-       case 'trade-win': return <MetricCard title="Trade Win %" value={`${winRate.toFixed(1)}%`} iconType="gauge" gaugeData={{ wins: tradeData.filter(t => parseFloat(t.NetPnL || '0') > 0).length, losses: tradeData.filter(t => parseFloat(t.NetPnL || '0') < 0).length, breakeven: tradeData.filter(t => parseFloat(t.NetPnL || '0') === 0).length }} color={winRate >= 50 ? 'green' : 'red'} className="h-full"/>;
-       case 'avg-win-loss': return <MetricCard title="Avg win/loss trade" value={avgWinLossData.ratio} iconType="bar" barData={avgWinLossData} color="neutral" selectedCurrency={selectedCurrency} className="h-full"/>;
-       case 'max-drawdown':
-         let formattedDrawdownDate = '';
-         if (maxDrawdownData.date) {
-           try {
-             let parsedDate = parse(maxDrawdownData.date, 'yyyy-MM-dd', new Date());
-             if (!isValid(parsedDate)) parsedDate = parse(maxDrawdownData.date, 'MM/dd/yy', new Date());
-             if (!isValid(parsedDate)) parsedDate = parse(maxDrawdownData.date, 'MM/dd/yyyy', new Date());
-
-             if (isValid(parsedDate)) {
-               formattedDrawdownDate = format(parsedDate, 'MMM dd, yyyy');
-             } else {
-                console.warn(`Max Drawdown: Could not parse date '${maxDrawdownData.date}'. Stored as is: ${maxDrawdownData.date}`);
+              if (isValid(parsedDate)) {
+                formattedDrawdownDate = format(parsedDate, 'MMM dd, yyyy');
+              } else {
                 formattedDrawdownDate = maxDrawdownData.date;
-             }
-           } catch (e) {
-             console.error("Error parsing max drawdown date:", maxDrawdownData.date, e);
-             formattedDrawdownDate = maxDrawdownData.date;
-           }
-         }
-         return <MetricCard title="Max Drawdown" value={<span className="text-red-600 dark:text-red-500">{convertCurrency(maxDrawdownData.value)}</span>} metric={formattedDrawdownDate} color="red" className="h-full"/>;
-       case 'cumulative-pnl': return <CumulativePnLChart selectedCurrency={selectedCurrency} data={tradeData} commissionData={commissionData} showFeesInPnl={showFeesInPnl}/>;
-       case 'bady-score': return <BadyScoreChart data={tradeData} overallScore={badyScore} />;
-       case 'trading-calendar': return <TradingCalendar selectedCurrency={selectedCurrency} tradeData={tradeData} commissionData={commissionData} balanceOperations={balanceOperations} onUploadCommissionsClick={triggerCommissionFileInput} showFeesInPnl={showFeesInPnl} onShowFeesToggle={setShowFeesInPnl} onSetInitialBalance={handleSetInitialBalance}/>;
-       case 'progress-tracker': return <ProgressTrackerHeatmap data={tradeData} />;
-       case 'recent-trades': return <RecentTradesTable selectedCurrency={selectedCurrency} data={tradeData as RecentTradesCsvTradeData[]}/>;
-       default: return <Card className="h-full flex items-center justify-center"><CardContent>Unknown Widget: {key}</CardContent></Card>;
-     }
-   }, [selectedCurrency, convertCurrency, tradeData, commissionData, isEditingLayout, triggerCommissionFileInput, showFeesInPnl, setShowFeesInPnl, handleSetInitialBalance]);
+              }
+            } catch {
+              formattedDrawdownDate = maxDrawdownData.date;
+            }
+          }
+          return <MetricCard title={t("Max Drawdown")} value={<span className="text-red-600 dark:text-red-500">{convertCurrency(maxDrawdownData.value)}</span>} metric={formattedDrawdownDate} color="red" className="h-full"/>;
+        case 'cumulative-pnl': return <CumulativePnLChart selectedCurrency={selectedCurrency} data={tradeData} commissionData={commissionData} showFeesInPnl={showFeesInPnl}/>;
+        case 'bady-score': return <BadyScoreChart data={tradeData} overallScore={badyScore} />;
+        case 'trading-calendar': return <TradingCalendar selectedCurrency={selectedCurrency} tradeData={tradeData} commissionData={commissionData} balanceOperations={balanceOperations} onUploadCommissionsClick={triggerCommissionFileInput} showFeesInPnl={showFeesInPnl} onShowFeesToggle={setShowFeesInPnl} onSetInitialBalance={handleSetInitialBalance}/>;
+        case 'progress-tracker': return <ProgressTrackerHeatmap data={tradeData} />;
+        case 'recent-trades': return <RecentTradesTable selectedCurrency={selectedCurrency} data={tradeData as RecentTradesCsvTradeData[]}/>;
+        default: return <Card className="h-full flex items-center justify-center"><CardContent>Unknown Widget: {key}</CardContent></Card>;
+      }
+    }, [selectedCurrency, convertCurrency, tradeData, commissionData, isEditingLayout, triggerCommissionFileInput, showFeesInPnl, setShowFeesInPnl, handleSetInitialBalance, t]);
 
 
-  if (!isClient || tradeDataLoading) {
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-background">
-             <BadyTradesLogo className="h-12 w-auto animate-pulse" />
-        </div>
-    );
-  }
+   if (!isClient || tradeDataLoading) {
+     return (
+         <div className="flex items-center justify-center min-h-screen bg-background">
+              <BadyTradesLogo className="h-12 w-auto animate-pulse" />
+         </div>
+     );
+   }
 
-   const currentBreakpointLayout = layouts?.lg || initialLayouts.lg || [];
-   const rglLayout = currentBreakpointLayout.map(l => ({
-     ...l,
-     isDraggable: isEditingLayout, isResizable: isEditingLayout, static: !isEditingLayout,
-   }));
+    const currentBreakpointLayout = layouts?.lg || initialLayouts.lg || [];
+    const rglLayout = currentBreakpointLayout.map(l => ({
+      ...l,
+      isDraggable: isEditingLayout, isResizable: isEditingLayout, static: !isEditingLayout,
+    }));
 
 
   return (
     <div className="flex flex-col gap-4 md:gap-6 animate-fade-in-up">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Total trades loaded: {tradeData.length}</span>
+          <span className="text-sm text-muted-foreground">{t('Total trades loaded')}: {tradeData.length}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
@@ -753,7 +723,7 @@ export default function DashboardPage() {
             <Select>
                 <SelectTrigger className="w-[120px] h-9 text-sm hover-effect">
                     <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Filters" />
+                    <SelectValue placeholder={t("Filters")} />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="filter1">Filter 1</SelectItem>
@@ -767,7 +737,7 @@ export default function DashboardPage() {
                     className={cn("w-[240px] justify-start text-left font-normal h-9 text-sm hover-effect", !dateRange && "text-muted-foreground")}
                 >
                     <CalendarDays className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? (dateRange.to ? (<>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>) : (format(dateRange.from, "LLL dd, y"))) : (<span>Date range</span>)}
+                    {dateRange?.from ? (dateRange.to ? (<>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>) : (format(dateRange.from, "LLL dd, y"))) : (<span>{t("Date range")}</span>)}
                 </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -778,7 +748,7 @@ export default function DashboardPage() {
                 </PopoverContent>
             </Popover>
             <Button variant="outline" size="sm" className="hover-effect h-9" onClick={triggerTradeFileInput} disabled={tradeDataLoading}>
-                <Upload className="mr-2 h-4 w-4" /> {tradeDataLoading ? 'Processing...' : 'Upload Trades CSV'}
+                <Upload className="mr-2 h-4 w-4" /> {tradeDataLoading ? t('Processing...') : t('Upload Trades CSV')}
             </Button>
             <Input
                 type="file"
@@ -797,30 +767,31 @@ export default function DashboardPage() {
                 id="commission-csv-upload"
             />
             <Button size="sm" className="hover-effect bg-accent text-accent-foreground hover:bg-accent/90 h-9">
-                <Sparkles className="mr-2 h-4 w-4" /> Ask Bady AI
+                <Sparkles className="mr-2 h-4 w-4" /> {t("Ask Bady AI")}
             </Button>
             <Button variant="outline" onClick={toggleEditLayout} size="sm" className="h-9 hover-effect">
                 <Edit className="mr-2 h-4 w-4" />
-                {isEditingLayout ? 'Save Layout' : 'Edit Layout'}
+                {isEditingLayout ? t('Save Layout') : t('Edit Layout')}
             </Button>
         </div>
       </div>
 
        <ResponsiveGridLayout
-         className={cn("layout", isEditingLayout ? "editing" : "")}
-         layouts={layouts ?? { lg: [] }} // Ensure layouts is not null
-         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-         rowHeight={30}
-         onLayoutChange={handleLayoutChange}
-         draggableHandle=".drag-handle"
-         margin={[16, 16]}
-         containerPadding={[0, 0]}
-         isDraggable={isEditingLayout}
-         isResizable={isEditingLayout}
-         key={isEditingLayout ? 'editing' : 'static'}
-         measureBeforeMount={false}
-      >
+          className={cn("layout", isEditingLayout ? "editing" : "")}
+          {...({ isRTL: isArabic } as any)}
+          layouts={layouts ?? { lg: [] }}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+          rowHeight={30}
+          onLayoutChange={handleLayoutChange}
+          draggableHandle=".drag-handle"
+          margin={[16, 16]}
+          containerPadding={[0, 0]}
+          isDraggable={isEditingLayout}
+          isResizable={isEditingLayout}
+          key={isEditingLayout ? 'editing' : 'static'}
+          measureBeforeMount={false}
+       >
         {rglLayout.map(({ i }) => (
              <div key={i} className={cn(
                  "bg-card rounded-lg border shadow-sm overflow-hidden transition-all duration-200",
@@ -831,20 +802,10 @@ export default function DashboardPage() {
                          <GripVertical className="h-4 w-4 text-muted-foreground" />
                      </div>
                  )}
-                 <div className={cn("h-full w-full")}>
-                     {renderWidget(i)}
-                 </div>
+                 {renderWidget(i)}
              </div>
         ))}
-      </ResponsiveGridLayout>
-
-
-      {isEditingLayout && (
-        <p className="text-xs text-muted-foreground italic text-center mt-4">
-          Drag handles (<GripVertical className="inline h-3 w-3" />) to move, drag corners to resize. Click 'Save Layout' when done.
-        </p>
-      )}
+       </ResponsiveGridLayout>
     </div>
   );
 }
-

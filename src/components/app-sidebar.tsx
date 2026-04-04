@@ -92,7 +92,7 @@ export function AppSidebar() {
   const { user, loading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const { isArabic } = useLanguage();
+  const { isArabic, t } = useLanguage();
   const { accounts, selectedAccountId, setSelectedAccountId } = useTradeData();
 
   // Alias signOut to supabaseSignOut since we already use useAuth
@@ -134,13 +134,13 @@ export function AppSidebar() {
             <Link href={item.href} passHref legacyBehavior>
               <SidebarMenuButton
                 isActive={pathname === item.href}
-                tooltip={item.label}
+                tooltip={t(item.label)}
                 className="hover-effect"
                 onClick={() => isMobile && setOpenMobile(false)}
               >
                 <item.icon className="h-5 w-5" />
                 <span className="group-data-[collapsible=icon]:hidden">
-                  {item.label}
+                  {t(item.label)}
                 </span>
               </SidebarMenuButton>
             </Link>
@@ -205,13 +205,13 @@ export function AppSidebar() {
                           <Link href={item.href} passHref legacyBehavior>
                             <SidebarMenuButton
                               isActive={pathname === item.href}
-                              tooltip={item.label}
+                              tooltip={t(item.label)}
                               className="hover-effect justify-center !p-2 !size-10"
                               variant="default"
                               onClick={() => isMobile && setOpenMobile(false)}
                             >
                               <item.icon className="h-5 w-5" />
-                              <span className="sr-only">{item.label}</span>
+                              <span className="sr-only">{t(item.label)}</span>
                             </SidebarMenuButton>
                           </Link>
                         </SidebarMenuItem>
@@ -219,13 +219,13 @@ export function AppSidebar() {
                       {user && (
                           <SidebarMenuItem>
                             <SidebarMenuButton
-                                tooltip="Logout"
+                                tooltip={t('Logout')}
                                 className="hover-effect justify-center !p-2 !size-10 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 variant="default"
                                 onClick={handleLogout}
                               >
                                 <LogOut className="h-5 w-5" />
-                                <span className="sr-only">Logout</span>
+                                <span className="sr-only">{t('Logout')}</span>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
                       )}

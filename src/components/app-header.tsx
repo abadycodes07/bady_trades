@@ -11,7 +11,7 @@ import { Globe } from 'lucide-react';
 export function AppHeader() {
   const pathname = usePathname();
   const { isMobile } = useSidebar();
-  const { language, toggleLanguage } = useLanguage();
+  const { language, toggleLanguage, t } = useLanguage();
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
@@ -27,7 +27,7 @@ export function AppHeader() {
           size="sm"
           onClick={toggleLanguage}
           className="hover-effect h-8 px-2 text-xs font-medium gap-1.5 min-w-[56px]"
-          title={language === 'en' ? 'Switch to Arabic' : 'Switch to English'}
+          title={language === 'en' ? t('Switch to Arabic') : t('Switch to English')}
         >
           <Globe className="h-3.5 w-3.5" />
           {language === 'en' ? 'عر' : 'EN'}

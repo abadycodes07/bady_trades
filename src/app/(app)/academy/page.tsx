@@ -1,7 +1,12 @@
+
+// src/app/(app)/academy/page.tsx
+'use client';
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GraduationCap, BookOpen, Video, ChevronRight, Target, BarChart3, Zap, Brain, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Featured ICT and Order Flow courses
 const courses = [
@@ -53,14 +58,16 @@ const courses = [
 ];
 
 export default function AcademyPage() {
+  const { t } = useLanguage();
+
   return (
-    <div className="container mx-auto py-8 max-w-7xl">
-      <div className="mb-10 text-center md:text-left">
-        <h1 className="text-4xl font-bold mb-3 flex items-center justify-center md:justify-start gap-3">
-          <GraduationCap className="h-10 w-10 text-primary" /> BadyTrades Academy
+    <div className="container mx-auto py-8 max-w-7xl px-4">
+      <div className="mb-10 text-center md:text-left rtl:md:text-right">
+        <h1 className="text-4xl font-bold mb-3 flex items-center justify-center md:justify-start rtl:md:justify-start gap-3">
+          <GraduationCap className="h-10 w-10 text-primary" /> {t('BadyTrades Academy')}
         </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl">
-          Elevate your edge with professional-grade trading education. From ICT concepts to institutional order flow analysis.
+        <p className="text-lg text-muted-foreground max-w-2xl rtl:max-w-none rtl:mx-0">
+          {t('Elevate your edge with professional-grade trading education. From ICT concepts to institutional order flow analysis.')}
         </p>
       </div>
 
@@ -77,12 +84,12 @@ export default function AcademyPage() {
                       <course.icon className="h-6 w-6 text-primary" />
                     </div>
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-muted rounded-full text-muted-foreground">
-                        {course.difficulty}
+                        {t(course.difficulty)}
                     </span>
                  </div>
-                 <CardTitle className="text-xl group-hover:text-primary transition-colors">{course.title}</CardTitle>
+                 <CardTitle className="text-xl group-hover:text-primary transition-colors">{t(course.title)}</CardTitle>
                  <CardDescription className="line-clamp-2 mt-2 leading-relaxed">
-                   {course.description}
+                   {t(course.description)}
                  </CardDescription>
               </CardHeader>
               
@@ -90,7 +97,7 @@ export default function AcademyPage() {
                 <div className="flex flex-wrap gap-2 mt-2">
                     {course.modules.map(mod => (
                         <span key={mod} className="text-[10px] px-2 py-1 bg-primary/5 border border-primary/10 rounded text-primary/80 font-medium whitespace-nowrap">
-                            {mod}
+                            {t(mod)}
                         </span>
                     ))}
                 </div>
@@ -98,9 +105,9 @@ export default function AcademyPage() {
 
               <CardFooter className="pt-6 mt-auto">
                  <div className="w-full flex items-center justify-between group-hover:px-1 transition-all">
-                    <span className="text-sm font-semibold text-primary">Start Course</span>
+                    <span className="text-sm font-semibold text-primary">{t('Start Course')}</span>
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                       <ChevronRight className="h-4 w-4" />
+                       <ChevronRight className="h-4 w-4 rtl:rotate-180" />
                     </div>
                  </div>
               </CardFooter>
@@ -111,12 +118,12 @@ export default function AcademyPage() {
 
       {/* Coming soon banner */}
       <div className="mt-12 p-8 rounded-2xl bg-gradient-to-r from-primary/10 via-background to-primary/5 border border-primary/20 text-center">
-         <h3 className="text-xl font-bold mb-2">Weekly Live Webinars</h3>
+         <h3 className="text-xl font-bold mb-2">{t('Weekly Live Webinars')}</h3>
          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-            Join 100,000+ traders every Sunday for the BadyTrades Weekly Outlook. We breakdown ICT setups and DOM imbalances for the week ahead.
+            {t('Join 100,000+ traders every Sunday for the BadyTrades Weekly Outlook. We breakdown ICT setups and DOM imbalances for the week ahead.')}
          </p>
          <Button variant="default" className="hover-effect">
-            <Video className="mr-2 h-4 w-4" /> Subscribe for Invites
+            <Video className="mr-2 h-4 w-4" /> {t('Subscribe for Invites')}
          </Button>
       </div>
     </div>
