@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, ChevronRight, Info, UploadCloud } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, UploadCloud, TrendingUp, TrendingDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -41,25 +41,28 @@ interface Currency {
 }
 
 interface CalendarDayData {
-    grossProfitloss: number; // Sum of GrossPnl from trade CSV
-    profitloss: number;      // Sum of NetPnL from trade CSV
-    netCash: number;         // Sum of NetCash from trade CSV
+    grossProfitloss: number;
+    profitloss: number;
+    netCash: number;
     trades: number;
     rValue: number;
-    commission: number;      // Sum of TotalCommission from commission CSV
-    totalSECFee: number;     // Sum of TotalSECFee from trade CSV
+    commission: number;
+    totalSECFee: number;
     totalFee1: number;
     totalFee2: number;
     totalFee3: number;
     totalFee4: number;
     totalFee5: number;
+    winningTrades: number;
+    losingTrades: number;
+    tradeList: Array<{ symbol: string; side: string; netPnl: number; grossPnl: number; execTime: string }>;
 }
 
 interface WeeklySummaryData {
     grossProfitlossFromTrades: number;
     netProfitLossFromTrades: number;
     totalNetCash: number;
-    uploadedCommissions: number; // Aggregated daily 'commission' (from commission CSV)
+    uploadedCommissions: number;
     totalSECFee: number;
     totalFee1: number;
     totalFee2: number;
@@ -120,12 +123,18 @@ const calculateDailySummaries = (tradeData: CsvTradeData[], commissionData: CsvC
 
             const dateKey = format(parsedDate, 'yyyy-MM-dd');
             if (!dailySummaries[dateKey]) {
-                dailySummaries[dateKey] = { grossProfitloss: 0, profitloss: 0, netCash: 0, trades: 0, rValue: 0, commission: 0, totalSECFee: 0, totalFee1: 0, totalFee2: 0, totalFee3: 0, totalFee4: 0, totalFee5: 0 };
+                dailySummaries[dateKey] = {
+                    grossProfitloss: 0, profitloss: 0, netCash: 0, trades: 0, rValue: 0,
+                    commission: 0, totalSECFee: 0, totalFee1: 0, totalFee2: 0, totalFee3: 0,
+                    totalFee4: 0, totalFee5: 0, winningTrades: 0, losingTrades: 0, tradeList: []
+                };
             }
             dailySummaries[dateKey].grossProfitloss += grossPnlVal;
             dailySummaries[dateKey].profitloss += netPnl;
             dailySummaries[dateKey].netCash += netCashVal;
             dailySummaries[dateKey].trades += 1;
+            if (netPnl > 0) dailySummaries[dateKey].winningTrades += 1;
+            if (netPnl < 0) dailySummaries[dateKey].losingTrades += 1;
             dailySummaries[dateKey].rValue += rValue;
             dailySummaries[dateKey].totalSECFee += totalSECFeeVal;
             dailySummaries[dateKey].totalFee1 += totalFee1Val;
@@ -133,6 +142,13 @@ const calculateDailySummaries = (tradeData: CsvTradeData[], commissionData: CsvC
             dailySummaries[dateKey].totalFee3 += totalFee3Val;
             dailySummaries[dateKey].totalFee4 += totalFee4Val;
             dailySummaries[dateKey].totalFee5 += totalFee5Val;
+            dailySummaries[dateKey].tradeList.push({
+                symbol: trade.Symbol || 'N/A',
+                side: trade.Side || 'N/A',
+                netPnl,
+                grossPnl: grossPnlVal,
+                execTime: trade['Exec Time'] || '',
+            });
         } catch (e) {
             console.warn(`Calendar Trade processing error:`, e);
         }
@@ -150,7 +166,11 @@ const calculateDailySummaries = (tradeData: CsvTradeData[], commissionData: CsvC
 
             const dateKey = format(parsedDate, 'yyyy-MM-dd');
             if (!dailySummaries[dateKey]) {
-                dailySummaries[dateKey] = { grossProfitloss: 0, profitloss: 0, netCash: 0, trades: 0, rValue: 0, commission: 0, totalSECFee: 0, totalFee1: 0, totalFee2: 0, totalFee3: 0, totalFee4: 0, totalFee5: 0 };
+                dailySummaries[dateKey] = {
+                    grossProfitloss: 0, profitloss: 0, netCash: 0, trades: 0, rValue: 0,
+                    commission: 0, totalSECFee: 0, totalFee1: 0, totalFee2: 0, totalFee3: 0,
+                    totalFee4: 0, totalFee5: 0, winningTrades: 0, losingTrades: 0, tradeList: []
+                };
             }
             dailySummaries[dateKey].commission += commissionAmount;
         } catch (e) {
@@ -207,6 +227,7 @@ interface TradingCalendarProps {
     showFeesInPnl: boolean;
     onShowFeesToggle: (checked: boolean) => void;
     onSetInitialBalance?: (date: Date, amount: number) => void;
+    initialBalance?: number;
 }
 
 const formatCalendarCurrency = (value: number | undefined, currency: Currency, showSignForPositive = false): React.ReactNode => {
@@ -238,7 +259,176 @@ const formatTotalCurrency = (value: number, currency: Currency): React.ReactNode
     return <span className="inline-flex items-center" dir="ltr">{sign}{displaySymbol}{formattedAmount}</span>;
 }
 
-export function TradingCalendar({selectedCurrency, tradeData, commissionData, balanceOperations = [], onUploadCommissionsClick, showFeesInPnl, onShowFeesToggle, onSetInitialBalance}: TradingCalendarProps) {
+// Day Detail Popup component
+function DayDetailPopup({
+    date,
+    data,
+    currency,
+    showFeesInPnl,
+    onClose,
+    initialBalance,
+    cumulativePnlUpToDay,
+}: {
+    date: Date;
+    data: CalendarDayData;
+    currency: Currency;
+    showFeesInPnl: boolean;
+    onClose: () => void;
+    initialBalance?: number;
+    cumulativePnlUpToDay?: number;
+}) {
+    const { t } = useLanguage();
+    const pnlForDay = showFeesInPnl
+        ? data.profitloss - data.commission - data.netCash
+        : data.grossProfitloss;
+    const winRate = data.trades > 0 ? (data.winningTrades / data.trades) * 100 : 0;
+    const bestTrade = data.tradeList.length > 0 ? Math.max(...data.tradeList.map(t => t.netPnl)) : null;
+    const worstTrade = data.tradeList.length > 0 ? Math.min(...data.tradeList.map(t => t.netPnl)) : null;
+
+    // Calculate running balance if initial balance is available
+    const runningBalance = initialBalance !== undefined && cumulativePnlUpToDay !== undefined
+        ? initialBalance + cumulativePnlUpToDay
+        : null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+            <div
+                className="bg-card border border-border rounded-2xl shadow-2xl w-[420px] max-w-[95vw] max-h-[90vh] overflow-y-auto"
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className={cn(
+                    "p-4 rounded-t-2xl flex items-center justify-between",
+                    pnlForDay > 0 ? "bg-green-500/20 border-b border-green-500/30" : pnlForDay < 0 ? "bg-red-500/20 border-b border-red-500/30" : "bg-muted/30 border-b border-border"
+                )}>
+                    <div>
+                        <p className="text-xs text-muted-foreground font-medium">{format(date, 'EEEE, MMMM d, yyyy')}</p>
+                        <p className={cn(
+                            "text-2xl font-black mt-0.5",
+                            pnlForDay > 0 ? "text-green-500" : pnlForDay < 0 ? "text-red-500" : "text-foreground"
+                        )}>
+                            {pnlForDay > 0 ? '+' : ''}{formatTotalCurrency(pnlForDay, currency)}
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted/50 transition-colors">
+                        <X className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                </div>
+
+                <div className="p-4 space-y-4">
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-muted/30 rounded-xl p-3 text-center">
+                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t('Trades')}</p>
+                            <p className="text-xl font-black mt-1">{data.trades}</p>
+                        </div>
+                        <div className="bg-green-500/10 rounded-xl p-3 text-center">
+                            <p className="text-[10px] uppercase tracking-widest text-green-600 dark:text-green-400 font-bold">{t('Wins')}</p>
+                            <p className="text-xl font-black text-green-600 dark:text-green-400 mt-1">{data.winningTrades}</p>
+                        </div>
+                        <div className="bg-red-500/10 rounded-xl p-3 text-center">
+                            <p className="text-[10px] uppercase tracking-widest text-red-600 dark:text-red-400 font-bold">{t('Losses')}</p>
+                            <p className="text-xl font-black text-red-600 dark:text-red-400 mt-1">{data.losingTrades}</p>
+                        </div>
+                    </div>
+
+                    {/* Win Rate */}
+                    <div className="bg-muted/20 rounded-xl p-3">
+                        <div className="flex justify-between items-center mb-2">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('Win Rate')}</p>
+                            <p className="text-sm font-black">{winRate.toFixed(1)}%</p>
+                        </div>
+                        <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all"
+                                style={{ width: `${winRate}%` }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Best / Worst */}
+                    {(bestTrade !== null || worstTrade !== null) && (
+                        <div className="grid grid-cols-2 gap-3">
+                            {bestTrade !== null && bestTrade > 0 && (
+                                <div className="bg-green-500/10 rounded-xl p-3">
+                                    <p className="text-[10px] uppercase tracking-widest text-green-600 dark:text-green-400 font-bold flex items-center gap-1">
+                                        <TrendingUp className="h-3 w-3" /> {t('Best Trade')}
+                                    </p>
+                                    <p className="text-sm font-black text-green-600 dark:text-green-400 mt-1" dir="ltr">
+                                        +{formatTotalCurrency(bestTrade, currency)}
+                                    </p>
+                                </div>
+                            )}
+                            {worstTrade !== null && worstTrade < 0 && (
+                                <div className="bg-red-500/10 rounded-xl p-3">
+                                    <p className="text-[10px] uppercase tracking-widest text-red-600 dark:text-red-400 font-bold flex items-center gap-1">
+                                        <TrendingDown className="h-3 w-3" /> {t('Worst Trade')}
+                                    </p>
+                                    <p className="text-sm font-black text-red-600 dark:text-red-400 mt-1" dir="ltr">
+                                        {formatTotalCurrency(worstTrade, currency)}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Running Balance */}
+                    {runningBalance !== null && (
+                        <div className="bg-primary/10 rounded-xl p-3 border border-primary/20">
+                            <p className="text-[10px] uppercase tracking-widest text-primary font-bold">{t('Account Balance')}</p>
+                            <p className="text-lg font-black text-primary mt-1" dir="ltr">
+                                {formatTotalCurrency(runningBalance, currency)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{t('Initial balance + cumulative P&L')}</p>
+                        </div>
+                    )}
+
+                    {/* Trade List */}
+                    {data.tradeList.length > 0 && (
+                        <div>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">{t('Trade Breakdown')}</p>
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                {data.tradeList
+                                    .sort((a, b) => b.netPnl - a.netPnl)
+                                    .map((trade, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-muted/20 rounded-lg px-3 py-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn(
+                                                "text-[9px] font-black px-1.5 py-0.5 rounded uppercase",
+                                                trade.side?.toLowerCase().includes('buy') || trade.side?.toLowerCase() === 'long'
+                                                    ? "bg-green-500/20 text-green-500"
+                                                    : "bg-red-500/20 text-red-500"
+                                            )}>
+                                                {trade.side || 'N/A'}
+                                            </span>
+                                            <span className="text-xs font-bold">{trade.symbol}</span>
+                                        </div>
+                                        <span className={cn(
+                                            "text-xs font-black",
+                                            trade.netPnl > 0 ? "text-green-500" : "text-red-500"
+                                        )} dir="ltr">
+                                            {trade.netPnl > 0 ? '+' : ''}{formatTotalCurrency(trade.netPnl, currency)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Commissions */}
+                    {data.commission > 0 && (
+                        <div className="bg-muted/20 rounded-xl p-3 flex items-center justify-between">
+                            <p className="text-xs font-bold text-muted-foreground">{t('Commissions')}</p>
+                            <p className="text-xs font-black text-red-500/80" dir="ltr">-{formatTotalCurrency(data.commission, currency)}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export function TradingCalendar({selectedCurrency, tradeData, commissionData, balanceOperations = [], onUploadCommissionsClick, showFeesInPnl, onShowFeesToggle, onSetInitialBalance, initialBalance}: TradingCalendarProps) {
     const { isArabic, t } = useLanguage();
     const [currentMonthDate, setCurrentMonthDate] = useState(startOfMonth(new Date()));
 
@@ -247,6 +437,9 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
     const [selectedDayForBalance, setSelectedDayForBalance] = useState<Date | null>(null);
     const [balanceInput, setBalanceInput] = useState<string>("");
 
+    // Day Detail Popup State
+    const [selectedDayForDetail, setSelectedDayForDetail] = useState<{ date: Date; data: CalendarDayData } | null>(null);
+
     const dayData = useMemo(() => calculateDailySummaries(tradeData, commissionData), [tradeData, commissionData]);
 
     const handlePrevMonth = () => setCurrentMonthDate(subMonths(currentMonthDate, 1));
@@ -254,6 +447,22 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
 
     const startDate = startOfWeek(currentMonthDate);
     const weeklySummaries = useMemo(() => calculateWeeklySummaries(startDate, dayData), [startDate, dayData]);
+
+    // Calculate cumulative P&L up to each day for running balance
+    const cumulativePnlMap = useMemo(() => {
+        const result: Record<string, number> = {};
+        const sortedDateKeys = Object.keys(dayData).sort();
+        let cumPnl = 0;
+        for (const dateKey of sortedDateKeys) {
+            const data = dayData[dateKey];
+            const pnl = showFeesInPnl
+                ? (data.profitloss - data.commission - data.netCash)
+                : data.grossProfitloss;
+            cumPnl += pnl;
+            result[dateKey] = cumPnl;
+        }
+        return result;
+    }, [dayData, showFeesInPnl]);
 
     const handleOpenBalanceDialog = (date: Date) => {
         setSelectedDayForBalance(date);
@@ -268,7 +477,15 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
         setIsBalanceDialogOpen(false);
     };
 
-    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const handleDayClick = useCallback((date: Date, data: CalendarDayData | undefined) => {
+        if (data && data.trades > 0) {
+            setSelectedDayForDetail({ date, data });
+        }
+    }, []);
+
+    const dayLabels = isArabic
+        ? ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']
+        : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     return (
         <Card className="h-full flex flex-col border-none shadow-none bg-transparent">
@@ -294,9 +511,9 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
             <CardContent className="flex-grow p-0 overflow-hidden flex">
                 <div className="flex flex-col flex-grow">
                      <div className={cn("grid gap-0", "grid-cols-7")}>
-                        {dayLabels.map((dayLabel) => (
-                            <div key={dayLabel} className="py-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-r last:border-r-0 bg-muted/20">
-                                {t(dayLabel)}
+                        {(isArabic ? [...dayLabels].reverse() : dayLabels).map((dayLabel, idx) => (
+                            <div key={idx} className="py-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-r last:border-r-0 bg-muted/20">
+                                {dayLabel}
                             </div>
                         ))}
                     </div>
@@ -309,40 +526,95 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                             const isCurrentMonth = isSameMonth(dayItem, currentMonthDate);
                             const isToday = isSameDay(dayItem, new Date());
                             const isWeekend = isWeekendDay(dayItem);
+                            const holiday = getHoliday(dayItem);
+                            const isHoliday = !!holiday && isCurrentMonth;
 
-                            const pnlForCellDisplay = showFeesInPnl ? (data?.profitloss || 0) - (data?.commission || 0) - (data?.netCash || 0) : (data?.grossProfitloss || 0);
+                            const pnlForCellDisplay = showFeesInPnl
+                                ? (data?.profitloss || 0) - (data?.commission || 0) - (data?.netCash || 0)
+                                : (data?.grossProfitloss || 0);
+                            const winRate = data && data.trades > 0 ? (data.winningTrades / data.trades) * 100 : 0;
+                            const isProfit = pnlForCellDisplay > 0 && isCurrentMonth;
+                            const isLoss = pnlForCellDisplay < 0 && isCurrentMonth;
+                            const hasData = data && data.trades > 0;
+
+                            // Build inline style for background
+                            let bgStyle: React.CSSProperties = {};
+                            if (!isCurrentMonth) {
+                                bgStyle = { backgroundColor: 'rgba(128,128,128,0.05)' };
+                            } else if (isHoliday) {
+                                bgStyle = { backgroundColor: 'rgba(251, 146, 60, 0.12)' }; // orange for holidays
+                            } else if (isWeekend) {
+                                bgStyle = { backgroundColor: 'rgba(128,128,128,0.08)' };
+                            } else if (isProfit) {
+                                bgStyle = { backgroundColor: 'rgba(34, 197, 94, 0.15)' };
+                            } else if (isLoss) {
+                                bgStyle = { backgroundColor: 'rgba(239, 68, 68, 0.15)' };
+                            }
+
+                            if (isToday) {
+                                bgStyle = { ...bgStyle, boxShadow: 'inset 0 0 0 2px rgba(147,51,234,0.3)' };
+                            }
 
                             return (
                                 <ContextMenu key={dateKey}>
                                     <ContextMenuTrigger asChild>
-                                        <div className={cn(
-                                            "min-h-[100px] p-2 border-b border-r last:border-r-0 flex flex-col transition-all relative group h-full",
-                                            !isCurrentMonth && "bg-muted/5 text-muted-foreground/30 opacity-40",
-                                            isCurrentMonth && isWeekend && "bg-muted/10",
-                                            isToday && "bg-primary/5 ring-1 ring-inset ring-primary/20",
-                                            "hover:bg-accent/30 cursor-default"
-                                        )}>
+                                        <div
+                                            className={cn(
+                                                "min-h-[110px] p-2 border-b border-r last:border-r-0 flex flex-col transition-all relative group h-full",
+                                                !isCurrentMonth && "opacity-30",
+                                                hasData && "cursor-pointer hover:brightness-110",
+                                                !hasData && "cursor-default"
+                                            )}
+                                            style={bgStyle}
+                                            onClick={() => handleDayClick(dayItem, data)}
+                                        >
                                             <div className="flex justify-between items-start mb-1">
                                                 <span className={cn(
                                                     "text-[11px] font-bold opacity-60 px-1.5 py-0.5 rounded",
                                                     isToday && "bg-primary text-primary-foreground opacity-100 ring-2 ring-primary/20"
                                                 )}>{format(dayItem, 'd')}</span>
-                                                
-                                                {data && data.trades > 0 && (
-                                                    <Badge variant="outline" className="text-[9px] h-4 px-1 border-primary/20 bg-primary/5 text-primary">
-                                                        {data.trades} T
-                                                    </Badge>
-                                                )}
+
+                                                <div className="flex items-center gap-1">
+                                                    {isHoliday && (
+                                                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-500 border border-orange-500/30 leading-none">
+                                                            {holiday.shortName}
+                                                        </span>
+                                                    )}
+                                                    {hasData && (
+                                                        <div className="p-1 bg-background/50 rounded-md backdrop-blur-sm border border-border/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Info className="h-3 w-3 text-muted-foreground/50" />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
 
-                                            <div className="flex-grow flex flex-col justify-center items-center gap-0.5">
-                                                {pnlForCellDisplay !== 0 && (
-                                                    <span className={cn(
-                                                        "text-sm font-black tracking-tight",
-                                                        pnlForCellDisplay >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                                                    )}>
-                                                        {formatTotalCurrency(pnlForCellDisplay, selectedCurrency)}
-                                                    </span>
+                                            {isCurrentMonth && isHoliday && !hasData && (
+                                                <div className="flex-grow flex items-center justify-center">
+                                                    <span className="text-[9px] font-medium text-orange-500/70 text-center px-1">{t('Market Closed')}</span>
+                                                </div>
+                                            )}
+
+                                            <div className="flex-grow flex flex-col justify-center items-center py-1">
+                                                {pnlForCellDisplay !== 0 && isCurrentMonth && (
+                                                    <div className="flex flex-col items-center gap-0.5">
+                                                        <span className={cn(
+                                                            "text-base font-black tracking-tight drop-shadow-sm",
+                                                            isProfit ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                                                        )}>
+                                                            {formatTotalCurrency(pnlForCellDisplay, selectedCurrency)}
+                                                        </span>
+                                                        <div className="flex flex-col items-center gap-0 opacity-70">
+                                                            <span className="text-[9px] font-bold uppercase tracking-tighter">
+                                                                {data?.trades} {t(data?.trades === 1 ? 'trade' : 'trades')}
+                                                            </span>
+                                                            <span className={cn(
+                                                                "text-[9px] font-black",
+                                                                winRate >= 50 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                                                            )}>
+                                                                {winRate.toFixed(1)}%
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -372,19 +644,31 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
 
                            const pnlForWeekCellDisplay = summary ? (showFeesInPnl ? (summary.netProfitLossFromTrades - summary.uploadedCommissions - summary.totalNetCash) : summary.grossProfitlossFromTrades) : 0;
                            const weekPnlColor = pnlForWeekCellDisplay >= 0 ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-400';
-                           const isLastRow = weekIndex === 4;
+
+                           // Running balance at end of week
+                           const weekEndDate = addDays(weekStartDate, 6);
+                           const weekEndKey = format(weekEndDate, 'yyyy-MM-dd');
+                           const balanceAtWeekEnd = initialBalance !== undefined && cumulativePnlMap[weekEndKey] !== undefined
+                               ? initialBalance + cumulativePnlMap[weekEndKey]
+                               : null;
 
                            return (
                                <div key={weekKey} className={cn("flex-1 px-1 py-3 flex flex-col items-center justify-center text-center border-b last:border-b-0", "bg-muted/30")}>
                                     <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-40 mb-1">{t('Week')} {getISOWeek(weekStartDate)}</span>
                                     <span className={cn("text-[11px] font-black tracking-tighter leading-none", weekPnlColor)}>{formatTotalCurrency(pnlForWeekCellDisplay, selectedCurrency)}</span>
                                     {weekDaysTraded > 0 && <span className="text-[8px] font-medium opacity-50 mt-1">{weekDaysTraded} {t('days')}</span>}
+                                    {balanceAtWeekEnd !== null && (
+                                        <span className="text-[8px] font-bold text-primary/70 mt-1" dir="ltr">
+                                            {formatTotalCurrency(balanceAtWeekEnd, selectedCurrency)}
+                                        </span>
+                                    )}
                                </div>
                            );
                       })}
                 </div>
             </CardContent>
 
+            {/* Balance Dialog */}
             <Dialog open={isBalanceDialogOpen} onOpenChange={setIsBalanceDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -414,7 +698,21 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Day Detail Popup */}
+            {selectedDayForDetail && (
+                <DayDetailPopup
+                    date={selectedDayForDetail.date}
+                    data={selectedDayForDetail.data}
+                    currency={selectedCurrency}
+                    showFeesInPnl={showFeesInPnl}
+                    onClose={() => setSelectedDayForDetail(null)}
+                    initialBalance={initialBalance}
+                    cumulativePnlUpToDay={cumulativePnlMap[format(selectedDayForDetail.date, 'yyyy-MM-dd')]}
+                />
+            )}
         </Card>
     );
 }
+
 

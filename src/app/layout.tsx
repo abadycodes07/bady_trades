@@ -17,8 +17,9 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: 'BadyTrades',
-  description: 'Your comprehensive digital trading journal and analytics platform.',
+  metadataBase: new URL('https://badytrades-production.up.railway.app'),
+  title: 'BadyTrades Dashboard',
+  description: 'Your comprehensive digital trading journal and analytics platform, hosted on Railway.',
 };
 
 export default function RootLayout({

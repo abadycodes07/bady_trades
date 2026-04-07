@@ -5,13 +5,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Edit, GripVertical, Info, Filter, CalendarDays, Bell, Sparkles, Upload } from 'lucide-react';
+import { Edit, GripVertical, Info, Filter, CalendarDays, Bell, Sparkles, Upload, ChevronDown, Plus, Check, AlertCircle } from 'lucide-react';
 import { TradingCalendar } from '@/components/dashboard/TradingCalendar';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { CumulativePnLChart, type CumulativeDataPoint } from '@/components/dashboard/CumulativePnLChart';
 import { BadyScoreChart } from '@/components/dashboard/BadyScoreChart';
 import { ProgressTrackerHeatmap } from '@/components/dashboard/ProgressTrackerHeatmap';
-import { RecentTradesTable, type CsvTradeData as RecentTradesCsvTradeData } from '@/components/dashboard/RecentTradesTable'; // Use specific type for clarity
+import { RecentTradesTable, type CsvTradeData as RecentTradesCsvTradeData } from '@/components/dashboard/RecentTradesTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -25,17 +25,31 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { BadyTradesLogo } from '@/components/icons/badytrades-logo';
+import { SaudiRiyalSymbol } from '@/components/icons/SaudiRiyalSymbol';
 import Papa from 'papaparse';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useTradeData } from '@/contexts/TradeDataContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Badge } from '@/components/ui/badge';
 
 
-const ResponsiveGridLayout = WidthProvider(Responsive) as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ResponsiveGridLayout = WidthProvider(Responsive as any) as any;
 
 export interface CsvTradeData {
   Account?: string;
@@ -60,9 +74,9 @@ export interface CsvTradeData {
   'Clr Broker'?: string;
   Liq?: string;
   Note?: string;
-  Date?: string; // Standardized date YYYY-MM-DD
-  NetPnL?: string; // Standardized Net P&L from Net Proceeds
-  GrossPnl?: string; // Standardized Gross P&L from Gross Proceeds
+  Date?: string;
+  NetPnL?: string;
+  GrossPnl?: string;
   NetCash?: string;
   TotalSECFee?: string;
   TotalFee1?: string;
@@ -81,28 +95,27 @@ export interface CsvCommissionData {
   id?: string;
 }
 
-// Balance operations: deposits, withdrawals, initial capital from MT4 statements
 export interface BalanceOperation {
   id: string;
-  date: string;          // YYYY-MM-DD
-  amount: number;        // positive = deposit, negative = withdrawal
+  date: string;
+  amount: number;
   type: 'deposit' | 'withdrawal' | 'credit';
   comment?: string;
-  isInitialCapital?: boolean; // true for the very first deposit
+  isInitialCapital?: boolean;
 }
 
 const initialLayouts = {
   lg: [
-    { i: 'net-pnl', x: 0, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
-    { i: 'profit-factor', x: 2, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
-    { i: 'trade-win', x: 4, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
-    { i: 'avg-win-loss', x: 6, y: 0, w: 3, h: 3, isResizable: true, isDraggable: true, static: false },
-    { i: 'max-drawdown', x: 9, y: 0, w: 3, h: 3, isResizable: true, isDraggable: true, static: false },
-    { i: 'cumulative-pnl', x: 0, y: 3, w: 6, h: 8, isResizable: true, isDraggable: true, static: false },
-    { i: 'bady-score', x: 6, y: 3, w: 6, h: 8, isResizable: true, isDraggable: true, static: false },
-    { i: 'trading-calendar', x: 0, y: 11, w: 9, h: 15, isResizable: true, isDraggable: true, static: false },
-    { i: 'progress-tracker', x: 9, y: 11, w: 3, h: 7, isResizable: true, isDraggable: true, static: false },
-    { i: 'recent-trades', x: 9, y: 18, w: 3, h: 7, isResizable: true, isDraggable: true, static: false },
+    { i: 'net-pnl',        x: 0, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'profit-factor',  x: 2, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'trade-win',      x: 4, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'avg-win-loss',   x: 6, y: 0, w: 3, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'max-drawdown',   x: 9, y: 0, w: 3, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'cumulative-pnl', x: 0, y: 3, w: 6, h: 9, isResizable: true, isDraggable: true, static: false },
+    { i: 'bady-score',     x: 6, y: 3, w: 6, h: 9, isResizable: true, isDraggable: true, static: false },
+    { i: 'trading-calendar', x: 0, y: 12, w: 9, h: 15, isResizable: true, isDraggable: true, static: false },
+    { i: 'progress-tracker', x: 9, y: 12, w: 3, h: 7,  isResizable: true, isDraggable: true, static: false },
+    { i: 'recent-trades',    x: 9, y: 19, w: 3, h: 8,  isResizable: true, isDraggable: true, static: false },
   ],
 };
 
@@ -118,28 +131,30 @@ interface Currency {
   rate: number;
 }
 
+const sarSymbol = <SaudiRiyalSymbol className="h-3 w-3 inline-block" style={{ fill: 'currentColor' }} />;
+
 const currencies: Currency[] = [
-    { code: 'USD', name: 'US Dollar', symbol: '$', rate: 1 },
-    { code: 'EUR', name: 'Euro', symbol: '€', rate: 0.93 },
-    { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.79 },
-    { code: 'JPY', name: 'Japanese Yen', symbol: '¥', rate: 158.47 },
-    { code: 'SAR', name: 'Saudi Riyal', symbol: <span className="sar" style={{ fontSize: '1.1em', lineHeight: '1' }}>$</span>, rate: 3.75 },
-    { code: 'CAD', name: 'Canadian Dollar', symbol: 'CA$', rate: 1.37 },
-    { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', rate: 1.50 },
-    { code: 'CHF', name: 'Swiss Franc', symbol: 'Fr', rate: 0.88 },
-    { code: 'CNY', name: 'Chinese Yuan', symbol: 'CN¥', rate: 7.25 },
-    { code: 'SEK', name: 'Swedish Krona', symbol: 'kr', rate: 10.78 },
-    { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$', rate: 1.63 },
-    { code: 'MXN', name: 'Mexican Peso', symbol: 'Mex$', rate: 17.64 },
-    { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', rate: 1.35 },
-    { code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$', rate: 7.81 },
-    { code: 'NOK', name: 'Norwegian Krone', symbol: 'kr', rate: 10.67 },
-    { code: 'KRW', name: 'South Korean Won', symbol: '₩', rate: 1345.50 },
-    { code: 'TRY', name: 'Turkish Lira', symbol: '₺', rate: 32.30 },
-    { code: 'RUB', name: 'Russian Ruble', symbol: '₽', rate: 89.45 },
-    { code: 'INR', name: 'Indian Rupee', symbol: '₹', rate: 83.44 },
-    { code: 'BRL', name: 'Brazilian Real', symbol: 'R$', rate: 5.04 },
-    { code: 'ZAR', name: 'South African Rand', symbol: 'R', rate: 18.22 },
+    { code: 'USD', name: 'US Dollar',          symbol: '$',    rate: 1 },
+    { code: 'EUR', name: 'Euro',               symbol: '€',    rate: 0.93 },
+    { code: 'GBP', name: 'British Pound',      symbol: '£',    rate: 0.79 },
+    { code: 'SAR', name: 'Saudi Riyal',        symbol: sarSymbol, rate: 3.75 },
+    { code: 'JPY', name: 'Japanese Yen',       symbol: '¥',    rate: 158.47 },
+    { code: 'CAD', name: 'Canadian Dollar',    symbol: 'CA$',  rate: 1.37 },
+    { code: 'AUD', name: 'Australian Dollar',  symbol: 'A$',   rate: 1.50 },
+    { code: 'CHF', name: 'Swiss Franc',        symbol: 'Fr',   rate: 0.88 },
+    { code: 'CNY', name: 'Chinese Yuan',       symbol: 'CN¥',  rate: 7.25 },
+    { code: 'SEK', name: 'Swedish Krona',      symbol: 'kr',   rate: 10.78 },
+    { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$',  rate: 1.63 },
+    { code: 'MXN', name: 'Mexican Peso',       symbol: 'Mex$', rate: 17.64 },
+    { code: 'SGD', name: 'Singapore Dollar',   symbol: 'S$',   rate: 1.35 },
+    { code: 'HKD', name: 'Hong Kong Dollar',   symbol: 'HK$',  rate: 7.81 },
+    { code: 'NOK', name: 'Norwegian Krone',    symbol: 'kr',   rate: 10.67 },
+    { code: 'KRW', name: 'South Korean Won',   symbol: '₩',    rate: 1345.50 },
+    { code: 'TRY', name: 'Turkish Lira',       symbol: '₺',    rate: 32.30 },
+    { code: 'RUB', name: 'Russian Ruble',      symbol: '₽',    rate: 89.45 },
+    { code: 'INR', name: 'Indian Rupee',       symbol: '₹',    rate: 83.44 },
+    { code: 'BRL', name: 'Brazilian Real',     symbol: 'R$',   rate: 5.04 },
+    { code: 'ZAR', name: 'South African Rand', symbol: 'R',    rate: 18.22 },
 ];
 
 
@@ -152,12 +167,29 @@ export default function DashboardPage() {
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(currencies[0]);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { tradeData, selectedAccountId, updateAccountInitialBalance, addTrades, isLoading: tradeDataLoading, setIsLoading: setTradeDataLoading } = useTradeData();
+  const {
+    tradeData,
+    selectedAccountId,
+    accounts,
+    setSelectedAccountId,
+    createAccount,
+    updateAccountInitialBalance,
+    addTrades,
+    addTradesToAccount,
+    isLoading: tradeDataLoading,
+    setIsLoading: setTradeDataLoading,
+    isDemoMode,
+  } = useTradeData();
   const [commissionData, setCommissionData] = useState<CsvCommissionData[]>([]);
   const [balanceOperations, setBalanceOperations] = useState<BalanceOperation[]>([]);
   const commissionFileInputRef = useRef<HTMLInputElement>(null);
   const [showFeesInPnl, setShowFeesInPnl] = useState(false);
 
+  // CSV Upload → Account Dialog
+  const [pendingCsvTrades, setPendingCsvTrades] = useState<CsvTradeData[] | null>(null);
+  const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
+  const [newAccountName, setNewAccountName] = useState('');
+  const [selectedTargetAccountId, setSelectedTargetAccountId] = useState<string>('');
 
   useEffect(() => {
     setIsClient(true);
@@ -205,15 +237,6 @@ export default function DashboardPage() {
       setLayouts(parsedLayouts);
     } catch (error) {
       console.error("Failed to parse layouts from local storage:", error);
-       Object.keys(initialLayouts).forEach(bp => {
-            const currentBpKey = bp as keyof typeof initialLayouts;
-            const initialBpLayout = initialLayouts[currentBpKey];
-            if (initialBpLayout) {
-                initialLayouts[currentBpKey] = initialBpLayout.map((l: Layout) => ({
-                   ...l, isDraggable: isEditingLayout, isResizable: isEditingLayout, static: !isEditingLayout,
-                }));
-            }
-       });
       setLayouts(initialLayouts);
     }
   }, [isEditingLayout]);
@@ -275,132 +298,143 @@ export default function DashboardPage() {
        );
    }, [selectedCurrency]);
 
-   const handleTradeFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-       const file = event.target.files?.[0];
-       if (file) {
-           Papa.parse<Record<string, string>>(file, {
-               header: true,
-               skipEmptyLines: true,
-               complete: (results) => {
-                   const csvHeaders = results.meta.fields?.map(h => h.trim().toLowerCase()) || [];
+   // Parse CSV trades from file
+   const parseCsvFile = (file: File): Promise<CsvTradeData[]> => {
+     return new Promise((resolve, reject) => {
+       Papa.parse<Record<string, string>>(file, {
+         header: true,
+         skipEmptyLines: true,
+         complete: (results) => {
+           const csvHeaders = results.meta.fields?.map(h => h.trim().toLowerCase()) || [];
+           const hasTradeDateColumn = csvHeaders.includes('t/d');
+           const hasNetProceedsColumn = csvHeaders.includes('net proceeds');
+           const hasGrossProceedsColumn = csvHeaders.includes('gross proceeds');
+           const isStandardFormat = hasTradeDateColumn && hasNetProceedsColumn && hasGrossProceedsColumn;
+           const isMT4Format = csvHeaders.includes('ticket') && csvHeaders.includes('closing_time_utc') && csvHeaders.includes('profit');
 
-                   const hasTradeDateColumn = csvHeaders.includes('t/d');
-                   const hasNetProceedsColumn = csvHeaders.includes('net proceeds');
-                   const hasGrossProceedsColumn = csvHeaders.includes('gross proceeds');
-                   
-                   const isStandardFormat = hasTradeDateColumn && hasNetProceedsColumn && hasGrossProceedsColumn;
-                   const isMT4Format = csvHeaders.includes('ticket') && csvHeaders.includes('closing_time_utc') && csvHeaders.includes('profit');
-
-                   if (!isStandardFormat && !isMT4Format) {
-                       toast({
-                           title: 'CSV Format Error',
-                           description: "Unrecognized CSV format. Please use Standard format (requires 'T/D', 'Net Proceeds', 'Gross Proceeds') or MetaTrader format.",
-                           variant: 'destructive',
-                           duration: 7000,
-                       });
-                       return;
-                   }
-
-
-                   if (results.data.length > 0 && (isStandardFormat || isMT4Format)) {
-                       const normalizedData = results.data.map((row, index) => {
-                           const newRow: Partial<CsvTradeData> = { id: `csv-trade-${Date.now()}-${index}` };
-
-                           if (isMT4Format) {
-                               const getRowVal = (key: string) => row[Object.keys(row).find(k => k.trim().toLowerCase() === key) || ''] || '';
-                               
-                               const rawDate = getRowVal('closing_time_utc') || getRowVal('time');
-                               newRow['T/D'] = rawDate ? rawDate.split(' ')[0].split('T')[0] : '';
-                               newRow['Symbol'] = getRowVal('symbol');
-                               newRow['Side'] = getRowVal('type');
-                               newRow['Qty'] = getRowVal('lots') || getRowVal('volume');
-                               newRow['Price'] = getRowVal('closing_price') || getRowVal('price');
-                               newRow['Exec Time'] = rawDate;
-                               
-                               const profit = parseFloat(getRowVal('profit') || '0');
-                               const comm = parseFloat(getRowVal('commission') || '0');
-                               const swap = parseFloat(getRowVal('swap') || '0');
-                               
-                               newRow['Gross Proceeds'] = profit.toString();
-                               newRow['Net Proceeds'] = (profit + comm + swap).toString();
-                               newRow['Comm'] = comm.toString();
-                               newRow['Account'] = 'MetaTrader';
-                           } else {
-                               const headerMap: { [csvHeader: string]: keyof CsvTradeData } = {
-                                   'account': 'Account', 't/d': 'T/D', 's/d': 'S/D',
-                                   'currency': 'Currency', 'type': 'Type', 'side': 'Side',
-                                   'symbol': 'Symbol', 'qty': 'Qty', 'price': 'Price',
-                                   'exec time': 'Exec Time', 'comm': 'Comm', 'sec': 'SEC',
-                                   'taf': 'TAF', 'nscc': 'NSCC', 'nasdaq': 'Nasdaq',
-                                   'ecn remove': 'ECN Remove', 'ecn add': 'ECN Add',
-                                   'gross proceeds': 'Gross Proceeds', 'net proceeds': 'Net Proceeds',
-                                   'clr broker': 'Clr Broker', 'liq': 'Liq', 'note': 'Note',
-                                   'netcash': 'NetCash',
-                                   'totalsecfee': 'TotalSECFee',
-                                   'totalfee1': 'TotalFee1',
-                                   'totalfee2': 'TotalFee2',
-                                   'totalfee3': 'TotalFee3',
-                                   'totalfee4': 'TotalFee4',
-                                   'totalfee5': 'TotalFee5',
-                               };
-    
-                               for (const rawCsvHeader in row) {
-                                   const csvHeader = rawCsvHeader.trim().toLowerCase();
-                                   const targetKey = headerMap[csvHeader];
-                                   if (targetKey) {
-                                       newRow[targetKey] = row[rawCsvHeader];
-                                   }
-                               }
-                           }
-
-                           const rawTradeDate = newRow['T/D'];
-                            if (rawTradeDate && rawTradeDate.trim() !== '') {
-                               try {
-                                   let parsedDateAttempt;
-                                   const dateFormatsToTry = ['MM/dd/yy', 'yyyy-MM-dd', 'MM/dd/yyyy', 'M/d/yy', 'M/dd/yyyy', 'MM/d/yyyy'];
-                                   for (const fmt of dateFormatsToTry) {
-                                       parsedDateAttempt = parse(rawTradeDate, fmt, new Date());
-                                       if (isValid(parsedDateAttempt)) break;
-                                   }
-
-                                   if (parsedDateAttempt && isValid(parsedDateAttempt)) {
-                                       newRow.Date = format(parsedDateAttempt as Date, 'yyyy-MM-dd');
-                                   } else {
-                                       newRow.Date = rawTradeDate;
-                                       toast({ title: `Date Warning (Row ${index + 2})`, description: `Could not parse trade date '${rawTradeDate}'.`, variant: 'default', duration: 7000});
-                                   }
-                               } catch (e) {
-                                   newRow.Date = rawTradeDate;
-                                   toast({ title: `Date Error (Row ${index + 2})`, description: `Error parsing trade date '${rawTradeDate}'.`, variant: 'destructive', duration: 5000});
-                               }
-                           } else {
-                               newRow.Date = '';
-                           }
-
-
-                           newRow.NetPnL = newRow['Net Proceeds'] || '0';
-                           newRow.GrossPnl = newRow['Gross Proceeds'] || '0';
-
-
-                           return newRow as CsvTradeData;
-                       });
-
-                       addTrades(normalizedData);
-                   }
-               },
-               error: (error) => {
-                   toast({
-                       title: 'CSV Parsing Failed',
-                       description: error.message,
-                       variant: 'destructive',
-                   });
-                   setTradeDataLoading(false);
-               },
-           });
-           if (fileInputRef.current) {
-               fileInputRef.current.value = '';
+           if (!isStandardFormat && !isMT4Format) {
+             reject(new Error("Unrecognized CSV format. Please use Standard format (requires 'T/D', 'Net Proceeds', 'Gross Proceeds') or MetaTrader format."));
+             return;
            }
+
+           if (results.data.length > 0) {
+             const normalizedData = results.data.map((row, index) => {
+               const newRow: Partial<CsvTradeData> = { id: `csv-trade-${Date.now()}-${index}` };
+
+               if (isMT4Format) {
+                 const getRowVal = (key: string) => row[Object.keys(row).find(k => k.trim().toLowerCase() === key) || ''] || '';
+                 const rawDate = getRowVal('closing_time_utc') || getRowVal('time');
+                 newRow['T/D'] = rawDate ? rawDate.split(' ')[0].split('T')[0] : '';
+                 newRow['Symbol'] = getRowVal('symbol');
+                 newRow['Side'] = getRowVal('type');
+                 newRow['Qty'] = getRowVal('lots') || getRowVal('volume');
+                 newRow['Price'] = getRowVal('closing_price') || getRowVal('price');
+                 newRow['Exec Time'] = rawDate;
+                 const profit = parseFloat(getRowVal('profit') || '0');
+                 const comm = parseFloat(getRowVal('commission') || '0');
+                 const swap = parseFloat(getRowVal('swap') || '0');
+                 newRow['Gross Proceeds'] = profit.toString();
+                 newRow['Net Proceeds'] = (profit + comm + swap).toString();
+                 newRow['Comm'] = comm.toString();
+                 newRow['Account'] = 'MetaTrader';
+               } else {
+                 const headerMap: { [csvHeader: string]: keyof CsvTradeData } = {
+                   'account': 'Account', 't/d': 'T/D', 's/d': 'S/D',
+                   'currency': 'Currency', 'type': 'Type', 'side': 'Side',
+                   'symbol': 'Symbol', 'qty': 'Qty', 'price': 'Price',
+                   'exec time': 'Exec Time', 'comm': 'Comm', 'sec': 'SEC',
+                   'taf': 'TAF', 'nscc': 'NSCC', 'nasdaq': 'Nasdaq',
+                   'ecn remove': 'ECN Remove', 'ecn add': 'ECN Add',
+                   'gross proceeds': 'Gross Proceeds', 'net proceeds': 'Net Proceeds',
+                   'clr broker': 'Clr Broker', 'liq': 'Liq', 'note': 'Note',
+                   'netcash': 'NetCash', 'totalsecfee': 'TotalSECFee',
+                   'totalfee1': 'TotalFee1', 'totalfee2': 'TotalFee2',
+                   'totalfee3': 'TotalFee3', 'totalfee4': 'TotalFee4',
+                   'totalfee5': 'TotalFee5',
+                 };
+                 for (const rawCsvHeader in row) {
+                   const csvHeader = rawCsvHeader.trim().toLowerCase();
+                   const targetKey = headerMap[csvHeader];
+                   if (targetKey) newRow[targetKey] = row[rawCsvHeader];
+                 }
+               }
+
+               const rawTradeDate = newRow['T/D'];
+               if (rawTradeDate && rawTradeDate.trim() !== '') {
+                 try {
+                   let parsedDateAttempt;
+                   const dateFormatsToTry = ['MM/dd/yy', 'yyyy-MM-dd', 'MM/dd/yyyy', 'M/d/yy', 'M/dd/yyyy', 'MM/d/yyyy'];
+                   for (const fmt of dateFormatsToTry) {
+                     parsedDateAttempt = parse(rawTradeDate, fmt, new Date());
+                     if (isValid(parsedDateAttempt)) break;
+                   }
+                   if (parsedDateAttempt && isValid(parsedDateAttempt)) {
+                     newRow.Date = format(parsedDateAttempt as Date, 'yyyy-MM-dd');
+                   } else {
+                     newRow.Date = rawTradeDate;
+                   }
+                 } catch (e) {
+                   newRow.Date = rawTradeDate;
+                 }
+               } else {
+                 newRow.Date = '';
+               }
+
+               newRow.NetPnL = newRow['Net Proceeds'] || '0';
+               newRow.GrossPnl = newRow['Gross Proceeds'] || '0';
+               return newRow as CsvTradeData;
+             });
+             resolve(normalizedData);
+           } else {
+             resolve([]);
+           }
+         },
+         error: (error) => reject(error),
+       });
+     });
+   };
+
+   const handleTradeFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+       const file = event.target.files?.[0];
+       if (!file) return;
+
+       try {
+           const parsedTrades = await parseCsvFile(file);
+           if (parsedTrades.length > 0) {
+               // Always show account dialog to let user choose/create account
+               setPendingCsvTrades(parsedTrades);
+               const realAccounts = accounts.filter(a => a.id !== 'demo-account');
+               setSelectedTargetAccountId(realAccounts.length > 0 ? realAccounts[0].id : '__new__');
+               setNewAccountName('');
+               setIsAccountDialogOpen(true);
+           }
+       } catch (err: any) {
+           toast({ title: 'CSV Format Error', description: err.message, variant: 'destructive', duration: 7000 });
        }
+
+       if (fileInputRef.current) fileInputRef.current.value = '';
+   };
+
+   const handleAccountDialogConfirm = async () => {
+       if (!pendingCsvTrades) return;
+       setIsAccountDialogOpen(false);
+
+       let targetAccountId = selectedTargetAccountId;
+
+       if (selectedTargetAccountId === '__new__') {
+           if (!newAccountName.trim()) {
+               toast({ title: 'Account Name Required', description: 'Please enter a name for the new account.', variant: 'destructive' });
+               setIsAccountDialogOpen(true);
+               return;
+           }
+           const newAcc = await createAccount(newAccountName.trim());
+           if (!newAcc) return;
+           targetAccountId = newAcc.id;
+       }
+
+       await addTradesToAccount(pendingCsvTrades, targetAccountId);
+       setSelectedAccountId(targetAccountId);
+       setPendingCsvTrades(null);
    };
 
    const triggerTradeFileInput = () => {
@@ -438,9 +472,7 @@ export default function DashboardPage() {
                              for (const rawCsvHeader in row) {
                                  const csvHeader = rawCsvHeader.trim().toLowerCase();
                                  const targetKey = headerMap[csvHeader];
-                                 if (targetKey) {
-                                     newRow[targetKey] = row[rawCsvHeader];
-                                 }
+                                 if (targetKey) newRow[targetKey] = row[rawCsvHeader];
                              }
                              newRow.Commission = newRow.TotalCommission;
 
@@ -492,9 +524,7 @@ export default function DashboardPage() {
                      toast({ title: 'Commission CSV Parsing Failed', description: error.message, variant: 'destructive' });
                  }
              });
-             if (commissionFileInputRef.current) {
-                 commissionFileInputRef.current.value = '';
-             }
+             if (commissionFileInputRef.current) commissionFileInputRef.current.value = '';
          }
      };
 
@@ -504,11 +534,15 @@ export default function DashboardPage() {
 
     const handleSetInitialBalance = useCallback(async (date: Date, amount: number) => {
         if (!selectedAccountId) {
-            toast({ title: 'No Portfolio Selected', description: 'Please select a portfolio to set an initial balance.', variant: 'destructive' });
+            toast({ title: 'No Account Selected', description: 'Please select an account to set an initial balance.', variant: 'destructive' });
             return;
         }
         await updateAccountInitialBalance(selectedAccountId, amount);
     }, [selectedAccountId, updateAccountInitialBalance, toast]);
+
+    // Get current account's initial balance
+    const currentAccount = accounts.find(a => a.id === selectedAccountId);
+    const initialBalance = currentAccount?.initial_balance || undefined;
 
     const renderWidget = useCallback((key: string) => {
       let netPnlCardValue = 0;
@@ -540,11 +574,9 @@ export default function DashboardPage() {
        const calculateAvgWinLoss = (data: CsvTradeData[]): { win: number; loss: number; ratio: number | string } => {
            const winningTrades = data.filter(trade => parseFloat(trade.NetPnL || '0') > 0);
            const losingTrades = data.filter(trade => parseFloat(trade.NetPnL || '0') < 0);
-
            const avgWin = winningTrades.length > 0 ? winningTrades.reduce((sum, trade) => sum + parseFloat(trade.NetPnL || '0'), 0) / winningTrades.length : 0;
            const avgLoss = losingTrades.length > 0 ? losingTrades.reduce((sum, trade) => sum + parseFloat(trade.NetPnL || '0'), 0) / losingTrades.length : 0;
-
-            const ratio = avgLoss === 0 ? (avgWin === 0 ? 0 : Infinity) : Math.abs(avgWin / avgLoss);
+           const ratio = avgLoss === 0 ? (avgWin === 0 ? 0 : Infinity) : Math.abs(avgWin / avgLoss);
            return { win: avgWin, loss: avgLoss, ratio: isFinite(Number(ratio)) ? Number(ratio).toFixed(2) : '∞' };
        };
 
@@ -559,12 +591,8 @@ export default function DashboardPage() {
               try {
                  let dateA = parse(a.Date, 'yyyy-MM-dd', new Date());
                  if (!isValid(dateA)) dateA = parse(a.Date, 'MM/dd/yy', new Date());
-                 if (!isValid(dateA)) dateA = parse(a.Date, 'MM/dd/yyyy', new Date());
-
                  let dateB = parse(b.Date, 'yyyy-MM-dd', new Date());
                  if (!isValid(dateB)) dateB = parse(b.Date, 'MM/dd/yy', new Date());
-                 if (!isValid(dateB)) dateB = parse(b.Date, 'MM/dd/yyyy', new Date());
-
                  if (!isValid(dateA) || !isValid(dateB)) return 0;
                  return dateA.getTime() - dateB.getTime();
               } catch { return 0; }
@@ -577,34 +605,10 @@ export default function DashboardPage() {
               dailyPnlMap[dateKey] = (dailyPnlMap[dateKey] || 0) + pnl;
           });
 
-          if (includeAllFees) {
-              for(const dateKey in dailyPnlMap) {
-                  dailyPnlMap[dateKey] -= (dailyCommissions[dateKey] || 0);
-                  dailyPnlMap[dateKey] -= (dailyNetCashMap[dateKey] || 0);
-              }
-              for(const dateKey in dailyCommissions) {
-                  if (!dailyPnlMap[dateKey]) dailyPnlMap[dateKey] = 0;
-                  dailyPnlMap[dateKey] -= (dailyCommissions[dateKey] || 0);
-              }
-               for(const dateKey in dailyNetCashMap) {
-                  if (!dailyPnlMap[dateKey]) dailyPnlMap[dateKey] = 0;
-                  dailyPnlMap[dateKey] -= (dailyNetCashMap[dateKey] || 0);
-              }
-          }
-
-          const uniqueSortedDates = Object.keys(dailyPnlMap).sort((a, b) => {
-             try {
-                 const dateA = parse(a, 'yyyy-MM-dd', new Date());
-                 const dateB = parse(b, 'yyyy-MM-dd', new Date());
-                 return dateA.getTime() - dateB.getTime();
-             } catch { return 0; }
-          });
-
+          const uniqueSortedDates = Object.keys(dailyPnlMap).sort();
           uniqueSortedDates.forEach(dateKey => {
               cumulativePnl += dailyPnlMap[dateKey];
-              if (cumulativePnl > peak) {
-                  peak = cumulativePnl;
-              }
+              if (cumulativePnl > peak) peak = cumulativePnl;
               const drawdown = peak - cumulativePnl;
               if (drawdown > maxDrawdownValue) {
                   maxDrawdownValue = drawdown;
@@ -617,23 +621,15 @@ export default function DashboardPage() {
       const profitFactor = calculateProfitFactor(tradeData);
       const winRate = calculateWinRate(tradeData);
       const avgWinLossData = calculateAvgWinLoss(tradeData);
-
-      const dailyCommissionsMap: Record<string,number> = {};
+      const dailyCommissionsMap: Record<string, number> = {};
       commissionData.forEach(comm => {
-         if(comm.Date && comm.Commission) {
-             dailyCommissionsMap[comm.Date] = (dailyCommissionsMap[comm.Date] || 0) + parseFloat(comm.Commission);
-         }
+         if(comm.Date && comm.Commission) dailyCommissionsMap[comm.Date] = (dailyCommissionsMap[comm.Date] || 0) + parseFloat(comm.Commission);
       });
-
       const dailyNetCashMapAgg: Record<string, number> = {};
       tradeData.forEach(trade => {
-         if (trade.Date && trade.NetCash) {
-             dailyNetCashMapAgg[trade.Date] = (dailyNetCashMapAgg[trade.Date] || 0) + parseFloat(trade.NetCash);
-         }
+         if (trade.Date && trade.NetCash) dailyNetCashMapAgg[trade.Date] = (dailyNetCashMapAgg[trade.Date] || 0) + parseFloat(trade.NetCash);
       });
-
       const maxDrawdownData = calculateMaxDrawdown(tradeData, showFeesInPnl, dailyCommissionsMap, dailyNetCashMapAgg);
-
 
       const badyScoreComponents = [
          winRate / 100,
@@ -644,9 +640,8 @@ export default function DashboardPage() {
          ? (badyScoreComponents.reduce((a, b) => a + b, 0) / badyScoreComponents.length) * 100
          : 0;
 
-
       switch (key) {
-        case 'net-pnl': return <MetricCard title={t("Total Net P&L")} value={<span className={netPnlCardValue >= 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"}>{convertCurrency(netPnlCardValue)}</span>} metric={<span>{/* % change could be vs previous period */}</span>} iconType="info" className="h-full"/>;
+        case 'net-pnl': return <MetricCard title={t("Total Net P&L")} value={<span className={netPnlCardValue >= 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"}>{convertCurrency(netPnlCardValue)}</span>} metric={<span>{/* % change */}</span>} iconType="info" className="h-full"/>;
         case 'profit-factor': return <MetricCard title={t("Profit Factor")} value={isFinite(Number(profitFactor)) ? Number(profitFactor).toFixed(2) : '∞'} iconType="progressCircle" progressValue={Math.min(100, (isFinite(Number(profitFactor)) ? Number(profitFactor) : 0) / 3 * 100)} color={Number(profitFactor) >= 1.5 ? 'green' : 'red'} className="h-full"/>;
         case 'trade-win': return <MetricCard title={t("Trade Win %")} value={`${winRate.toFixed(1)}%`} iconType="gauge" gaugeData={{ wins: tradeData.filter(t => parseFloat(t.NetPnL || '0') > 0).length, losses: tradeData.filter(t => parseFloat(t.NetPnL || '0') < 0).length, breakeven: tradeData.filter(t => parseFloat(t.NetPnL || '0') === 0).length }} color={winRate >= 50 ? 'green' : 'red'} className="h-full"/>;
         case 'avg-win-loss': return <MetricCard title={t("Avg win/loss trade")} value={avgWinLossData.ratio} iconType="bar" barData={avgWinLossData} color="neutral" selectedCurrency={selectedCurrency} className="h-full"/>;
@@ -656,26 +651,29 @@ export default function DashboardPage() {
             try {
               let parsedDate = parse(maxDrawdownData.date, 'yyyy-MM-dd', new Date());
               if (!isValid(parsedDate)) parsedDate = parse(maxDrawdownData.date, 'MM/dd/yy', new Date());
-              if (!isValid(parsedDate)) parsedDate = parse(maxDrawdownData.date, 'MM/dd/yyyy', new Date());
-
-              if (isValid(parsedDate)) {
-                formattedDrawdownDate = format(parsedDate, 'MMM dd, yyyy');
-              } else {
-                formattedDrawdownDate = maxDrawdownData.date;
-              }
-            } catch {
-              formattedDrawdownDate = maxDrawdownData.date;
-            }
+              if (isValid(parsedDate)) formattedDrawdownDate = format(parsedDate, 'MMM dd, yyyy');
+              else formattedDrawdownDate = maxDrawdownData.date;
+            } catch { formattedDrawdownDate = maxDrawdownData.date; }
           }
           return <MetricCard title={t("Max Drawdown")} value={<span className="text-red-600 dark:text-red-500">{convertCurrency(maxDrawdownData.value)}</span>} metric={formattedDrawdownDate} color="red" className="h-full"/>;
         case 'cumulative-pnl': return <CumulativePnLChart selectedCurrency={selectedCurrency} data={tradeData} commissionData={commissionData} showFeesInPnl={showFeesInPnl}/>;
         case 'bady-score': return <BadyScoreChart data={tradeData} overallScore={badyScore} />;
-        case 'trading-calendar': return <TradingCalendar selectedCurrency={selectedCurrency} tradeData={tradeData} commissionData={commissionData} balanceOperations={balanceOperations} onUploadCommissionsClick={triggerCommissionFileInput} showFeesInPnl={showFeesInPnl} onShowFeesToggle={setShowFeesInPnl} onSetInitialBalance={handleSetInitialBalance}/>;
+        case 'trading-calendar': return <TradingCalendar
+            selectedCurrency={selectedCurrency}
+            tradeData={tradeData}
+            commissionData={commissionData}
+            balanceOperations={balanceOperations}
+            onUploadCommissionsClick={triggerCommissionFileInput}
+            showFeesInPnl={showFeesInPnl}
+            onShowFeesToggle={setShowFeesInPnl}
+            onSetInitialBalance={handleSetInitialBalance}
+            initialBalance={initialBalance}
+        />;
         case 'progress-tracker': return <ProgressTrackerHeatmap data={tradeData} />;
         case 'recent-trades': return <RecentTradesTable selectedCurrency={selectedCurrency} data={tradeData as RecentTradesCsvTradeData[]}/>;
         default: return <Card className="h-full flex items-center justify-center"><CardContent>Unknown Widget: {key}</CardContent></Card>;
       }
-    }, [selectedCurrency, convertCurrency, tradeData, commissionData, isEditingLayout, triggerCommissionFileInput, showFeesInPnl, setShowFeesInPnl, handleSetInitialBalance, t]);
+    }, [selectedCurrency, convertCurrency, tradeData, commissionData, isEditingLayout, triggerCommissionFileInput, showFeesInPnl, setShowFeesInPnl, handleSetInitialBalance, t, initialBalance, balanceOperations]);
 
 
    if (!isClient || tradeDataLoading) {
@@ -692,12 +690,70 @@ export default function DashboardPage() {
       isDraggable: isEditingLayout, isResizable: isEditingLayout, static: !isEditingLayout,
     }));
 
+    const realAccounts = accounts.filter(a => a.id !== 'demo-account');
 
   return (
     <div className="flex flex-col gap-4 md:gap-6 animate-fade-in-up">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2">
+          {/* Account Switcher */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="hover-effect h-9 gap-1.5 max-w-[200px]">
+                {isDemoMode && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                )}
+                {!isDemoMode && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                )}
+                <span className="truncate text-sm">
+                  {currentAccount?.name || t('Select Account')}
+                </span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">{t('Switch Account')}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {accounts.map((account) => (
+                <DropdownMenuItem
+                  key={account.id}
+                  onClick={() => setSelectedAccountId(account.id)}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <span className={cn(
+                    "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                    account.id === 'demo-account' ? "bg-amber-500" : "bg-green-500"
+                  )} />
+                  <span className="truncate flex-1">{account.name}</span>
+                  {account.id === 'demo-account' && (
+                    <span className="text-[9px] px-1 py-0.5 bg-amber-500/20 text-amber-500 rounded font-bold">DEMO</span>
+                  )}
+                  {selectedAccountId === account.id && <Check className="ml-auto h-3.5 w-3.5 text-primary" />}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedTargetAccountId('__new__');
+                  setNewAccountName('');
+                  setPendingCsvTrades(null);
+                  setIsAccountDialogOpen(true);
+                }}
+                className="cursor-pointer text-primary"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                {t('Add Account')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <span className="text-sm text-muted-foreground">{t('Total trades loaded')}: {tradeData.length}</span>
+          {isDemoMode && (
+            <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-500 bg-amber-500/10">
+              {t('Demo Data')}
+            </Badge>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
@@ -778,7 +834,6 @@ export default function DashboardPage() {
 
        <ResponsiveGridLayout
           className={cn("layout", isEditingLayout ? "editing" : "")}
-          {...({ isRTL: isArabic } as any)}
           layouts={layouts ?? { lg: [] }}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
           cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
@@ -806,6 +861,83 @@ export default function DashboardPage() {
              </div>
         ))}
        </ResponsiveGridLayout>
+
+      {/* CSV → Account Dialog */}
+      <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{pendingCsvTrades ? t('Import Trades') : t('Add Account')}</DialogTitle>
+            <DialogDescription>
+              {pendingCsvTrades
+                ? `${pendingCsvTrades.length} ${t('trades ready to import. Select or create an account.')}`
+                : t('Create a new trading account to organize your trades.')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {realAccounts.length > 0 && pendingCsvTrades && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">{t('Existing Accounts')}</Label>
+                <div className="space-y-1.5">
+                  {realAccounts.map(acc => (
+                    <button
+                      key={acc.id}
+                      onClick={() => setSelectedTargetAccountId(acc.id)}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all",
+                        selectedTargetAccountId === acc.id
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:border-primary/40 hover:bg-muted/50"
+                      )}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="flex-1 text-left font-medium">{acc.name}</span>
+                      {selectedTargetAccountId === acc.id && <Check className="h-4 w-4" />}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setSelectedTargetAccountId('__new__')}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all",
+                      selectedTargetAccountId === '__new__'
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-dashed border-border hover:border-primary/40"
+                    )}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>{t('Create New Account')}</span>
+                    {selectedTargetAccountId === '__new__' && <Check className="h-4 w-4 ml-auto" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {(selectedTargetAccountId === '__new__' || realAccounts.length === 0) && (
+              <div className="space-y-2">
+                <Label htmlFor="account-name" className="text-sm font-medium">
+                  {t('Account Name')}
+                </Label>
+                <Input
+                  id="account-name"
+                  placeholder={t('e.g. My Gold Account, MetaTrader Live...')}
+                  value={newAccountName}
+                  onChange={e => setNewAccountName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAccountDialogConfirm()}
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsAccountDialogOpen(false); setPendingCsvTrades(null); }}>
+              {t('Cancel')}
+            </Button>
+            <Button onClick={handleAccountDialogConfirm}>
+              {pendingCsvTrades ? t('Import Trades') : t('Create Account')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

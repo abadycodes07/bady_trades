@@ -123,6 +123,16 @@
       font-family: var(--font-cairo), sans-serif;
       text-align: right;
   }
+
+  /* Fix react-grid-layout in RTL: prevent position flipping */
+  html[dir="rtl"] .react-grid-layout {
+    direction: ltr; /* Keep grid coordinates LTR */
+  }
+
+  /* But flip text back to RTL inside widgets */
+  html[dir="rtl"] .react-grid-item {
+    direction: rtl;
+  }
 }
 
 

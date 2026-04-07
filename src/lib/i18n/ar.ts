@@ -127,6 +127,26 @@ export const AR: Record<string, string> = {
   'day': 'يوم',
   'trades': 'صفقات',
   'trade': 'صفقة',
+  // Account switcher
+  'Switch Account': 'تبديل الحساب',
+  'Select Account': 'اختر الحساب',
+  'Add Account': 'إضافة حساب',
+  'Demo Data': 'بيانات تجريبية',
+  'Create New Account': 'إنشاء حساب جديد',
+  'Account Name': 'اسم الحساب',
+  'e.g. My Gold Account, MetaTrader Live...': 'مثال: حساب الذهب، MetaTrader مباشر...',
+  'Import Trades': 'استيراد الصفقات',
+  'trades ready to import. Select or create an account.': 'صفقة جاهزة للاستيراد. اختر أو أنشئ حساباً.',
+  'Create Account': 'إنشاء حساب',
+  // Day popup
+  'Wins': 'الأرباح',
+  'Losses': 'الخسائر',
+  'Win Rate': 'نسبة الفوز',
+  'Best Trade': 'أفضل صفقة',
+  'Worst Trade': 'أسوأ صفقة',
+  'Account Balance': 'رصيد الحساب',
+  'Initial balance + cumulative P&L': 'الرصيد الأولي + الربح/الخسارة التراكمي',
+  'Trade Breakdown': 'تفاصيل الصفقات',
 };
 
 export function t(key: string, lang: 'en' | 'ar'): string {
