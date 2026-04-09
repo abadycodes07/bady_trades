@@ -254,13 +254,13 @@ function DayDetailPopup({
                 )}>
                     {/* Logo in left corner as requested */}
                     <div className="absolute top-4 left-4">
-                        <BadyTradesMarkLogo className="h-6 w-6 brightness-0 invert opacity-80" />
+                        <BadyTradesMarkLogo className={cn("h-7 w-7 opacity-80", isLosingDay ? "text-white" : "text-white")} />
                     </div>
 
                     <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="absolute top-4 right-4 h-8 w-8 rounded-full bg-black/20 hover:bg-black/40 text-white" 
+                        className="absolute top-4 right-4 h-8 w-8 rounded-full bg-muted/30 hover:bg-muted/50 text-white" 
                         onClick={onClose}
                     >
                         <X className="h-4 w-4" />
@@ -435,15 +435,15 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
 
     return (
         <Card className="h-full flex flex-col border-border shadow-2xl bg-card overflow-hidden rounded-[32px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-8 border-b border-white/5 bg-card z-20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-8 border-b border-border bg-card z-20">
                  <div className="flex items-center gap-12">
                      <div className="flex items-center gap-3">
-                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-muted/10 border-border hover:bg-muted/20" onClick={handlePrevMonth}><ChevronLeft className="h-5 w-5 text-white/50"/></Button>
+                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-muted/10 border-border hover:bg-muted/20" onClick={handlePrevMonth}><ChevronLeft className="h-5 w-5 text-muted-foreground/50"/></Button>
                         <span className="text-lg font-black w-48 text-center uppercase tracking-[0.2em] text-foreground">{format(currentMonthDate, 'MMMM yyyy')}</span>
-                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-muted/10 border-border hover:bg-muted/20" onClick={handleNextMonth}><ChevronRight className="h-5 w-5 text-white/50"/></Button>
+                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-muted/10 border-border hover:bg-muted/20" onClick={handleNextMonth}><ChevronRight className="h-5 w-5 text-muted-foreground/50"/></Button>
                      </div>
 
-                     <div className="hidden md:flex items-center gap-8 border-l border-white/10 pl-8">
+                     <div className="hidden md:flex items-center gap-8 border-l border-border pl-8">
                          <div className="flex items-center gap-2">
                              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
                              <div>
@@ -461,30 +461,29 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                              </div>
                          </div>
                      </div>
-                 </div>
-
-                 <div className="flex items-center gap-4">
-                     <div className="flex items-center gap-4 px-4 py-2 bg-muted/10 border border-white/5 rounded-full">
+                  <div className="flex items-center gap-4">
+                     <div className="flex items-center gap-4 px-4 py-2 bg-muted/10 border border-border rounded-full">
                          <div className="flex items-center gap-2">
                             <Switch id="fees-toggle" checked={showFeesInPnl} onCheckedChange={onShowFeesToggle} className="scale-75 data-[state=checked]:bg-indigo-500"/>
                             <Label htmlFor="fees-toggle" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('FEES')}</Label>
                          </div>
-                         <Separator orientation="vertical" className="h-4 bg-white/10" />
+                         <Separator orientation="vertical" className="h-4 bg-border" />
                          <div className="flex items-center gap-3">
                              <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-4 w-4 p-0 text-muted-foreground/40 hover:text-white transition-colors"
+                                className="h-4 w-4 p-0 text-muted-foreground/40 hover:text-foreground transition-colors"
                                 onClick={() => toast({ title: "Snapshot Taken", description: "The calendar view has been saved to your downloads." })}
                              >
                                 <Camera className="h-4 w-4" />
                              </Button>
-                             <Info className="h-4 w-4 text-muted-foreground/40 hover:text-white cursor-pointer transition-colors" />
+                             <Info className="h-4 w-4 text-muted-foreground/40 hover:text-foreground cursor-pointer transition-colors" />
                              <Popover>
                                  <PopoverTrigger asChild>
-                                     <Settings className="h-4 w-4 text-muted-foreground/40 hover:text-white cursor-pointer transition-colors" />
+                                     <Settings className="h-4 w-4 text-muted-foreground/40 hover:text-foreground cursor-pointer transition-colors" />
                                  </PopoverTrigger>
                                  <PopoverContent className="w-64 p-4 bg-popover border-border rounded-2xl shadow-2xl" align="end">
+
                                      <div className="space-y-4">
                                          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">DISPLAY STATS</h4>
                                          <div className="space-y-1">
@@ -526,9 +525,9 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                                          { label: 'Low', color: 'bg-emerald-500' }
                                                      ].map((impact, i) => (
                                                          <div key={impact.label} className="flex items-center gap-3">
-                                                             <div className={cn("w-3.5 h-3.5 rounded-md border border-white/10 flex items-center justify-center", i === 0 ? "bg-indigo-500 border-indigo-500" : "bg-muted/10")}>
-                                                                 {i === 0 && <Check className="h-2 w-2 text-white" />}
-                                                             </div>
+                                                             <div className={cn("w-3.5 h-3.5 rounded-md border border-border flex items-center justify-center", i === 0 ? "bg-indigo-500 border-indigo-500" : "bg-muted/10")}>
+                                   {i === 0 && <Check className="h-2 w-2 text-white" />}
+                               </div>
                                                              <div className={cn("w-1.5 h-1.5 rounded-full", impact.color)} />
                                                              <span className="text-xs font-bold text-muted-foreground/80">{impact.label}</span>
                                                          </div>
@@ -546,9 +545,9 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
 
             <CardContent className="flex-grow p-0 overflow-hidden flex bg-card">
                 <div className="flex flex-col flex-grow">
-                     <div className="grid grid-cols-7 border-b border-white/5 bg-muted/5">
+                     <div className="grid grid-cols-7 border-b border-border bg-muted/5">
                         {dayLabels.map((dayLabel, idx) => (
-                            <div key={idx} className="py-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 border-r border-white/5 last:border-r-0">
+                            <div key={idx} className="py-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 border-r border-border last:border-r-0">
                                 {dayLabel}
                             </div>
                         ))}
@@ -581,9 +580,9 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                     <ContextMenuTrigger asChild>
                                         <div
                                             className={cn(
-                                                "min-h-[140px] p-4 border-b border-r border-white/5 flex flex-col transition-all relative h-full",
+                                                "min-h-[140px] p-4 border-b border-r border-border flex flex-col transition-all relative h-full",
                                                 !isCurrentMonth && "opacity-20",
-                                                hasData && "cursor-pointer hover:bg-white/5",
+                                                hasData && "cursor-pointer hover:bg-muted/30",
                                             )}
                                             onClick={() => handleDayClick(dayItem, data)}
                                             style={bgStyle}
@@ -618,7 +617,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                             )}
                                         </div>
                                     </ContextMenuTrigger>
-                                     <ContextMenuContent className="w-56 bg-black border-border">
+                                     <ContextMenuContent className="w-56 bg-popover border-border">
                                          <ContextMenuItem onSelect={() => handleOpenBalanceDialog(dayItem)} className="text-xs font-bold text-muted-foreground focus:text-white">
                                              <UploadCloud className="h-3.5 w-3.5 mr-2" /> {t('Set Initial Balance')}
                                          </ContextMenuItem>
@@ -629,8 +628,8 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                     </div>
                 </div>
 
-                <div className="w-[120px] flex flex-col border-l border-white/5 bg-muted/5">
-                      <div className="py-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 border-b border-white/5 bg-card">WEEKLY</div>
+                <div className="w-[120px] flex flex-col border-l border-border bg-muted/5">
+                      <div className="py-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 border-b border-border bg-card">WEEKLY</div>
                       {Array.from({ length: 5 }).map((_, weekIndex) => {
                            const weekStartDate = addDays(startDate, weekIndex * 7);
                            const weekKey = getWeekKey(weekStartDate);

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Info } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Match CsvTradeData from dashboard
 interface CsvTradeData {
@@ -42,6 +43,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
+  const { t } = useLanguage();
 
   const badyScoreChartData = React.useMemo(() => {
     if (!data || data.length === 0) return defaultBadyScoreData;
@@ -93,7 +95,7 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
 
   return (
     <Card className="h-full flex flex-col bg-card border-border shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full group-hover:bg-primary/20 transition-all duration-700" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full group-hover:bg-primary/10 transition-all duration-700" />
       
       <CardHeader className="pb-1">
         <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-center gap-1.5">
@@ -112,7 +114,7 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
                 </radialGradient>
                  <linearGradient id="radarStrokeGradient" x1="0" y1="0" x2="1" y2="1">
                      <stop offset="0%" stopColor="hsl(var(--primary))" />
-                     <stop offset="100%" stopColor="#fff" stopOpacity={0.8}/>
+                     <stop offset="100%" stopColor="currentColor" stopOpacity={0.8}/>
                  </linearGradient>
             </defs>
             <PolarGrid gridType="polygon" stroke="currentColor" className="text-muted-foreground/10" strokeWidth={0.5} />
@@ -122,7 +124,7 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
              />
             <PolarRadiusAxis angle={30} domain={[0, 100]} axisLine={false} tick={false} />
             <Radar
-                name="Performance Score"
+                name={t('Performance Score')}
                 dataKey="score"
                 stroke="url(#radarStrokeGradient)"
                 fill="url(#radarFillGradient)"
@@ -132,8 +134,8 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
                 animationDuration={1000}
              />
             <Tooltip 
-              contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
-              itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 900 }}
+              contentStyle={{ background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+              itemStyle={{ color: 'hsl(var(--foreground))', fontSize: '10px', fontWeight: 900 }}
             />
           </RadarChart>
         </ResponsiveContainer>
@@ -141,18 +143,18 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
          <div className="w-full px-6 mt-2 relative z-10">
              <div className="flex justify-between items-end mb-2">
                 <div>
-                   <span className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-1">Current Rating</span>
+                   <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest block mb-1">{t('Current Rating')}</span>
                    <span className="text-3xl font-black text-foreground tracking-tighter drop-shadow-md">
                      {overallScore.toFixed(0)}<span className="text-sm font-medium opacity-40 ml-1">/100</span>
                    </span>
                 </div>
                 <div className="text-right">
-                   <span className="text-[9px] font-black text-emerald-500 uppercase bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">Elite Trader</span>
+                   <span className="text-[9px] font-black text-emerald-500 uppercase bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">{t('Elite Trader')}</span>
                 </div>
              </div>
-             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+             <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden border border-border">
                 <div 
-                   className="h-full bg-gradient-to-r from-primary to-[#fff] transition-all duration-1000 ease-out"
+                   className="h-full bg-gradient-to-r from-primary to-indigo-400 transition-all duration-1000 ease-out"
                    style={{ width: `${overallScore}%` }}
                 />
              </div>

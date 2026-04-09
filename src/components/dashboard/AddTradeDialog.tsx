@@ -54,7 +54,6 @@ export function AddTradeDialog() {
           if (results.data && results.data.length > 0) {
             const normalized = results.data.map((row: any) => {
               const newRow: any = { ...row };
-              // Simple normalization for now, matching DashboardPage logic
               const rawDate = row['T/D'] || row['Date'] || row['closing_time_utc'] || row['time'];
               if (rawDate) {
                  try {
@@ -106,87 +105,93 @@ export function AddTradeDialog() {
 
   const handleConfirm = async () => {
     let targetId = selectedAccountId;
+    let finalName = newAccountName.trim();
+    
     if (selectedAccountId === '__new__') {
-      if (!newAccountName.trim()) {
+      if (!finalName) {
         toast({ title: 'Name Required', description: 'Please enter a name for the new account.', variant: 'destructive' });
         return;
       }
-      const newAcc = await createAccount(newAccountName.trim());
+      const newAcc = await createAccount(finalName);
       if (!newAcc) return;
       targetId = newAcc.id;
+    } else {
+        finalName = accounts.find(a => a.id === targetId)?.name || 'Account';
     }
 
     if (pendingTrades) {
-      await addTradesToAccount(pendingTrades, targetId);
+      const result = await addTradesToAccount(pendingTrades, targetId);
       globalSetSelectedAccount(targetId);
-      toast({ title: 'Success', description: `Added ${pendingTrades.length} trades to ${newAccountName || accounts.find(a => a.id === targetId)?.name}` });
+      // Detailed messaging is now handled inside addTradesToAccount (Toast)
+      // but we can add a summary here if needed.
     }
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md bg-background border-border p-0 overflow-hidden rounded-3xl">
-        <div className="bg-indigo-600 p-6 pt-10 text-center relative">
-            <DialogTitle className="text-2xl font-black text-white uppercase tracking-tighter">Add Trades</DialogTitle>
-            <DialogDescription className="text-white/70 text-sm mt-1">Import your trading history to BadyTrades</DialogDescription>
+      <DialogContent className="max-w-md bg-background/80 backdrop-blur-xl border-white/10 p-0 overflow-hidden rounded-[2rem] shadow-[0_32px_64px_rgba(0,0,0,0.5)]">
+        <div className="bg-gradient-to-br from-indigo-600 to-indigo-900 p-8 pt-10 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none" />
+            <DialogTitle className="text-3xl font-black text-white uppercase tracking-tighter relative z-10">Add Trades</DialogTitle>
+            <DialogDescription className="text-white/80 text-sm mt-2 relative z-10 font-medium">BadyTrades Import Center</DialogDescription>
         </div>
 
-        <div className="p-6">
+        <div className="p-8">
           {step === 'choose_method' && (
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               <button 
                 onClick={() => { setMethod('csv'); setStep('upload_file'); }}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-muted/30 border border-border hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all text-left group"
+                className="flex items-center gap-5 p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all text-left group"
               >
-                <div className="h-10 w-10 rounded-xl bg-indigo-500/20 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <FileText className="h-5 w-5" />
+                <div className="h-12 w-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <FileText className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="font-bold text-foreground uppercase text-xs tracking-widest">Upload CSV File</p>
-                  <p className="text-xs text-muted-foreground mt-1">MetaTrader 4/5 or generic CSV formats</p>
+                  <p className="font-black text-foreground uppercase text-xs tracking-[0.2em]">Upload CSV</p>
+                  <p className="text-[11px] text-muted-foreground mt-1.5 opacity-80 uppercase font-bold tracking-tight">MetaTrader & Prop Firms</p>
                 </div>
               </button>
 
               <button 
                 onClick={() => { setMethod('html'); setStep('upload_file'); }}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-muted/30 border border-border hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all text-left group"
+                className="flex items-center gap-5 p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group"
               >
-                <div className="h-10 w-10 rounded-xl bg-blue-500/20 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <History className="h-5 w-5" />
+                <div className="h-12 w-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <History className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="font-bold text-foreground uppercase text-xs tracking-widest">Upload HTML Report</p>
-                  <p className="text-xs text-muted-foreground mt-1">Direct "Save as Detailed Report" from MT4/5</p>
+                  <p className="font-black text-foreground uppercase text-xs tracking-[0.2em]">Upload HTML</p>
+                  <p className="text-[11px] text-muted-foreground mt-1.5 opacity-80 uppercase font-bold tracking-tight">Detailed Account History</p>
                 </div>
               </button>
 
               <button 
                 disabled
-                className="flex items-center gap-4 p-4 rounded-2xl bg-muted/20 border border-border opacity-50 cursor-not-allowed text-left grayscale"
+                className="flex items-center gap-5 p-5 rounded-2xl bg-white/5 border border-white/10 opacity-40 cursor-not-allowed text-left grayscale hover:bg-red-500/5 transition-all"
               >
-                <div className="h-10 w-10 rounded-xl bg-orange-500/20 text-orange-500 flex items-center justify-center">
-                  <Cloud className="h-5 w-5" />
+                <div className="h-12 w-12 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
+                  <Cloud className="h-6 w-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="font-bold text-foreground uppercase text-xs tracking-widest">Sync Prop Account</p>
-                    <span className="text-[8px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground font-black">COMING SOON</span>
+                    <p className="font-black text-foreground uppercase text-xs tracking-[0.2em]">Auto Sync</p>
+                    <span className="text-[8px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-black tracking-widest">SOON</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Direct connection to prop firm accounts</p>
+                  <p className="text-[11px] text-muted-foreground mt-1.5 opacity-80 uppercase font-bold tracking-tight">MT4/MT5 Direct Sync</p>
                 </div>
               </button>
             </div>
           )}
 
           {step === 'upload_file' && (
-            <div className="flex flex-col items-center py-8 gap-6">
-                <div className="h-20 w-20 rounded-3xl bg-indigo-500/10 border-2 border-dashed border-indigo-500/30 flex items-center justify-center text-indigo-400 animate-pulse">
-                    <Upload className="h-10 w-10" />
+            <div className="flex flex-col items-center py-10 gap-8">
+                <div className="h-24 w-24 rounded-[2rem] bg-indigo-500/5 border-2 border-dashed border-indigo-500/20 flex items-center justify-center text-indigo-400 animate-pulse transition-all">
+                    <Upload className="h-12 w-12" />
                 </div>
                 <div className="text-center">
-                    <p className="font-black text-foreground uppercase tracking-widest text-sm">Select {method?.toUpperCase()} File</p>
-                    <p className="text-xs text-muted-foreground mt-2">Maximum file size: 10MB</p>
+                    <p className="font-black text-foreground uppercase tracking-[0.3em] text-sm">Target {method?.toUpperCase()} File</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-3 font-black uppercase tracking-widest">Select your export from MT4/MT5</p>
                 </div>
                 <input 
                     type="file" 
@@ -197,45 +202,50 @@ export function AddTradeDialog() {
                 />
                 <Button 
                     variant="default" 
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white" 
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white h-12 rounded-xl font-black uppercase tracking-widest" 
                     disabled={isUploading}
                     onClick={() => fileInputRef.current?.click()}
                 >
-                    {isUploading ? 'Processing...' : 'Browse Files'}
+                    {isUploading ? 'Analyzing...' : 'Open File Browser'}
                 </Button>
-                <button onClick={() => setStep('choose_method')} className="text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest font-black">Back to methods</button>
+                <button onClick={() => setStep('choose_method')} className="text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-[0.2em] font-black">Cancel & Go Back</button>
             </div>
           )}
 
           {step === 'select_account' && (
-            <div className="space-y-6 py-4">
-                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                    <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider">{pendingTrades?.length} Trades detected successfully</p>
+            <div className="space-y-8 py-4">
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-5 flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest">Analysis Complete</p>
+                        <p className="text-xs text-foreground/80 font-bold mt-0.5">{pendingTrades?.length} Records Located</p>
+                    </div>
                 </div>
 
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Target Account</Label>
+                <div className="space-y-6">
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-[1.5px]">Select Destination Account</Label>
                         <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-                            <SelectTrigger className="bg-muted/30 border-border rounded-xl">
-                                <SelectValue placeholder="Select an account" />
+                            <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-12">
+                                <SelectValue placeholder="Where should we add these?" />
                             </SelectTrigger>
-                            <SelectContent className="bg-zinc-900 border-white/10">
+                            <SelectContent className="bg-background/95 backdrop-blur-xl border-border rounded-xl">
                                 {accounts.filter(a => a.id !== 'demo-account').map(acc => (
-                                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                                    <SelectItem key={acc.id} value={acc.id} className="focus:bg-indigo-600 focus:text-white rounded-lg">{acc.name}</SelectItem>
                                 ))}
-                                <SelectItem value="__new__">+ Create New Account</SelectItem>
+                                <SelectItem value="__new__" className="text-indigo-400 font-bold focus:bg-indigo-600 focus:text-white rounded-lg tracking-tight">+ Setup New Account</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
                     {selectedAccountId === '__new__' && (
-                        <div className="space-y-2 animate-in slide-in-from-top-2">
-                            <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">New Account Name</Label>
+                        <div className="space-y-3 animate-in slide-in-from-top-4 duration-500">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-[1.5px]">Account Name</Label>
                             <Input 
-                                placeholder="e.g. My Live Portfolio" 
-                                className="bg-white/5 border-white/10 rounded-xl"
+                                placeholder="e.g. MetaTrader Real (Exness)" 
+                                className="bg-white/5 border-white/10 rounded-xl h-12 focus:border-indigo-500/50"
                                 value={newAccountName}
                                 onChange={(e) => setNewAccountName(e.target.value)}
                             />
@@ -243,11 +253,11 @@ export function AddTradeDialog() {
                     )}
                 </div>
 
-                <Button className="w-full bg-indigo-600 hover:bg-indigo-500" onClick={handleConfirm}>
-                    Import Trades
+                <Button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white h-14 rounded-2xl font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-600/20 transition-all hover:scale-[1.02]" onClick={handleConfirm}>
+                    Import Now
                 </Button>
                 
-                <button onClick={() => setStep('upload_file')} className="w-full text-center text-xs text-white/40 hover:text-white transition-colors uppercase tracking-widest font-black">Back to upload</button>
+                <button onClick={() => setStep('upload_file')} className="w-full text-center text-[10px] text-muted-foreground/40 hover:text-foreground transition-colors uppercase tracking-[0.3em] font-black">Restart Import</button>
             </div>
           )}
         </div>

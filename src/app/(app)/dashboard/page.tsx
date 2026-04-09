@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Edit, GripVertical, Info, Filter, CalendarDays, Bell, Sparkles, Upload, ChevronDown, Plus, Check, AlertCircle, X } from 'lucide-react';
+import { Edit, GripVertical, Info, Filter, CalendarDays, Bell, Sparkles, Upload, ChevronDown, Plus, Check, AlertCircle, X, Settings } from 'lucide-react';
 import { TradingCalendar } from '@/components/dashboard/TradingCalendar';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { CumulativePnLChart, type CumulativeDataPoint } from '@/components/dashboard/CumulativePnLChart';
@@ -49,6 +49,7 @@ import { useTradeData } from '@/contexts/TradeDataContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
+import { useRouter } from 'next/navigation';
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -184,6 +185,7 @@ const currencies: Currency[] = [
 
 export default function DashboardPage() {
   const { isArabic, t } = useLanguage();
+  const router = useRouter();
   const [isEditingLayout, setIsEditingLayout] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [layouts, setLayouts] = useState<ResponsiveLayout | null>(null);
@@ -742,20 +744,31 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
           {/* Account Switcher */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="hover-effect h-9 gap-1.5 max-w-[200px]">
-                {isDemoMode && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
-                )}
-                {!isDemoMode && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                )}
-                <span className="truncate text-sm">
-                  {currentAccount?.name || t('Select Account')}
-                </span>
-                <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
+              <div className="flex items-center gap-1.5">
+                <Button variant="outline" size="sm" className="hover-effect h-9 gap-1.5 max-w-[200px]" asChild>
+                  <DropdownMenuTrigger>
+                    {isDemoMode && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                    )}
+                    {!isDemoMode && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                    )}
+                    <span className="truncate text-sm">
+                      {currentAccount?.name || t('Select Account')}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  </DropdownMenuTrigger>
+                </Button>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-9 w-9 hover-effect text-muted-foreground hover:text-foreground"
+                    onClick={() => router.push('/settings')}
+                    title={t('Account Settings')}
+                >
+                    <Settings className="h-4 w-4" />
+                </Button>
+              </div>
             <DropdownMenuContent className="w-56">
               <DropdownMenuLabel className="text-xs text-muted-foreground">{t('Switch Account')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -847,17 +860,6 @@ export default function DashboardPage() {
                 />
                 </PopoverContent>
             </Popover>
-            <Button variant="outline" size="sm" className="hover-effect h-9" onClick={triggerTradeFileInput} disabled={tradeDataLoading}>
-                <Upload className="mr-2 h-4 w-4" /> {tradeDataLoading ? t('Processing...') : t('Upload Trades CSV')}
-            </Button>
-            <Input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept=".csv"
-                onChange={handleTradeFileUpload}
-                id="trade-csv-upload"
-            />
             <Input
                 type="file"
                 ref={commissionFileInputRef}

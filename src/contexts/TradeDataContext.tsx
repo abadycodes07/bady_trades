@@ -27,6 +27,8 @@ interface TradeDataContextType {
   addTrades: (newTrades: CsvTradeData[], accountId?: string) => void;
   addTradesToAccount: (newTrades: CsvTradeData[], accountId: string) => Promise<void>;
   clearTrades: () => void;
+  deleteAccount: (accountId: string) => Promise<void>;
+  clearTradesForAccount: (accountId: string) => Promise<void>;
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   isDemoMode: boolean;
@@ -368,6 +370,48 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
       }
   }, [user, toast]);
 
+  const deleteAccount = useCallback(async (accountId: string) => {
+    if (!user || !supabase) return;
+    try {
+      const { error } = await supabase
+        .from('trading_accounts')
+        .delete()
+        .eq('id', accountId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      setAccounts(prev => prev.filter(a => a.id !== accountId));
+      if (selectedAccountId === accountId) {
+          const remaining = accounts.filter(a => a.id !== accountId && a.id !== 'demo-account');
+          setSelectedAccountId(remaining.length > 0 ? remaining[0].id : DEMO_ACCOUNT.id);
+      }
+      toast({ title: 'Account Deleted', description: 'The trading account and all its trades have been removed.' });
+    } catch (error: any) {
+      toast({ title: 'Error deleting account', description: error.message, variant: 'destructive' });
+    }
+  }, [user, accounts, selectedAccountId, toast]);
+
+  const clearTradesForAccount = useCallback(async (accountId: string) => {
+    if (!user || !supabase) return;
+    try {
+      const { error } = await supabase
+        .from('trades')
+        .delete()
+        .eq('account_id', accountId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      if (selectedAccountId === accountId) {
+          setTradeData([]);
+      }
+      toast({ title: 'Account Reset', description: 'All trades for this account have been cleared.' });
+    } catch (error: any) {
+      toast({ title: 'Error clearing trades', description: error.message, variant: 'destructive' });
+    }
+  }, [user, selectedAccountId, toast]);
+
   // --- Update Account Balance ---
   const updateAccountInitialBalance = useCallback(async (accountId: string, amount: number) => {
       if (accountId === 'demo-account') {
@@ -467,10 +511,8 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
 
     if (newTradesCount === 0) {
       toast({ 
-        title: 'No New Trades', 
-        description: duplicatesCount > 0 
-          ? `All ${duplicatesCount} trades in this file are already in your account.` 
-          : 'The file contains no trades that could be processed.',
+        title: 'Already Added', 
+        description: `This file exists. All ${duplicatesCount} trades are already in this account.`,
         variant: 'default'
       });
       setIsLoading(false);
@@ -482,10 +524,10 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
 
       toast({ 
-        title: 'Import Successful', 
+        title: 'New Information Added', 
         description: duplicatesCount > 0 
-          ? `Added ${newTradesCount} new trades. Skipped ${duplicatesCount} duplicates.`
-          : `Perfect! All ${newTradesCount} trades have been imported.`
+          ? `Added ${newTradesCount} new trades. Skipped ${duplicatesCount} existing ones.`
+          : `Perfect! Imported ${newTradesCount} new records.`
       });
 
       const { data: freshData, error: loadError } = await supabase
@@ -568,6 +610,7 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
       tradeData, accounts, selectedAccountId, setSelectedAccountId,
       createAccount, updateAccountInitialBalance,
       addTrades, addTradesToAccount, clearTrades,
+      deleteAccount, clearTradesForAccount,
       isLoading, setIsLoading, isDemoMode
     }}>
       {children}

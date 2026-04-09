@@ -177,7 +177,7 @@ export function AppSidebar() {
             <div className="group-data-[collapsible=icon]:hidden px-1">
                 <Button 
                     variant="default" 
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest rounded-xl h-10 shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2"
+                    className="w-full bg-indigo-600/60 hover:bg-indigo-500/80 text-white font-black uppercase tracking-widest rounded-xl h-11 border border-white/20 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
                     onClick={() => {
                         const event = new CustomEvent('open-add-trade-dialog');
                         window.dispatchEvent(event);
@@ -201,8 +201,8 @@ export function AppSidebar() {
             </Button>
           </SidebarHeader>
           <SidebarContent className="flex flex-row gap-0 p-0 overflow-hidden bg-sidebar">
-            <div className="flex flex-col items-center w-10 md:w-1/2 border-r border-border/50 bg-sidebar p-2 transition-all">
-              <SidebarMenu className="flex-grow">
+            <div className="flex flex-col items-center w-[--sidebar-width-icon] border-r border-border/50 bg-sidebar p-2 transition-all">
+              <SidebarMenu className="flex-grow space-y-1">
                 {leftNavItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <Link href={item.href} passHref legacyBehavior>
@@ -258,7 +258,7 @@ export function AppSidebar() {
                   </SidebarMenu>
                </div>
             </div>
-            <div className="flex flex-col flex-1 p-2 overflow-y-auto bg-sidebar border-t border-border md:border-t-0 md:w-1/2 transition-all">
+            <div className="flex flex-col flex-1 p-2 overflow-y-auto bg-sidebar border-t border-border md:border-t-0 transition-all min-w-0">
                <SidebarNav items={rightNavItems} />
                 <div className="mt-auto flex flex-col gap-1 group-data-[collapsible=icon]:hidden">
                     <Separator className="my-2 bg-border" />

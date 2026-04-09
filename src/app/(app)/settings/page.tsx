@@ -18,11 +18,22 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Settings, Palette, Bell, UploadCloud, RotateCcw, Link2, CheckCircle2, Clock, AlertCircle, ChevronRight, Copy, ExternalLink } from 'lucide-react';
+import { Settings, Palette, Bell, UploadCloud, RotateCcw, Link2, CheckCircle2, Clock, AlertCircle, ChevronRight, Copy, ExternalLink, Plus } from 'lucide-react';
 import { ModeToggle } from '@/components/theme-toggle';
-import { useTradeData } from '@/contexts/TradeDataContext';
+import { useTradeData, type TradingAccount } from '@/contexts/TradeDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trash2, ShieldAlert, User, Wallet, Activity } from 'lucide-react';
 
 // ─── Broker definitions ───────────────────────────────────────────────────────
 type ConnectionMethod = 'ea_plugin' | 'guided_csv' | 'coming_soon';
@@ -207,8 +218,15 @@ const CSV_STEPS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const { clearTrades, isLoading: isTradeDataLoading } = useTradeData();
+  const { 
+    clearTrades, 
+    isLoading: isTradeDataLoading, 
+    accounts, 
+    deleteAccount, 
+    clearTradesForAccount 
+  } = useTradeData();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [defaultChartType, setDefaultChartType] = useState('candlestick');
@@ -250,14 +268,162 @@ export default function SettingsPage() {
 
   return (
     <div className="container mx-auto py-8 max-w-6xl">
-      <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-        <Settings className="h-7 w-7" /> Settings
+      <h1 className="text-3xl font-black mb-2 flex items-center gap-2 uppercase tracking-tighter">
+        <Settings className="h-7 w-7 text-indigo-500" /> {t('Control Center')}
       </h1>
-      <p className="text-muted-foreground mb-8">
-        Manage your account preferences, broker connections, and data settings.
+      <p className="text-muted-foreground mb-8 font-medium">
+        {t('Manage your trading accounts, connections, and personal preferences.')}
       </p>
 
-      <div className="space-y-8">
+      <Tabs defaultValue="accounts" className="space-y-8">
+        <TabsList className="bg-muted/50 p-1 h-12 rounded-xl">
+          <TabsTrigger value="accounts" className="rounded-lg px-6 font-bold uppercase text-xs tracking-widest data-[state=active]:bg-background data-[state=active]:text-indigo-500 shadow-none">
+            <Wallet className="h-4 w-4 mr-2" /> {t('Accounts')}
+          </TabsTrigger>
+          <TabsTrigger value="general" className="rounded-lg px-6 font-bold uppercase text-xs tracking-widest data-[state=active]:bg-background data-[state=active]:text-indigo-500 shadow-none">
+            <Settings className="h-4 w-4 mr-2" /> {t('General')}
+          </TabsTrigger>
+          <TabsTrigger value="connections" className="rounded-lg px-6 font-bold uppercase text-xs tracking-widest data-[state=active]:bg-background data-[state=active]:text-indigo-500 shadow-none">
+            <Link2 className="h-4 w-4 mr-2" /> {t('Connections')}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="accounts" className="space-y-6">
+          <Card className="border-border/50 overflow-hidden rounded-2xl shadow-xl bg-card/30 backdrop-blur-sm">
+            <CardHeader className="border-b border-border/50 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                    <User className="h-5 w-5 text-indigo-500" /> {t('Trading Accounts')}
+                  </CardTitle>
+                  <CardDescription className="font-medium mt-1">
+                    {t('Overview of all your connected portfolios and accounts.')}
+                  </CardDescription>
+                </div>
+                <Button 
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-xs tracking-widest px-6"
+                    onClick={() => {
+                        const event = new CustomEvent('open-add-trade-dialog');
+                        window.dispatchEvent(event);
+                    }}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> {t('Add New')}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">{t('Account Name')}</TableHead>
+                    <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">{t('Broker')}</TableHead>
+                    <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">{t('Status')}</TableHead>
+                    <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground text-right">{t('Actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {accounts.filter((a: TradingAccount) => a.id !== 'demo-account').map((account: TradingAccount) => (
+                    <TableRow key={account.id} className="border-border/50 hover:bg-indigo-500/5 transition-colors group">
+                      <TableCell className="py-5">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-foreground">{account.name}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-black tracking-tight">{account.id.substring(0, 8)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 font-bold px-3">
+                          {account.broker || 'MetaTrader 4/5'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-xs font-bold text-emerald-500">{t('Active')}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                           <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-indigo-500 transition-colors">
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="rounded-3xl border-border bg-background/95 backdrop-blur-xl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="text-xl font-black uppercase tracking-tight">{t('Reset Account?')}</AlertDialogTitle>
+                                <AlertDialogDescription className="text-muted-foreground font-medium">
+                                  {t('This will permanently delete ALL trade data for this account. Your settings and account connection will remain.')}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl border-white/10">{t('Cancel')}</AlertDialogCancel>
+                                <AlertDialogAction 
+                                    onClick={() => clearTradesForAccount(account.id)}
+                                    className="bg-indigo-600 hover:bg-indigo-500 rounded-xl"
+                                >
+                                    {t('Yes, Reset')}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-red-500 transition-colors">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="rounded-3xl border-red-500/20 bg-background/95 backdrop-blur-xl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="text-xl font-black uppercase tracking-tight text-red-500">{t('Delete Account?')}</AlertDialogTitle>
+                                <AlertDialogDescription className="text-muted-foreground font-medium">
+                                  {t('This action cannot be undone. All trades, settings, and connection data for this account will be permanently removed.')}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl border-white/10">{t('Cancel')}</AlertDialogCancel>
+                                <AlertDialogAction 
+                                    onClick={() => deleteAccount(account.id)}
+                                    className="bg-red-600 hover:bg-red-500 rounded-xl"
+                                >
+                                    {t('Delete Permanently')}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {accounts.filter((a: TradingAccount) => a.id !== 'demo-account').length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-12 text-center">
+                        <div className="flex flex-col items-center gap-2 opacity-40">
+                          <Activity className="h-10 w-10 text-muted-foreground" />
+                          <p className="text-sm font-bold uppercase tracking-widest">{t('No active accounts found')}</p>
+                          <Button 
+                            variant="link" 
+                            className="text-xs text-indigo-400 font-black h-auto p-0"
+                            onClick={() => {
+                                const event = new CustomEvent('open-add-trade-dialog');
+                                window.dispatchEvent(event);
+                            }}
+                          >
+                            {t('Add your first account')}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="general">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
         {/* ── Broker Connections ─────────────────────────────────────── */}
         <section>
@@ -420,7 +586,12 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="connections">
+          {/* ── Broker Connections ─────────────────────────────────────── */}
+          <section>
 
       {/* ── Broker Connection Dialog ───────────────────────────────── */}
       <Dialog open={!!selectedBroker} onOpenChange={(open) => !open && setSelectedBroker(null)}>
@@ -554,6 +725,9 @@ export default function SettingsPage() {
           )}
         </DialogContent>
       </Dialog>
+          </section>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
