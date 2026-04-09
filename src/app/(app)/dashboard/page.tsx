@@ -348,7 +348,7 @@ export default function DashboardPage() {
                if (isMT4Format) {
                  const getRowVal = (key: string) => row[Object.keys(row).find(k => k.trim().toLowerCase() === key) || ''] || '';
                  const rawDate = getRowVal('closing_time_utc') || getRowVal('time');
-                 newRow['T/D'] = rawDate ? rawDate.split(' ')[0].split('T')[0] : '';
+                 newRow['T/D'] = rawDate ? rawDate.split(' ')[0].replace('T', ' ') : '';
                  newRow['Symbol'] = getRowVal('symbol');
                  newRow['Side'] = getRowVal('type');
                  newRow['Qty'] = getRowVal('lots') || getRowVal('volume');
@@ -375,7 +375,6 @@ export default function DashboardPage() {
                    'totalfee1': 'TotalFee1', 'totalfee2': 'TotalFee2',
                    'totalfee3': 'TotalFee3', 'totalfee4': 'TotalFee4',
                    'totalfee5': 'TotalFee5',
-                   // TradeZilla mapping
                    'roi': 'ROI', 'r-multiple': 'RMultiple', 'r multiple': 'RMultiple',
                    'strategy': 'Strategy', 'volume': 'Volume', 'ticks': 'Ticks',
                    'pips': 'Pips', 'instrument': 'Instrument'
@@ -394,9 +393,9 @@ export default function DashboardPage() {
                if (rawTradeDate && rawTradeDate.trim() !== '') {
                  try {
                    let parsedDateAttempt;
-                   const dateFormatsToTry = ['MM/dd/yy', 'yyyy-MM-dd', 'MM/dd/yyyy', 'M/d/yy', 'M/dd/yyyy', 'MM/d/yyyy'];
+                   const dateFormatsToTry = ['MM/dd/yy', 'yyyy-MM-dd', 'MM/dd/yyyy', 'yyyy.MM.dd', 'M/d/yy', 'M/dd/yyyy', 'MM/d/yyyy'];
                    for (const fmt of dateFormatsToTry) {
-                     parsedDateAttempt = parse(rawTradeDate, fmt, new Date());
+                     parsedDateAttempt = parse(rawTradeDate.split(' ')[0], fmt, new Date());
                      if (isValid(parsedDateAttempt)) break;
                    }
                    if (parsedDateAttempt && isValid(parsedDateAttempt)) {

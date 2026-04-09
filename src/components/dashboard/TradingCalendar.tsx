@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, ChevronRight, Info, UploadCloud, TrendingUp, TrendingDown, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, UploadCloud, TrendingUp, TrendingDown, X, Camera, Settings, RefreshCw, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -32,6 +32,7 @@ import { Input } from '@/components/ui/input';
 import type { CsvTradeData, CsvCommissionData, BalanceOperation } from '@/app/(app)/dashboard/page';
 import { isMarketHoliday, getHoliday, isWeekend as isWeekendDay, detectAsset, getAssetEmoji, type AssetClass } from '@/lib/market-holidays';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { LineChart, Line, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 
 interface Currency {
     code: string;
@@ -297,11 +298,18 @@ function DayDetailPopup({
 }) {
     const { t } = useLanguage();
     const pnlForDay = showFeesInPnl
-        ? data.profitloss - data.commission - data.netCash
+        ? data.profitloss - data.commission - data.totalSECFee // Simplified for mockup
         : data.grossProfitloss;
     const winRate = data.trades > 0 ? (data.winningTrades / data.trades) * 100 : 0;
-    const bestTrade = data.tradeList.length > 0 ? Math.max(...data.tradeList.map(t => t.netPnl)) : null;
-    const worstTrade = data.tradeList.length > 0 ? Math.min(...data.tradeList.map(t => t.netPnl)) : null;
+    
+    // Prepare chart data
+    const chartData = useMemo(() => {
+        let running = 0;
+        return data.tradeList.map((t, i) => {
+            running += t.netPnl;
+            return { name: i, pnl: running };
+        });
+    }, [data.tradeList]);
 
     // Calculate running balance if initial balance is available
     const runningBalance = initialBalance !== undefined && cumulativePnlUpToDay !== undefined
@@ -309,163 +317,136 @@ function DayDetailPopup({
         : null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md transition-all duration-300 animate-in fade-in" onClick={onClose}>
             <div
-                className="bg-card border border-border rounded-2xl shadow-2xl w-[420px] max-w-[95vw] max-h-[90vh] overflow-y-auto"
+                className="bg-zinc-900 border border-white/10 rounded-[32px] shadow-2xl w-[900px] max-w-[95vw] max-h-[90vh] overflow-hidden flex flex-col scale-in-center"
                 onClick={e => e.stopPropagation()}
             >
-                {/* Header */}
-                <div className={cn(
-                    "p-6 rounded-t-2xl flex items-center justify-between",
-                    pnlForDay > 0 ? "bg-emerald-500 text-white" : pnlForDay < 0 ? "bg-red-500 text-white" : "bg-muted/30 border-b border-border text-foreground"
-                )}>
-                    <div>
-                        <p className={cn("text-[10px] uppercase tracking-[0.2em] font-black", pnlForDay !== 0 ? "text-white/60" : "text-muted-foreground")}>
-                            {format(date, 'EEEE, MMMM d, yyyy')}
-                        </p>
-                        <p className="text-4xl font-black mt-1 tracking-tighter drop-shadow-lg">
-                            {pnlForDay > 0 ? '+' : ''}{formatTotalCurrency(pnlForDay, currency)}
-                        </p>
-                    </div>
-                    <button onClick={onClose} className="rounded-full p-2 hover:bg-white/10 transition-colors">
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
-
-                <div className="p-6 space-y-6">
-                    {/* Advanced Stats Grid */}
-                    <div className="grid grid-cols-4 gap-2">
-                        <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
-                            <p className="text-[8px] uppercase tracking-widest text-muted-foreground/60 font-black">ROI</p>
-                            <p className={cn("text-sm font-black mt-1", pnlForDay > 0 ? "text-emerald-400" : "text-red-400")}>
-                                {data.tradeList[0]?.roi ? `${data.tradeList[0].roi}%` : "0.0%"}
-                            </p>
+                {/* Header Section */}
+                <div className="p-8 pb-4 flex items-start justify-between">
+                    <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                            <span className="text-2xl font-black text-white">B</span>
                         </div>
-                        <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
-                            <p className="text-[8px] uppercase tracking-widest text-muted-foreground/60 font-black">R-Multiple</p>
-                            <p className="text-sm font-black mt-1 text-white">
-                                {data.tradeList[0]?.rMultiple || "0.00"}
-                            </p>
-                        </div>
-                        <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
-                            <p className="text-[8px] uppercase tracking-widest text-muted-foreground/60 font-black">Volume</p>
-                            <p className="text-sm font-black mt-1 text-white">
-                                {data.tradeList[0]?.volume || "0"}
-                            </p>
-                        </div>
-                        <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
-                            <p className="text-[8px] uppercase tracking-widest text-muted-foreground/60 font-black">Strategy</p>
-                            <p className="text-[10px] font-black mt-1 text-primary truncate">
-                                {data.tradeList[0]?.strategy || "Manual"}
-                            </p>
-                        </div>
-                    </div>
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-muted/30 rounded-xl p-3 text-center">
-                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t('Trades')}</p>
-                            <p className="text-xl font-black mt-1">{data.trades}</p>
-                        </div>
-                        <div className="bg-green-500/10 rounded-xl p-3 text-center">
-                            <p className="text-[10px] uppercase tracking-widest text-green-600 dark:text-green-400 font-bold">{t('Wins')}</p>
-                            <p className="text-xl font-black text-green-600 dark:text-green-400 mt-1">{data.winningTrades}</p>
-                        </div>
-                        <div className="bg-red-500/10 rounded-xl p-3 text-center">
-                            <p className="text-[10px] uppercase tracking-widest text-red-600 dark:text-red-400 font-bold">{t('Losses')}</p>
-                            <p className="text-xl font-black text-red-600 dark:text-red-400 mt-1">{data.losingTrades}</p>
-                        </div>
-                    </div>
-
-                    {/* Win Rate */}
-                    <div className="bg-muted/20 rounded-xl p-3">
-                        <div className="flex justify-between items-center mb-2">
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('Win Rate')}</p>
-                            <p className="text-sm font-black">{winRate.toFixed(1)}%</p>
-                        </div>
-                        <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all"
-                                style={{ width: `${winRate}%` }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Best / Worst */}
-                    {(bestTrade !== null || worstTrade !== null) && (
-                        <div className="grid grid-cols-2 gap-3">
-                            {bestTrade !== null && bestTrade > 0 && (
-                                <div className="bg-green-500/10 rounded-xl p-3">
-                                    <p className="text-[10px] uppercase tracking-widest text-green-600 dark:text-green-400 font-bold flex items-center gap-1">
-                                        <TrendingUp className="h-3 w-3" /> {t('Best Trade')}
-                                    </p>
-                                    <p className="text-sm font-black text-green-600 dark:text-green-400 mt-1" dir="ltr">
-                                        +{formatTotalCurrency(bestTrade, currency)}
-                                    </p>
-                                </div>
-                            )}
-                            {worstTrade !== null && worstTrade < 0 && (
-                                <div className="bg-red-500/10 rounded-xl p-3">
-                                    <p className="text-[10px] uppercase tracking-widest text-red-600 dark:text-red-400 font-bold flex items-center gap-1">
-                                        <TrendingDown className="h-3 w-3" /> {t('Worst Trade')}
-                                    </p>
-                                    <p className="text-sm font-black text-red-600 dark:text-red-400 mt-1" dir="ltr">
-                                        {formatTotalCurrency(worstTrade, currency)}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Running Balance */}
-                    {runningBalance !== null && (
-                        <div className="bg-primary/10 rounded-xl p-3 border border-primary/20">
-                            <p className="text-[10px] uppercase tracking-widest text-primary font-bold">{t('Account Balance')}</p>
-                            <p className="text-lg font-black text-primary mt-1" dir="ltr">
-                                {formatTotalCurrency(runningBalance, currency)}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{t('Initial balance + cumulative P&L')}</p>
-                        </div>
-                    )}
-
-                    {/* Trade List */}
-                    {data.tradeList.length > 0 && (
                         <div>
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">{t('Trade Breakdown')}</p>
-                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                                {data.tradeList
-                                    .sort((a, b) => b.netPnl - a.netPnl)
-                                    .map((trade, idx) => (
-                                    <div key={idx} className="flex items-center justify-between bg-muted/20 rounded-lg px-3 py-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className={cn(
-                                                "text-[9px] font-black px-1.5 py-0.5 rounded uppercase",
-                                                trade.side?.toLowerCase().includes('buy') || trade.side?.toLowerCase() === 'long'
-                                                    ? "bg-green-500/20 text-green-500"
-                                                    : "bg-red-500/20 text-red-500"
-                                            )}>
-                                                {trade.side || 'N/A'}
-                                            </span>
-                                            <span className="text-xs font-bold">{trade.symbol}</span>
-                                        </div>
-                                        <span className={cn(
-                                            "text-xs font-black",
-                                            trade.netPnl > 0 ? "text-green-500" : "text-red-500"
-                                        )} dir="ltr">
-                                            {trade.netPnl > 0 ? '+' : ''}{formatTotalCurrency(trade.netPnl, currency)}
-                                        </span>
-                                    </div>
-                                ))}
+                            <h2 className="text-zinc-400 text-sm font-bold uppercase tracking-[0.2em]">{format(date, 'EEEE, MMMM d, yyyy')}</h2>
+                            <div className="flex items-baseline gap-4 mt-1">
+                                <span className={cn("text-5xl font-black tracking-tighter", pnlForDay >= 0 ? "text-emerald-400" : "text-rose-500")}>
+                                    {formatTotalCurrency(pnlForDay, currency)}
+                                </span>
+                                <Badge variant="outline" className={cn("px-4 py-1 text-xs font-black uppercase tracking-widest border-2", pnlForDay >= 0 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border-rose-500/20")}>
+                                    {pnlForDay >= 0 ? 'Profitable' : 'Losing Day'}
+                                </Badge>
                             </div>
                         </div>
-                    )}
+                    </div>
 
-                    {/* Commissions */}
-                    {data.commission > 0 && (
-                        <div className="bg-muted/20 rounded-xl p-3 flex items-center justify-between">
-                            <p className="text-xs font-bold text-muted-foreground">{t('Commissions')}</p>
-                            <p className="text-xs font-black text-red-500/80" dir="ltr">-{formatTotalCurrency(data.commission, currency)}</p>
+                    <div className="flex items-center gap-3">
+                        <Button variant="outline" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-xs font-black uppercase tracking-widest gap-2">
+                             <RefreshCw className="h-3.5 w-3.5" /> Replay
+                        </Button>
+                        <Button variant="outline" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-xs font-black uppercase tracking-widest gap-2">
+                             <Plus className="h-3.5 w-3.5" /> Add Note
+                        </Button>
+                        <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors ml-4">
+                            <X className="h-5 w-5 text-zinc-400" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col flex-grow overflow-hidden px-8 pb-8 gap-6">
+                    {/* Top Row: Sparkline and Quick Info */}
+                    <div className="grid grid-cols-12 gap-6 h-48">
+                        <div className="col-span-8 bg-zinc-800/50 rounded-3xl border border-white/5 p-4 relative overflow-hidden group">
+                           <div className="absolute top-4 left-4 z-10">
+                               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Intraday Performance</p>
+                           </div>
+                           <ResponsiveContainer width="100%" height="100%">
+                               <AreaChart data={chartData}>
+                                   <defs>
+                                       <linearGradient id="pnlGradient" x1="0" y1="0" x2="0" y2="1">
+                                           <stop offset="5%" stopColor={pnlForDay >= 0 ? "#10b981" : "#ef4444"} stopOpacity={0.3}/>
+                                           <stop offset="95%" stopColor={pnlForDay >= 0 ? "#10b981" : "#ef4444"} stopOpacity={0}/>
+                                       </linearGradient>
+                                   </defs>
+                                   <Area 
+                                        type="monotone" 
+                                        dataKey="pnl" 
+                                        stroke={pnlForDay >= 0 ? "#10b981" : "#ef4444"} 
+                                        strokeWidth={4} 
+                                        fillOpacity={1} 
+                                        fill="url(#pnlGradient)" 
+                                        animationDuration={1500}
+                                   />
+                                   <Tooltip content={() => null} />
+                               </AreaChart>
+                           </ResponsiveContainer>
                         </div>
-                    )}
+                        <div className="col-span-4 grid grid-cols-2 gap-3">
+                             <div className="bg-zinc-800/50 rounded-2xl border border-white/5 p-4 flex flex-col justify-center items-center text-center">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Trades</p>
+                                 <p className="text-4xl font-black text-white">{data.trades}</p>
+                             </div>
+                             <div className="bg-zinc-800/50 rounded-2xl border border-white/5 p-4 flex flex-col justify-center items-center text-center">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Win Rate</p>
+                                 <p className="text-2xl font-black text-emerald-400">{winRate.toFixed(1)}%</p>
+                             </div>
+                             <div className="bg-zinc-800/50 rounded-2xl border border-white/5 p-4 flex flex-col justify-center items-center text-center col-span-2">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Cumulative P&L</p>
+                                 <p className="text-2xl font-black text-indigo-400">
+                                     {runningBalance ? formatTotalCurrency(runningBalance, currency) : "N/A"}
+                                 </p>
+                             </div>
+                        </div>
+                    </div>
+
+                    {/* Secondary Metrics Grid */}
+                    <div className="grid grid-cols-5 gap-4">
+                        {[
+                            { label: 'ROI', value: data.tradeList[0]?.roi ? `${data.tradeList[0].roi}%` : '0.0%', color: 'emerald' },
+                            { label: 'R-Multiple', value: data.tradeList[0]?.rMultiple || '0.00', color: 'indigo' },
+                            { label: 'Shares', value: data.tradeList[0]?.volume || '0', color: 'zinc' },
+                            { label: 'Expectancy', value: ((pnlForDay / data.trades) * currency.rate).toFixed(2), color: 'purple' },
+                            { label: 'Portfolio', value: 'Manual', color: 'zinc' }
+                        ].map((metric, i) => (
+                            <div key={i} className="bg-zinc-800/30 rounded-2xl border border-white/5 p-4 py-3">
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1">{metric.label}</p>
+                                <p className={cn("text-lg font-black", `text-${metric.color}-400`)}>{metric.value}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Trade Breadown Table */}
+                    <div className="flex-grow bg-zinc-800/20 rounded-3xl border border-white/5 overflow-hidden flex flex-col shadow-inner">
+                        <div className="grid grid-cols-7 px-6 py-4 bg-white/5 text-[10px] font-black uppercase tracking-widest text-zinc-500 border-b border-white/5">
+                            <div className="col-span-1">Open Time</div>
+                            <div className="col-span-1">Ticker</div>
+                            <div className="col-span-1">Side</div>
+                            <div className="col-span-1">Qty</div>
+                            <div className="col-span-1">Price</div>
+                            <div className="col-span-1">Strategy</div>
+                            <div className="col-span-1 text-right">Net P&L</div>
+                        </div>
+                        <div className="flex-grow overflow-y-auto">
+                             {data.tradeList.map((trade, i) => (
+                                 <div key={i} className="grid grid-cols-7 px-6 py-4 border-b border-white/5 hover:bg-white/5 transition-colors items-center group">
+                                     <div className="text-[11px] font-bold text-zinc-400">{trade.execTime.split(' ')[1] || '---'}</div>
+                                     <div className="text-xs font-black text-white">{trade.symbol}</div>
+                                     <div>
+                                         <Badge className={cn("text-[9px] font-black uppercase tracking-widest px-2 py-0.5", trade.side === 'Buy' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border-rose-500/20")}>
+                                             {trade.side}
+                                         </Badge>
+                                     </div>
+                                     <div className="text-[11px] font-bold text-zinc-400">{trade.volume || '0'}</div>
+                                     <div className="text-[11px] font-bold text-zinc-400">{trade.execTime.split(' ')[0]}</div>
+                                     <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{trade.strategy || 'Trend'}</div>
+                                     <div className={cn("text-xs font-black text-right", trade.netPnl >= 0 ? "text-emerald-400" : "text-rose-500")}>
+                                         {formatTotalCurrency(trade.netPnl, currency)}
+                                     </div>
+                                 </div>
+                             ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -531,25 +512,57 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
         ? ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']
         : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+    // Calculate monthly stats for header
+    const monthlyStats = useMemo(() => {
+        let net = 0;
+        let days = 0;
+        for (const key in dayData) {
+            const date = parse(key, 'yyyy-MM-dd', new Date());
+            if (isSameMonth(date, currentMonthDate)) {
+                net += showFeesInPnl 
+                    ? dayData[key].profitloss - dayData[key].commission - dayData[key].totalSECFee
+                    : dayData[key].grossProfitloss;
+                if (dayData[key].trades > 0) days++;
+            }
+        }
+        return { net, days };
+    }, [dayData, currentMonthDate, showFeesInPnl]);
+
     return (
-        <Card className="h-full flex flex-col border-none shadow-none bg-transparent">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 border-b bg-card/30 backdrop-blur-md">
-                 <div className="flex items-center gap-4">
-                     <div className="flex items-center gap-1.5">
-                        <Button variant="outline" size="icon" className="h-7 w-7 hover-effect" onClick={handlePrevMonth}><ChevronLeft className="h-4 w-4"/></Button>
-                        <span className="text-sm font-bold w-32 text-center uppercase tracking-widest">{format(currentMonthDate, 'MMMM yyyy')}</span>
-                        <Button variant="outline" size="icon" className="h-7 w-7 hover-effect" onClick={handleNextMonth}><ChevronRight className="h-4 w-4"/></Button>
+        <Card className="h-full flex flex-col border-none shadow-2xl bg-zinc-900 overflow-hidden rounded-[32px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-8 border-b border-white/5 bg-zinc-900/50 backdrop-blur-xl z-20">
+                 <div className="flex items-center gap-12">
+                     <div className="flex items-center gap-3">
+                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10" onClick={handlePrevMonth}><ChevronLeft className="h-5 w-5"/></Button>
+                        <span className="text-lg font-black w-48 text-center uppercase tracking-[0.2em] text-white">{format(currentMonthDate, 'MMMM yyyy')}</span>
+                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10" onClick={handleNextMonth}><ChevronRight className="h-5 w-5"/></Button>
+                     </div>
+
+                     <div className="hidden md:flex items-center gap-8 border-l border-white/10 pl-8">
+                         <div>
+                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1">Monthly P&L</p>
+                             <p className={cn("text-xl font-black tabular-nums", monthlyStats.net >= 0 ? "text-emerald-400" : "text-rose-500")}>
+                                 {formatTotalCurrency(monthlyStats.net, selectedCurrency)}
+                             </p>
+                         </div>
+                         <div>
+                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1">Days Traded</p>
+                             <p className="text-xl font-black text-zinc-300 tabular-nums">{monthlyStats.days}</p>
+                         </div>
                      </div>
                  </div>
 
-                 <div className="flex items-center gap-3">
-                     <div className="flex items-center space-x-2">
-                        <Switch id="fees-toggle" checked={showFeesInPnl} onCheckedChange={onShowFeesToggle} className="hover-effect"/>
-                        <Label htmlFor="fees-toggle" className="text-xs">{t('Include fees')}</Label>
+                 <div className="flex items-center gap-4">
+                     <div className="flex items-center gap-2 bg-white/5 p-1 px-3 rounded-full border border-white/10">
+                        <Switch id="fees-toggle" checked={showFeesInPnl} onCheckedChange={onShowFeesToggle} className="scale-75"/>
+                        <Label htmlFor="fees-toggle" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{t('Fees')}</Label>
                      </div>
 
-                     <Button onClick={onUploadCommissionsClick} variant="outline" size="sm" className="h-7 px-2 text-xs hover-effect"><UploadCloud className="mr-1.5 h-3 w-3"/>{t('Commissions')}</Button>
-                     <Info className="h-3 w-3 text-muted-foreground cursor-pointer" />
+                     <div className="flex items-center gap-2">
+                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10"><Camera className="h-4 w-4 text-zinc-400"/></Button>
+                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10"><Info className="h-4 w-4 text-zinc-400"/></Button>
+                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10"><Settings className="h-4 w-4 text-zinc-400"/></Button>
+                     </div>
                  </div>
             </CardHeader>
             <CardContent className="flex-grow p-0 overflow-hidden flex">
@@ -604,63 +617,57 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                     <ContextMenuTrigger asChild>
                                         <div
                                             className={cn(
-                                                "min-h-[110px] p-2 border-b border-r last:border-r-0 flex flex-col transition-all relative group h-full",
-                                                !isCurrentMonth && "opacity-30",
-                                                hasData && "cursor-pointer hover:brightness-110",
+                                                "min-h-[140px] p-4 border-b border-r border-white/5 flex flex-col transition-all relative group h-full overflow-hidden",
+                                                !isCurrentMonth && "bg-white/[0.02] opacity-20",
+                                                hasData && "cursor-pointer hover:bg-white/[0.05]",
                                                 !hasData && "cursor-default"
                                             )}
-                                            style={bgStyle}
                                             onClick={() => handleDayClick(dayItem, data)}
                                         >
-                                            <div className="flex justify-between items-start mb-1">
+                                            <div className="flex justify-end items-start mb-1 z-10">
                                                 <span className={cn(
-                                                    "text-[11px] font-bold opacity-60 px-1.5 py-0.5 rounded",
-                                                    isToday && "bg-primary text-primary-foreground opacity-100 ring-2 ring-primary/20"
+                                                    "text-[10px] font-black opacity-30 px-1.5 py-0.5 rounded tracking-widest",
+                                                    isToday && "bg-indigo-500 text-white opacity-100 ring-4 ring-indigo-500/20"
                                                 )}>{format(dayItem, 'd')}</span>
-
-                                                <div className="flex items-center gap-1">
-                                                    {isHoliday && (
-                                                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-500 border border-orange-500/30 leading-none">
-                                                            {holiday.shortName}
-                                                        </span>
-                                                    )}
-                                                    {hasData && (
-                                                        <div className="p-1 bg-background/50 rounded-md backdrop-blur-sm border border-border/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <Info className="h-3 w-3 text-muted-foreground/50" />
-                                                        </div>
-                                                    )}
-                                                </div>
                                             </div>
 
-                                            {isCurrentMonth && isHoliday && !hasData && (
-                                                <div className="flex-grow flex items-center justify-center">
-                                                    <span className="text-[9px] font-medium text-orange-500/70 text-center px-1">{t('Market Closed')}</span>
-                                                </div>
-                                            )}
-
-                                            <div className="flex-grow flex flex-col justify-center items-center py-1">
+                                            <div className="flex-grow flex flex-col justify-center items-center py-1 z-10">
                                                 {pnlForCellDisplay !== 0 && isCurrentMonth && (
-                                                    <div className="flex flex-col items-center gap-0.5">
+                                                    <div className="flex flex-col items-center gap-1">
                                                         <span className={cn(
-                                                            "text-lg font-black tracking-tight drop-shadow-xl",
-                                                            isProfit ? "text-white" : isLoss ? "text-white" : "text-foreground"
+                                                            "text-xl font-black tracking-tighter drop-shadow-2xl tabular-nums",
+                                                            isProfit ? "text-emerald-400" : isLoss ? "text-rose-500" : "text-white"
                                                         )}>
                                                             {formatTotalCurrency(pnlForCellDisplay, selectedCurrency)}
                                                         </span>
-                                                        <div className="flex flex-col items-center gap-0 opacity-70">
-                                                            <span className="text-[9px] font-bold uppercase tracking-tighter">
+                                                        <div className="flex items-center gap-2 mt-1 px-3 py-1 bg-white/5 rounded-full border border-white/5 backdrop-blur-sm">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
                                                                 {data?.trades} {t(data?.trades === 1 ? 'trade' : 'trades')}
                                                             </span>
+                                                            <div className="w-1 h-1 rounded-full bg-zinc-700"></div>
                                                             <span className={cn(
-                                                                "text-[9px] font-black",
-                                                                winRate >= 50 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                                                                "text-[9px] font-black tracking-widest",
+                                                                winRate >= 50 ? "text-emerald-500/70" : "text-rose-500/70"
                                                             )}>
-                                                                {winRate.toFixed(1)}%
+                                                                {winRate.toFixed(0)}%
                                                             </span>
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {/* Status Dots */}
+                                            {hasData && (
+                                                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1 z-10">
+                                                    {Array.from({ length: Math.min(data.trades, 3) }).map((_, i) => (
+                                                        <div key={i} className={cn("w-1 h-1 rounded-full shadow-lg", isProfit ? "bg-emerald-500" : "bg-rose-500")}></div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Subtle Glow Background */}
+                                            {isProfit && <div className="absolute inset-0 bg-emerald-500/5 blur-[40px] rounded-full pointer-events-none"></div>}
+                                            {isLoss && <div className="absolute inset-0 bg-rose-500/5 blur-[40px] rounded-full pointer-events-none"></div>}
                                         </div>
                                     </ContextMenuTrigger>
                                      <ContextMenuContent className="w-56">
@@ -675,9 +682,9 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                     </div>
                 </div>
 
-                <div className="w-[80px] flex flex-col border-l border-muted/50 bg-muted/5">
-                      <div className="py-2 text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b bg-muted/20">
-                          {t('Week')}
+                <div className="w-[120px] flex flex-col border-l border-white/5 bg-white/[0.02]">
+                      <div className="py-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 border-b border-white/5 bg-white/5">
+                          {t('Stats')}
                       </div>
                       {Array.from({ length: 5 }).map((_, weekIndex) => {
                            const weekStartDate = addDays(startDate, weekIndex * 7);
@@ -687,24 +694,19 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                            const weekTotalTrades = summary?.totalTrades || 0;
 
                            const pnlForWeekCellDisplay = summary ? (showFeesInPnl ? (summary.netProfitLossFromTrades - summary.uploadedCommissions - summary.totalNetCash) : summary.grossProfitlossFromTrades) : 0;
-                           const weekPnlColor = pnlForWeekCellDisplay >= 0 ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-400';
-
-                           // Running balance at end of week
-                           const weekEndDate = addDays(weekStartDate, 6);
-                           const weekEndKey = format(weekEndDate, 'yyyy-MM-dd');
-                           const balanceAtWeekEnd = initialBalance !== undefined && cumulativePnlMap[weekEndKey] !== undefined
-                               ? initialBalance + cumulativePnlMap[weekEndKey]
-                               : null;
+                           const weekPnlColor = pnlForWeekCellDisplay >= 0 ? 'text-emerald-400' : 'text-rose-500';
 
                            return (
-                               <div key={weekKey} className={cn("flex-1 px-1 py-3 flex flex-col items-center justify-center text-center border-b last:border-b-0", "bg-muted/30")}>
-                                    <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-40 mb-1">{t('Week')} {getISOWeek(weekStartDate)}</span>
-                                    <span className={cn("text-[11px] font-black tracking-tighter leading-none", weekPnlColor)}>{formatTotalCurrency(pnlForWeekCellDisplay, selectedCurrency)}</span>
-                                    {weekDaysTraded > 0 && <span className="text-[8px] font-medium opacity-50 mt-1">{weekDaysTraded} {t('days')}</span>}
-                                    {balanceAtWeekEnd !== null && (
-                                        <span className="text-[8px] font-bold text-primary/70 mt-1" dir="ltr">
-                                            {formatTotalCurrency(balanceAtWeekEnd, selectedCurrency)}
-                                        </span>
+                               <div key={weekKey} className={cn("flex-1 px-4 py-3 flex flex-col items-center justify-center text-center border-b border-white/5 last:border-b-0 relative group overflow-hidden")}>
+                                    <div className="absolute top-2 left-2 text-[8px] font-black text-white/20 uppercase tracking-widest">{format(weekStartDate, 'w')}</div>
+                                    <span className={cn("text-xs font-black tracking-tighter leading-none mb-1 tabular-nums", weekPnlColor)}>
+                                        {formatTotalCurrency(pnlForWeekCellDisplay, selectedCurrency)}
+                                    </span>
+                                    {weekDaysTraded > 0 && (
+                                        <div className="flex flex-col items-center gap-0.5 opacity-50">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400">{weekDaysTraded} {t('days')}</span>
+                                            <span className="text-[8px] font-black text-zinc-500">{weekTotalTrades} {t('trades')}</span>
+                                        </div>
                                     )}
                                </div>
                            );

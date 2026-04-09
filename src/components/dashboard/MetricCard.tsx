@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress'; // Ensure Progress component is imported if used
+import { Progress } from '@/components/ui/progress';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Define Currency type locally or import if shared
 interface Currency {
@@ -41,7 +42,8 @@ const renderVisual = (
     iconType?: MetricCardProps['iconType'],
     progressValue?: number,
     gaugeData?: GaugeData,
-    barData?: BarData
+    barData?: BarData,
+    t?: (s: string) => string
 ) => {
     switch (iconType) {
         case 'info':
@@ -85,87 +87,48 @@ const renderVisual = (
              const lossPercent = total > 0 ? (losses / total) : 0;
              const breakevenPercent = total > 0 ? (breakeven / total) : 0;
 
-             const radius = 40;
-             const circumference = Math.PI * radius;
-             const strokeWidth = 10;
-
-             // Start angles for each segment (0 to PI for semicircle)
-             const winEndAngle = Math.PI * winPercent;
-             const breakevenEndAngle = winEndAngle + Math.PI * breakevenPercent;
-             const lossEndAngle = breakevenEndAngle + Math.PI * lossPercent;
-
+             const radius = 35;
+             const strokeWidth = 8;
              const centerX = 50;
-             const centerY = 50;
+             const centerY = 45;
 
-             // Function to describe an arc
-             const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
-                const start = {
-                    x: x + radius * Math.cos(startAngle + Math.PI), // Add PI to start from left
-                    y: y + radius * Math.sin(startAngle + Math.PI),
-                };
-                const end = {
-                    x: x + radius * Math.cos(endAngle + Math.PI), // Add PI to start from left
-                    y: y + radius * Math.sin(endAngle + Math.PI),
-                };
-                 // Ensure angles are slightly different if they are the same to draw the arc
-                 if (Math.abs(startAngle - endAngle) < 1e-6) endAngle += 1e-6;
-                const largeArcFlag = endAngle - startAngle <= Math.PI ? "0" : "1";
-                const d = [
-                    "M", start.x, start.y,
-                    "A", radius, radius, 0, largeArcFlag, 1, end.x, end.y
-                ].join(" ");
-                return d;
+             const describeArc = (x: number, y: number, r: number, start: number, end: number) => {
+                const s = { x: x + r * Math.cos(start + Math.PI), y: y + r * Math.sin(start + Math.PI) };
+                const e = { x: x + r * Math.cos(end + Math.PI), y: y + r * Math.sin(end + Math.PI) };
+                if (Math.abs(start - end) < 1e-6) end += 1e-6;
+                return ["M", s.x, s.y, "A", r, r, 0, (end - start <= Math.PI ? "0" : "1"), 1, e.x, e.y].join(" ");
              };
 
+             const winEnd = Math.PI * winPercent;
+             const beEnd = winEnd + Math.PI * breakevenPercent;
+             const lossEnd = beEnd + Math.PI * lossPercent;
 
              return (
-                <div className="flex flex-col items-center w-full">
-                    <div className="relative h-12 w-24">
-                         <svg viewBox="0 0 100 50" className="absolute inset-0 h-full w-full overflow-visible">
-                             {/* Background Arc */}
-                             <path
-                                d={describeArc(centerX, centerY, radius, 0, Math.PI)}
-                                fill="none"
-                                stroke="rgba(255,255,255,0.05)"
-                                strokeWidth={strokeWidth}
-                                strokeLinecap="round"
-                             />
-                             {/* Win Arc (Green) */}
-                             {wins > 0 && (
-                                 <path
-                                    d={describeArc(centerX, centerY, radius, 0, winEndAngle)}
-                                    fill="none"
-                                    stroke="#10b981" // emerald-500
-                                    strokeWidth={strokeWidth}
-                                    strokeLinecap="round"
-                                 />
-                             )}
-                              {/* Breakeven Arc (Gray) */}
-                              {breakeven > 0 && (
-                                 <path
-                                    d={describeArc(centerX, centerY, radius, winEndAngle, breakevenEndAngle)}
-                                    fill="none"
-                                    stroke="#64748b" // slate-500
-                                    strokeWidth={strokeWidth}
-                                    strokeLinecap="round"
-                                 />
-                              )}
-                             {/* Loss Arc (Red) */}
-                             {losses > 0 && (
-                                <path
-                                    d={describeArc(centerX, centerY, radius, breakevenEndAngle, lossEndAngle)}
-                                    fill="none"
-                                    stroke="#ef4444" // red-500
-                                    strokeWidth={strokeWidth}
-                                    strokeLinecap="round"
-                                />
-                             )}
+                <div className="flex flex-col items-center w-full px-2">
+                    <div className="relative h-14 w-full">
+                         <svg viewBox="0 0 100 50" className="absolute inset-0 h-full w-full overflow-visible drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                             <path d={describeArc(centerX, centerY, radius, 0, Math.PI)} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={strokeWidth} strokeLinecap="round" />
+                             {wins > 0 && <path d={describeArc(centerX, centerY, radius, 0, winEnd)} fill="none" stroke="#10b981" strokeWidth={strokeWidth} strokeLinecap="round" />}
+                             {breakeven > 0 && <path d={describeArc(centerX, centerY, radius, winEnd, beEnd)} fill="none" stroke="#94a3b8" strokeWidth={strokeWidth} strokeLinecap="round" />}
+                             {losses > 0 && <path d={describeArc(centerX, centerY, radius, beEnd, lossEnd)} fill="none" stroke="#ef4444" strokeWidth={strokeWidth} strokeLinecap="round" />}
                          </svg>
+                         <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
+                             <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{wins + losses + breakeven} {t ? t('Trades') : 'Trades'}</span>
+                         </div>
                     </div>
-                    <div className="flex justify-between w-full px-2 mt-1">
-                         <span className="text-[10px] font-black text-emerald-500">{wins}</span>
-                         <span className="text-[10px] font-black text-slate-400">{breakeven}</span>
-                         <span className="text-[10px] font-black text-red-500">{losses}</span>
+                    <div className="flex justify-between w-full mt-2 px-1">
+                         <div className="flex flex-col items-center">
+                             <span className="text-[8px] font-black text-zinc-500 uppercase">{t ? t('Wins') : 'Wins'}</span>
+                             <span className="text-[11px] font-black text-emerald-500">{wins}</span>
+                         </div>
+                         <div className="flex flex-col items-center border-l border-r border-white/5 px-4">
+                             <span className="text-[8px] font-black text-zinc-500 uppercase">{t ? t('BE') : 'BE'}</span>
+                             <span className="text-[11px] font-black text-zinc-400">{breakeven}</span>
+                         </div>
+                         <div className="flex flex-col items-center">
+                             <span className="text-[8px] font-black text-zinc-500 uppercase">{t ? t('Losses') : 'Losses'}</span>
+                             <span className="text-[11px] font-black text-rose-500">{losses}</span>
+                         </div>
                     </div>
                 </div>
              );
@@ -175,34 +138,16 @@ const renderVisual = (
              const positiveLoss = Math.max(0, Math.abs(barData?.loss ?? 0));
              const totalValue = positiveWin + positiveLoss;
 
-             if (totalValue === 0) {
-                 return <div className="w-full h-1 rounded bg-muted"></div>; // Neutral bar if no data
-             }
+             if (totalValue === 0) return <div className="w-full h-2 rounded-full bg-white/5"></div>;
 
              const winPercent = (positiveWin / totalValue) * 100;
-             const lossPercent = 100 - winPercent;
-
-             // Check if lossPercent is extremely small and adjust to prevent visual glitches
-             const effectiveLossPercent = lossPercent < 1 && lossPercent > 0 ? 1 : lossPercent;
-             const effectiveWinPercent = 100 - effectiveLossPercent;
-
              return (
-                 <div className="flex items-center w-full h-1.5 rounded overflow-hidden"> {/* Increased height slightly */}
-                   {/* Green part */}
-                    {effectiveWinPercent > 0 && (
-                        <div
-                            className="h-full bg-green-500 dark:bg-green-600 transition-all duration-300"
-                            style={{ width: `${effectiveWinPercent}%` }}
-                        />
-                    )}
-                   {/* Red part */}
-                    {effectiveLossPercent > 0 && (
-                        <div
-                            className="h-full bg-red-500 dark:bg-red-600 transition-all duration-300"
-                            style={{ width: `${effectiveLossPercent}%` }}
-                        />
-                   )}
-               </div>
+                 <div className="flex flex-col w-full gap-2 px-1">
+                    <div className="flex items-center w-full h-2.5 rounded-full overflow-hidden bg-white/5 border border-white/5">
+                        <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-700" style={{ width: `${winPercent}%` }} />
+                        <div className="h-full bg-gradient-to-r from-rose-500 to-rose-700 shadow-[0_0_10px_rgba(239,68,68,0.3)] transition-all duration-700" style={{ width: `${100 - winPercent}%` }} />
+                    </div>
+                 </div>
              );
          }
         default:
@@ -241,12 +186,13 @@ export function MetricCard({
     selectedCurrency,
     className,
 }: MetricCardProps) {
+    const { t } = useLanguage();
     const valueColor =
         color === 'green' ? 'text-green-500' :
         color === 'red' ? 'text-red-500' :
         'text-foreground';
 
-    const visualElement = renderVisual(iconType, progressValue, gaugeData, barData);
+    const visualElement = renderVisual(iconType, progressValue, gaugeData, barData, t);
 
     return (
         <Card className={cn(
