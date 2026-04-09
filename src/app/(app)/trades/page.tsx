@@ -69,35 +69,39 @@ export default function TradesPage() {
                 'ecn remove': 'ECN Remove', 'ecn add': 'ECN Add',
                 'gross proceeds': 'Gross Proceeds', 'net proceeds': 'Net Proceeds',
                 'clr broker': 'Clr Broker', 'liq': 'Liq', 'note': 'Note',
-                'netcash': 'NetCash', // Ensure NetCash is mapped if present in CSV
-                'totalsecfee': 'TotalSECFee',
-                'totalfee1': 'TotalFee1',
-                'totalfee2': 'TotalFee2',
-                'totalfee3': 'TotalFee3',
-                'totalfee4': 'TotalFee4',
+                'netcash': 'NetCash', 'totalsecfee': 'TotalSECFee',
+                'totalfee1': 'TotalFee1', 'totalfee2': 'TotalFee2',
+                'totalfee3': 'TotalFee3', 'totalfee4': 'TotalFee4',
                 'totalfee5': 'TotalFee5',
+                'roi': 'ROI', 'r-multiple': 'RMultiple', 'r multiple': 'RMultiple',
+                'strategy': 'Strategy', 'volume': 'Volume', 'ticks': 'Ticks',
+                'pips': 'Pips', 'instrument': 'Instrument'
               };
 
               for (const rawCsvHeader in row) {
                 const csvHeader = rawCsvHeader.trim().toLowerCase();
                 const targetKey = headerMap[csvHeader];
                 if (targetKey) {
-                    newRow[targetKey] = row[rawCsvHeader];
+                  // @ts-ignore
+                  newRow[targetKey] = row[rawCsvHeader];
                 }
               }
               
               const rawTradeDate = newRow['T/D'];
               if (rawTradeDate && rawTradeDate.trim() !== '') {
                 try {
-                    let parsedDateAttempt;
+                    let parsedDateAttempt: Date | undefined;
                     const dateFormatsToTry = ['MM/dd/yy', 'yyyy-MM-dd', 'MM/dd/yyyy', 'M/d/yy', 'M/dd/yyyy', 'MM/d/yyyy'];
                     for (const fmt of dateFormatsToTry) {
-                        parsedDateAttempt = parse(rawTradeDate, fmt, new Date());
-                        if (isValid(parsedDateAttempt)) break;
+                        const attempt = parse(rawTradeDate, fmt, new Date());
+                        if (isValid(attempt)) {
+                            parsedDateAttempt = attempt;
+                            break;
+                        }
                     }
 
-                    if (isValid(parsedDateAttempt)) {
-                        newRow.Date = format(parsedDateAttempt, 'yyyy-MM-dd');
+                    if (parsedDateAttempt && isValid(parsedDateAttempt)) {
+                        newRow.Date = format(parsedDateAttempt as Date, 'yyyy-MM-dd');
                     } else {
                         newRow.Date = rawTradeDate; // Fallback
                         console.warn(`TradesPage Row ${index + 1}: Could not parse date: ${rawTradeDate}. Stored as is.`);
@@ -195,15 +199,18 @@ export default function TradesPage() {
                 const netPnl = parseFloat(trade.NetPnL || '0');
                 let displayDate = trade.Date || trade['T/D'] || 'N/A';
                 try {
-                    let parsedDateAttempt;
+                    let parsedDateAttempt: Date | undefined;
                     if (displayDate !== 'N/A' && displayDate.trim() !== '') {
                         const dateFormatsToTry = ['yyyy-MM-dd', 'MM/dd/yy', 'MM/dd/yyyy', 'M/d/yy', 'M/dd/yyyy', 'MM/d/yyyy'];
                         for (const fmt of dateFormatsToTry) {
-                            parsedDateAttempt = parse(displayDate, fmt, new Date());
-                            if (isValid(parsedDateAttempt)) break;
+                            const attempt = parse(displayDate, fmt, new Date());
+                            if (isValid(attempt)) {
+                                parsedDateAttempt = attempt;
+                                break;
+                            }
                         }
-                        if (isValid(parsedDateAttempt)){
-                            displayDate = format(parsedDateAttempt, 'MM/dd/yyyy');
+                        if (parsedDateAttempt && isValid(parsedDateAttempt)){
+                            displayDate = format(parsedDateAttempt as Date, 'MM/dd/yyyy');
                         }
                     }
                 } catch { /* Keep displayDate as is if parsing fails */ }

@@ -119,14 +119,14 @@ const renderVisual = (
 
 
              return (
-                <div className="flex flex-col items-center w-full"> {/* Ensure gauge container takes width */}
-                    <div className="relative h-10 w-20"> {/* Container for SVG */}
+                <div className="flex flex-col items-center w-full">
+                    <div className="relative h-12 w-24">
                          <svg viewBox="0 0 100 50" className="absolute inset-0 h-full w-full overflow-visible">
                              {/* Background Arc */}
                              <path
                                 d={describeArc(centerX, centerY, radius, 0, Math.PI)}
                                 fill="none"
-                                stroke="hsl(var(--muted)/0.3)"
+                                stroke="rgba(255,255,255,0.05)"
                                 strokeWidth={strokeWidth}
                                 strokeLinecap="round"
                              />
@@ -135,7 +135,7 @@ const renderVisual = (
                                  <path
                                     d={describeArc(centerX, centerY, radius, 0, winEndAngle)}
                                     fill="none"
-                                    stroke="hsl(145 63% 42%)" // Use the correct green
+                                    stroke="#10b981" // emerald-500
                                     strokeWidth={strokeWidth}
                                     strokeLinecap="round"
                                  />
@@ -145,7 +145,7 @@ const renderVisual = (
                                  <path
                                     d={describeArc(centerX, centerY, radius, winEndAngle, breakevenEndAngle)}
                                     fill="none"
-                                    stroke="hsl(220 15% 50%)" // Muted blue/gray
+                                    stroke="#64748b" // slate-500
                                     strokeWidth={strokeWidth}
                                     strokeLinecap="round"
                                  />
@@ -155,17 +155,17 @@ const renderVisual = (
                                 <path
                                     d={describeArc(centerX, centerY, radius, breakevenEndAngle, lossEndAngle)}
                                     fill="none"
-                                    stroke="hsl(0 80% 65%)" // Coral/Red
+                                    stroke="#ef4444" // red-500
                                     strokeWidth={strokeWidth}
                                     strokeLinecap="round"
                                 />
                              )}
                          </svg>
                     </div>
-                    <div className="flex justify-between w-full px-1 mt-0.5 text-xs">
-                         <span className="font-bold" style={{ color: 'hsl(145 63% 42%)' }}>{wins}</span>
-                         <span className="font-bold" style={{ color: 'hsl(220 15% 50%)' }}>{breakeven}</span>
-                         <span className="font-bold" style={{ color: 'hsl(0 80% 65%)' }}>{losses}</span>
+                    <div className="flex justify-between w-full px-2 mt-1">
+                         <span className="text-[10px] font-black text-emerald-500">{wins}</span>
+                         <span className="text-[10px] font-black text-slate-400">{breakeven}</span>
+                         <span className="text-[10px] font-black text-red-500">{losses}</span>
                     </div>
                 </div>
              );
@@ -257,14 +257,15 @@ export function MetricCard({
             className
         )}>
             {/* Ambient Background Glow */}
-            <div className="absolute -top-12 -right-12 w-24 h-24 bg-primary/10 blur-3xl rounded-full group-hover:bg-primary/20 transition-all duration-500" />
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 blur-3xl rounded-full group-hover:bg-primary/25 transition-all duration-700" />
+            <div className="absolute -bottom-12 -left-12 w-24 h-24 bg-white/5 blur-2xl rounded-full group-hover:bg-white/10 transition-all duration-700" />
             
-            <CardTitle className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60 flex items-center justify-center gap-1.5 mb-2">
+            <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-center gap-1.5 mb-3">
                  {title}
-                 {iconType === 'info' && <Info className="h-3 w-3 opacity-50 hover:opacity-100 transition-opacity cursor-pointer" />}
+                 {iconType === 'info' && <Info className="h-3 w-3 opacity-30 hover:opacity-100 transition-opacity cursor-pointer" />}
             </CardTitle>
             
-            <div className={cn("text-2xl font-black tracking-tight mb-2 drop-shadow-sm", valueColor)}>
+            <div className={cn("text-3xl font-black tracking-tighter mb-1 drop-shadow-md", valueColor)}>
                 {value}
             </div>
 

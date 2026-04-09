@@ -89,7 +89,18 @@ function generateDemoTrades(): CsvTradeData[] {
         GrossPnl: grossPnl.toFixed(2),
         NetCash: '0',
         Account: 'Demo Account',
-        Note: '',
+        Note: isWin ? 'Target Hit' : 'Stop Loss hit',
+        
+        // Advanced Fields
+        ROI: ((netPnl / 1000) * 100).toFixed(2), // Assume $1000 risk
+        RMultiple: isWin ? (Math.random() * 2 + 1).toFixed(2) : '-1.00',
+        Strategy: ['ICT Killzone', 'Order Flow Imbalance', 'Market Structure Shift'][Math.floor(Math.random() * 3)],
+        Instrument: symbol,
+        OpenTime: `${format(day, 'yyyy-MM-dd')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`,
+        CloseTime: `${format(day, 'yyyy-MM-dd')} ${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`,
+        Volume: (Math.random() * 100000).toFixed(0),
+        Ticks: Math.floor(Math.random() * 100).toString(),
+        Pips: Math.floor(Math.random() * 50).toString(),
       });
     }
   }
@@ -171,27 +182,30 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
             .eq('user_id', user.id);
 
           let currentAccounts: TradingAccount[] = [];
-          if (!accErr && accData && accData.length > 0) {
-              currentAccounts = accData as TradingAccount[];
+          if (!accErr && accData) {
+              // Always include DEMO_ACCOUNT in the accounts list for logged-in users too
+              currentAccounts = [DEMO_ACCOUNT, ...(accData as TradingAccount[])];
               setAccounts(currentAccounts);
-              if (currentAccounts.length > 0 && !selectedAccountId) {
-                 setSelectedAccountId(currentAccounts[0].id);
+              
+              // Only set selectedAccountId if NOT already set (initial load)
+              if (!selectedAccountId) {
+                 setSelectedAccountId(DEMO_ACCOUNT.id);
+                 setIsDemoMode(true);
               }
-              setIsDemoMode(false);
           } else {
-             // No accounts yet — show demo account alongside
+             // No accounts or error — show demo account
              currentAccounts = [DEMO_ACCOUNT];
              setAccounts([DEMO_ACCOUNT]);
              setSelectedAccountId(DEMO_ACCOUNT.id);
              setIsDemoMode(true);
           }
 
-          // 2. Load trades
-          if (currentAccounts.length > 0 && currentAccounts[0].id !== 'demo-account') {
+          // 2. Load trades logic for the currently selected account
+          const targetAccountId = selectedAccountId || DEMO_ACCOUNT.id;
+
+          if (targetAccountId !== 'demo-account') {
               let tradeQuery = supabase.from('trades').select('*').eq('user_id', user.id);
-              if (selectedAccountId && selectedAccountId !== 'demo-account') {
-                 tradeQuery = tradeQuery.eq('account_id', selectedAccountId);
-              }
+              tradeQuery = tradeQuery.eq('account_id', targetAccountId);
 
               const { data, error } = await tradeQuery;
               if (error) throw error;
@@ -208,6 +222,21 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
                 GrossPnl: t.gross_pnl?.toString(),
                 'Exec Time': t.exec_time,
                 Note: t.note,
+                ROI: t.roi,
+                RMultiple: t.r_multiple,
+                Strategy: t.strategy,
+                Instrument: t.instrument,
+                OpenTime: t.open_time,
+                CloseTime: t.close_time,
+                Volume: t.volume,
+                Ticks: t.ticks,
+                Pips: t.pips,
+                Commissions: t.commissions,
+                Fees: t.fees,
+                Tags: t.tags,
+                Mistakes: t.mistakes,
+                Setups: t.setups,
+                BadyScore: t.bady_score,
               }));
 
               if (fetchedTrades.length === 0) {
@@ -275,6 +304,21 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
           GrossPnl: t.gross_pnl?.toString(),
           'Exec Time': t.exec_time,
           Note: t.note,
+          ROI: t.roi,
+          RMultiple: t.r_multiple,
+          Strategy: t.strategy,
+          Instrument: t.instrument,
+          OpenTime: t.open_time,
+          CloseTime: t.close_time,
+          Volume: t.volume,
+          Ticks: t.ticks,
+          Pips: t.pips,
+          Commissions: t.commissions,
+          Fees: t.fees,
+          Tags: t.tags,
+          Mistakes: t.mistakes,
+          Setups: t.setups,
+          BadyScore: t.bady_score,
         }));
 
         setTradeData(sortTrades(fetchedTrades));
@@ -386,6 +430,21 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
         gross_pnl: parseFloat(inputTrade.GrossPnl || '0'),
         exec_time: inputTrade['Exec Time'],
         note: inputTrade.Note,
+        roi: inputTrade.ROI,
+        r_multiple: inputTrade.RMultiple,
+        strategy: inputTrade.Strategy,
+        instrument: inputTrade.Instrument,
+        open_time: inputTrade.OpenTime,
+        close_time: inputTrade.CloseTime,
+        volume: inputTrade.Volume,
+        ticks: inputTrade.Ticks,
+        pips: inputTrade.Pips,
+        commissions: inputTrade.Commissions,
+        fees: inputTrade.Fees,
+        tags: inputTrade.Tags,
+        mistakes: inputTrade.Mistakes,
+        setups: inputTrade.Setups,
+        bady_score: inputTrade.BadyScore,
       });
     }
 
@@ -415,6 +474,21 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
           GrossPnl: t.gross_pnl?.toString(),
           'Exec Time': t.exec_time,
           Note: t.note,
+          ROI: t.roi,
+          RMultiple: t.r_multiple,
+          Strategy: t.strategy,
+          Instrument: t.instrument,
+          OpenTime: t.open_time,
+          CloseTime: t.close_time,
+          Volume: t.volume,
+          Ticks: t.ticks,
+          Pips: t.pips,
+          Commissions: t.commissions,
+          Fees: t.fees,
+          Tags: t.tags,
+          Mistakes: t.mistakes,
+          Setups: t.setups,
+          BadyScore: t.bady_score,
       }));
       setTradeData(sortTrades(fetchedTrades));
       setIsDemoMode(false);

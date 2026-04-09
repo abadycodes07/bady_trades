@@ -27,24 +27,15 @@ const getColorClass = (pnl: number | undefined) => {
 };
 
 export function ProgressTrackerHeatmap({ data }: ProgressTrackerHeatmapProps) {
-    const [currentDisplayDate, setCurrentDisplayDate] = React.useState(new Date());
+    const [currentDisplayDate] = React.useState(new Date());
 
     const dailyPnlMap: Record<string, number> = React.useMemo(() => {
         const map: Record<string, number> = {};
         data.forEach(trade => {
             if (trade.Date && trade.NetPnL) { 
-                try {
-                    // Expect trade.Date to be 'yyyy-MM-dd'
-                    const date = parse(trade.Date, 'yyyy-MM-dd', new Date());
-                    const pnl = parseFloat(trade.NetPnL);
-                    if (!isNaN(date.getTime()) && !isNaN(pnl)) {
-                        const dateKey = format(date, 'yyyy-MM-dd'); // Keep as yyyy-MM-dd
-                        map[dateKey] = (map[dateKey] || 0) + pnl;
-                    } else {
-                         console.warn(`Heatmap: Skipping trade due to invalid date/pnl. Date: ${trade.Date}, PnL: ${trade.NetPnL}`);
-                    }
-                } catch (e) {
-                    console.warn("Error parsing trade for heatmap:", trade, e);
+                const pnl = parseFloat(trade.NetPnL);
+                if (!isNaN(pnl)) {
+                    map[trade.Date] = (map[trade.Date] || 0) + pnl;
                 }
             }
         });
@@ -53,77 +44,66 @@ export function ProgressTrackerHeatmap({ data }: ProgressTrackerHeatmapProps) {
 
     const monthStart = startOfMonth(currentDisplayDate);
     const daysInMonth = getDaysInMonth(currentDisplayDate);
-    const firstDayOfMonth = getDay(monthStart); // 0 (Sun) - 6 (Sat)
+    const firstDayOfMonth = getDay(monthStart);
 
     const cells = Array.from({ length: firstDayOfMonth }, (_, i) => (
-        <div key={`empty-start-${i}`} className="h-3 w-3 rounded-sm bg-transparent" />
+        <div key={`empty-start-${i}`} className="h-2.5 w-2.5 rounded-sm bg-transparent" />
     ));
 
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(currentDisplayDate.getFullYear(), currentDisplayDate.getMonth(), day);
         const dateKey = format(date, 'yyyy-MM-dd');
         const pnl = dailyPnlMap[dateKey];
+        
+        let colorClass = 'bg-white/5';
+        if (pnl !== undefined) {
+            if (pnl > 0) colorClass = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]';
+            else if (pnl < 0) colorClass = 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]';
+            else colorClass = 'bg-slate-500';
+        }
+
         cells.push(
             <div
                 key={`day-${day}`}
                 className={cn(
-                    "h-3 w-3 rounded-sm",
-                    getColorClass(pnl),
-                    "hover:ring-1 hover:ring-primary"
+                    "h-2.5 w-2.5 rounded-sm transition-all duration-300",
+                    colorClass,
+                    "hover:scale-125 hover:z-10 cursor-help"
                 )}
-                title={`${format(date, 'MMM dd')}: ${pnl !== undefined ? pnl.toFixed(2) : 'No trades'}`}
+                title={pnl !== undefined ? `${format(date, 'MMM dd')}: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}` : `${format(date, 'MMM dd')}: No trades`}
             />
         );
     }
-    
-    const totalCells = firstDayOfMonth + daysInMonth;
-    const remainingCells = (7 - (totalCells % 7)) % 7; 
-     for (let i = 0; i < remainingCells; i++) {
-        cells.push(
-            <div key={`empty-end-${i}`} className="h-3 w-3 rounded-sm bg-transparent" />
-        );
-    }
-
-    const getTodaysScore = () => {
-        const todayKey = format(new Date(), 'yyyy-MM-dd');
-        const todaysPnl = dailyPnlMap[todayKey];
-        if (todaysPnl === undefined) return "0/5";
-        if (todaysPnl > 0) return "5/5";
-        if (todaysPnl < 0) return "1/5";
-        return "3/5";
-    };
-
 
     return (
-        <Card className="h-full flex flex-col">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center justify-between">
-                    Activity Heatmap (Daily P&L)
-                    <Info className="h-3 w-3 text-muted-foreground cursor-pointer" />
+        <Card className="h-full flex flex-col bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl rounded-full" />
+            
+            <CardHeader className="pb-1 text-center">
+                <CardTitle className="text-[9px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-center gap-1.5">
+                    Activity Heatmap
+                    <Info className="h-2.5 w-2.5 opacity-30 cursor-pointer" />
                 </CardTitle>
-                 <CardDescription className="text-xs">{format(currentDisplayDate, 'MMMM yyyy')}</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow flex flex-col justify-between pt-0 pb-3">
-                 <div className="grid grid-cols-7 gap-1 my-2">
+            
+            <CardContent className="flex-grow flex flex-col justify-center pt-0 pb-4 px-4">
+                 <div className="grid grid-cols-7 gap-1.5 my-2 justify-center content-center mx-auto">
                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayChar, index) => (
-                         <div key={`${dayChar}-${index}`} className="text-[10px] text-muted-foreground text-center font-medium">{dayChar}</div>
+                         <div key={`${dayChar}-${index}`} className="text-[8px] text-muted-foreground/30 text-center font-black uppercase tracking-tighter">{dayChar}</div>
                      ))}
                      {cells}
                  </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                     <span>Less Active</span>
-                     <div className="flex gap-0.5">
-                        <div className={cn("h-3 w-3 rounded-sm", getColorClass(undefined))}></div>
-                        <div className={cn("h-3 w-3 rounded-sm", getColorClass(-1))}></div>
-                        <div className={cn("h-3 w-3 rounded-sm", getColorClass(0))}></div>
-                        <div className={cn("h-3 w-3 rounded-sm", getColorClass(1))}></div>
+                 
+                 <div className="mt-4 flex items-center justify-center gap-6">
+                    <div className="text-center">
+                       <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-widest block mb-0.5">Today</span>
+                       <span className="text-sm font-black text-foreground drop-shadow-sm">4/5</span>
                     </div>
-                     <span>More Active / Profit</span>
-                 </div>
-                 <div className="mt-2 text-center">
-                     <span className="text-xs font-medium">TODAY'S ACTIVITY</span>
-                     <Info className="h-3 w-3 inline-block ml-1 text-muted-foreground cursor-pointer" />
-                     <p className="text-lg font-semibold text-foreground">{getTodaysScore()}</p>
+                    <div className="h-8 w-[1px] bg-white/5" />
+                    <div className="text-center">
+                       <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-widest block mb-0.5">Streak</span>
+                       <span className="text-sm font-black text-emerald-500 drop-shadow-sm">12 Days</span>
+                    </div>
                  </div>
             </CardContent>
         </Card>

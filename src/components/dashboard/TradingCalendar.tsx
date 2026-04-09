@@ -55,7 +55,19 @@ interface CalendarDayData {
     totalFee5: number;
     winningTrades: number;
     losingTrades: number;
-    tradeList: Array<{ symbol: string; side: string; netPnl: number; grossPnl: number; execTime: string }>;
+    tradeList: Array<{ 
+        symbol: string; 
+        side: string; 
+        netPnl: number; 
+        grossPnl: number; 
+        execTime: string;
+        roi?: string;
+        rMultiple?: string;
+        strategy?: string;
+        volume?: string;
+        ticks?: string;
+        pips?: string;
+    }>;
 }
 
 interface WeeklySummaryData {
@@ -148,6 +160,12 @@ const calculateDailySummaries = (tradeData: CsvTradeData[], commissionData: CsvC
                 netPnl,
                 grossPnl: grossPnlVal,
                 execTime: trade['Exec Time'] || '',
+                roi: trade.ROI,
+                rMultiple: trade.RMultiple,
+                strategy: trade.Strategy,
+                volume: trade.Volume,
+                ticks: trade.Ticks,
+                pips: trade.Pips,
             });
         } catch (e) {
             console.warn(`Calendar Trade processing error:`, e);
@@ -298,24 +316,50 @@ function DayDetailPopup({
             >
                 {/* Header */}
                 <div className={cn(
-                    "p-4 rounded-t-2xl flex items-center justify-between",
-                    pnlForDay > 0 ? "bg-green-500/20 border-b border-green-500/30" : pnlForDay < 0 ? "bg-red-500/20 border-b border-red-500/30" : "bg-muted/30 border-b border-border"
+                    "p-6 rounded-t-2xl flex items-center justify-between",
+                    pnlForDay > 0 ? "bg-emerald-500 text-white" : pnlForDay < 0 ? "bg-red-500 text-white" : "bg-muted/30 border-b border-border text-foreground"
                 )}>
                     <div>
-                        <p className="text-xs text-muted-foreground font-medium">{format(date, 'EEEE, MMMM d, yyyy')}</p>
-                        <p className={cn(
-                            "text-2xl font-black mt-0.5",
-                            pnlForDay > 0 ? "text-green-500" : pnlForDay < 0 ? "text-red-500" : "text-foreground"
-                        )}>
+                        <p className={cn("text-[10px] uppercase tracking-[0.2em] font-black", pnlForDay !== 0 ? "text-white/60" : "text-muted-foreground")}>
+                            {format(date, 'EEEE, MMMM d, yyyy')}
+                        </p>
+                        <p className="text-4xl font-black mt-1 tracking-tighter drop-shadow-lg">
                             {pnlForDay > 0 ? '+' : ''}{formatTotalCurrency(pnlForDay, currency)}
                         </p>
                     </div>
-                    <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted/50 transition-colors">
-                        <X className="h-4 w-4 text-muted-foreground" />
+                    <button onClick={onClose} className="rounded-full p-2 hover:bg-white/10 transition-colors">
+                        <X className="h-5 w-5" />
                     </button>
                 </div>
 
-                <div className="p-4 space-y-4">
+                <div className="p-6 space-y-6">
+                    {/* Advanced Stats Grid */}
+                    <div className="grid grid-cols-4 gap-2">
+                        <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                            <p className="text-[8px] uppercase tracking-widest text-muted-foreground/60 font-black">ROI</p>
+                            <p className={cn("text-sm font-black mt-1", pnlForDay > 0 ? "text-emerald-400" : "text-red-400")}>
+                                {data.tradeList[0]?.roi ? `${data.tradeList[0].roi}%` : "0.0%"}
+                            </p>
+                        </div>
+                        <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                            <p className="text-[8px] uppercase tracking-widest text-muted-foreground/60 font-black">R-Multiple</p>
+                            <p className="text-sm font-black mt-1 text-white">
+                                {data.tradeList[0]?.rMultiple || "0.00"}
+                            </p>
+                        </div>
+                        <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                            <p className="text-[8px] uppercase tracking-widest text-muted-foreground/60 font-black">Volume</p>
+                            <p className="text-sm font-black mt-1 text-white">
+                                {data.tradeList[0]?.volume || "0"}
+                            </p>
+                        </div>
+                        <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                            <p className="text-[8px] uppercase tracking-widest text-muted-foreground/60 font-black">Strategy</p>
+                            <p className="text-[10px] font-black mt-1 text-primary truncate">
+                                {data.tradeList[0]?.strategy || "Manual"}
+                            </p>
+                        </div>
+                    </div>
                     {/* Stats Grid */}
                     <div className="grid grid-cols-3 gap-3">
                         <div className="bg-muted/30 rounded-xl p-3 text-center">
@@ -546,13 +590,13 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                             } else if (isWeekend) {
                                 bgStyle = { backgroundColor: 'rgba(128,128,128,0.08)' };
                             } else if (isProfit) {
-                                bgStyle = { backgroundColor: 'rgba(34, 197, 94, 0.15)' };
+                                bgStyle = { backgroundColor: '#10b981', color: 'white' };
                             } else if (isLoss) {
-                                bgStyle = { backgroundColor: 'rgba(239, 68, 68, 0.15)' };
+                                bgStyle = { backgroundColor: '#ef4444', color: 'white' };
                             }
 
                             if (isToday) {
-                                bgStyle = { ...bgStyle, boxShadow: 'inset 0 0 0 2px rgba(147,51,234,0.3)' };
+                                bgStyle = { ...bgStyle, boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.4)', zIndex: 10 };
                             }
 
                             return (
@@ -598,8 +642,8 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                                 {pnlForCellDisplay !== 0 && isCurrentMonth && (
                                                     <div className="flex flex-col items-center gap-0.5">
                                                         <span className={cn(
-                                                            "text-base font-black tracking-tight drop-shadow-sm",
-                                                            isProfit ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                                                            "text-lg font-black tracking-tight drop-shadow-xl",
+                                                            isProfit ? "text-white" : isLoss ? "text-white" : "text-foreground"
                                                         )}>
                                                             {formatTotalCurrency(pnlForCellDisplay, selectedCurrency)}
                                                         </span>

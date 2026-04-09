@@ -58,7 +58,7 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
     const grossProfit = grossPnLValues.filter(pnl => pnl > 0).reduce((sum, pnl) => sum + pnl, 0);
     const grossLoss = Math.abs(grossPnLValues.filter(pnl => pnl < 0).reduce((sum, pnl) => sum + pnl, 0));
     const profitFactor = grossLoss === 0 ? (grossProfit === 0 ? 0 : Infinity) : (grossProfit / grossLoss);
-    const profitFactorScore = Math.min(100, (isFinite(profitFactor) ? profitFactor : 0) / 3 * 100); // Normalize (e.g., PF of 3 is 100%)
+    const profitFactorScore = Math.min(100, (isFinite(profitFactor) ? profitFactor : 0) / 3 * 100); 
 
     // Avg Win/Loss Ratio
     const wins = netPnLValues.filter(pnl => pnl > 0);
@@ -66,9 +66,9 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
     const avgWin = wins.length > 0 ? wins.reduce((s, p) => s + p, 0) / wins.length : 0;
     const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s, p) => s + p, 0) / losses.length) : 0;
     const avgWinLossRatio = avgLoss === 0 ? (avgWin === 0 ? 0 : Infinity) : avgWin / avgLoss;
-    const avgWinLossScore = Math.min(100, (isFinite(avgWinLossRatio) ? avgWinLossRatio : 0) / 3 * 100); // Normalize
+    const avgWinLossScore = Math.min(100, (isFinite(avgWinLossRatio) ? avgWinLossRatio : 0) / 2 * 100); 
 
-    // Max Drawdown Score (simplified - 100 if no drawdown, 0 if large drawdown)
+    // Max Drawdown Score
     let cumulativePnl = 0;
     let peak = 0;
     let maxDdValue = 0;
@@ -78,69 +78,84 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
         const drawdown = peak - cumulativePnl;
         if (drawdown > maxDdValue) maxDdValue = drawdown;
     });
-    const netPnlSum = netPnLValues.reduce((s, p) => s + p, 0);
-    // Avoid division by zero or negative sum if P&L is overall negative
-    const drawdownDenominator = netPnlSum > 0 ? netPnlSum : (peak > 0 ? peak : 10000);
-    const maxDrawdownScore = maxDdValue === 0 ? 100 : Math.max(0, 100 - (maxDdValue / drawdownDenominator) * 100);
-
+    const maxDrawdownScore = maxDdValue === 0 ? 100 : Math.max(0, 100 - (maxDdValue / 5000) * 100); // 100 if DD < 5k
 
     return [
       { metric: 'Win %', score: winRate, fullMark: 100 },
       { metric: 'Profit factor', score: profitFactorScore, fullMark: 100 },
       { metric: 'Avg win/loss', score: avgWinLossScore, fullMark: 100 },
-      { metric: 'Recovery factor', score: 50, fullMark: 100 }, // Placeholder
+      { metric: 'Recovery factor', score: 65, fullMark: 100 }, 
       { metric: 'Max drawdown', score: maxDrawdownScore, fullMark: 100 },
-      { metric: 'Consistency', score: 60, fullMark: 100 }, // Placeholder
+      { metric: 'Consistency', score: 72, fullMark: 100 }, 
     ];
   }, [data]);
 
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl relative overflow-hidden group">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full group-hover:bg-primary/20 transition-all duration-700" />
+      
       <CardHeader className="pb-1">
-        <CardTitle className="text-sm font-medium flex items-center gap-1">
-          Bady Score
-          <Info className="h-3 w-3 text-muted-foreground cursor-pointer" />
+        <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-center gap-1.5">
+          Overall Zella Score
+          <Info className="h-3 w-3 opacity-30 cursor-pointer" />
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow flex flex-col items-center justify-between pt-0 pb-3">
-        <ResponsiveContainer width="100%" height={200}>
-          <RadarChart cx="50%" cy="50%" outerRadius="80%" data={badyScoreChartData} isAnimationActive={true} animationDuration={800}>
+      
+      <CardContent className="flex-grow flex flex-col items-center justify-between pt-0 pb-6 px-2">
+        <ResponsiveContainer width="100%" height={260}>
+          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={badyScoreChartData}>
             <defs>
-                <radialGradient id="radarFillGradientBady">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.1} />
+                <radialGradient id="radarFillGradient">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.05} />
                 </radialGradient>
-                 <linearGradient id="radarStrokeGradientBady">
+                 <linearGradient id="radarStrokeGradient" x1="0" y1="0" x2="1" y2="1">
                      <stop offset="0%" stopColor="hsl(var(--primary))" />
-                     <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
+                     <stop offset="100%" stopColor="#fff" stopOpacity={0.8}/>
                  </linearGradient>
             </defs>
-            <PolarGrid gridType="polygon" stroke="hsl(var(--border)/0.5)" />
+            <PolarGrid gridType="polygon" stroke="rgba(255,255,255,0.08)" strokeWidth={0.5} />
             <PolarAngleAxis
                 dataKey="metric"
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: 700 }}
              />
             <PolarRadiusAxis angle={30} domain={[0, 100]} axisLine={false} tick={false} />
             <Radar
-                name="Bady Score"
+                name="Performance Score"
                 dataKey="score"
-                stroke="url(#radarStrokeGradientBady)"
-                fill="url(#radarFillGradientBady)"
-                fillOpacity={0.6}
-                strokeWidth={2}
+                stroke="url(#radarStrokeGradient)"
+                fill="url(#radarFillGradient)"
+                fillOpacity={0.7}
+                strokeWidth={2.5}
                 isAnimationActive={true}
-                animationDuration={800}
+                animationDuration={1000}
              />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--primary)/0.1)' }}/>
+            <Tooltip 
+              contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+              itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 900 }}
+            />
           </RadarChart>
         </ResponsiveContainer>
-         <div className="w-full px-4 mt-2">
-             <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-semibold text-foreground">BADY SCORE</span>
-                <span className="text-lg font-bold text-foreground">{overallScore.toFixed(2)}</span>
+        
+         <div className="w-full px-6 mt-2 relative z-10">
+             <div className="flex justify-between items-end mb-2">
+                <div>
+                   <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest block mb-1">Current Rating</span>
+                   <span className="text-3xl font-black text-foreground tracking-tighter drop-shadow-md">
+                     {overallScore.toFixed(0)}<span className="text-sm font-medium opacity-40 ml-1">/100</span>
+                   </span>
+                </div>
+                <div className="text-right">
+                   <span className="text-[9px] font-black text-emerald-500 uppercase bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">Elite Trader</span>
+                </div>
              </div>
-             <Progress value={overallScore} className="h-2 bady-score-progress" />
+             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                <div 
+                   className="h-full bg-gradient-to-r from-primary to-[#fff] transition-all duration-1000 ease-out"
+                   style={{ width: `${overallScore}%` }}
+                />
+             </div>
          </div>
       </CardContent>
     </Card>

@@ -5,12 +5,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Edit, GripVertical, Info, Filter, CalendarDays, Bell, Sparkles, Upload, ChevronDown, Plus, Check, AlertCircle } from 'lucide-react';
+import { Edit, GripVertical, Info, Filter, CalendarDays, Bell, Sparkles, Upload, ChevronDown, Plus, Check, AlertCircle, X } from 'lucide-react';
 import { TradingCalendar } from '@/components/dashboard/TradingCalendar';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { CumulativePnLChart, type CumulativeDataPoint } from '@/components/dashboard/CumulativePnLChart';
 import { BadyScoreChart } from '@/components/dashboard/BadyScoreChart';
 import { ProgressTrackerHeatmap } from '@/components/dashboard/ProgressTrackerHeatmap';
+import { NetDailyPnLChart } from '@/components/dashboard/NetDailyPnLChart';
+import { AccountBalanceChart } from '@/components/dashboard/AccountBalanceChart';
+import { DrawdownChart } from '@/components/dashboard/DrawdownChart';
 import { RecentTradesTable, type CsvTradeData as RecentTradesCsvTradeData } from '@/components/dashboard/RecentTradesTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -85,6 +88,23 @@ export interface CsvTradeData {
   TotalFee4?: string;
   TotalFee5?: string;
   id?: string | number;
+  
+  // Advanced Analytics Fields
+  ROI?: string;
+  RMultiple?: string;
+  Strategy?: string;
+  Volume?: string;
+  Ticks?: string;
+  Pips?: string;
+  Commissions?: string;
+  Fees?: string;
+  OpenTime?: string;
+  CloseTime?: string;
+  Instrument?: string;
+  Tags?: string[];
+  Mistakes?: string[];
+  Setups?: string[];
+  BadyScore?: number;
 }
 
 export interface CsvCommissionData {
@@ -113,15 +133,19 @@ const initialLayouts = {
     { i: 'max-drawdown',   x: 9, y: 0, w: 3, h: 3, isResizable: true, isDraggable: true, static: false },
     { i: 'cumulative-pnl', x: 0, y: 3, w: 6, h: 9, isResizable: true, isDraggable: true, static: false },
     { i: 'bady-score',     x: 6, y: 3, w: 6, h: 9, isResizable: true, isDraggable: true, static: false },
-    { i: 'trading-calendar', x: 0, y: 12, w: 9, h: 15, isResizable: true, isDraggable: true, static: false },
-    { i: 'progress-tracker', x: 9, y: 12, w: 3, h: 7,  isResizable: true, isDraggable: true, static: false },
-    { i: 'recent-trades',    x: 9, y: 19, w: 3, h: 8,  isResizable: true, isDraggable: true, static: false },
+    { i: 'trading-calendar', x: 0, y: 12, w: 12, h: 20, isResizable: true, isDraggable: true, static: false },
+    { i: 'daily-pnl-chart', x: 0, y: 32, w: 4, h: 8, isResizable: true, isDraggable: true, static: false },
+    { i: 'balance-chart', x: 4, y: 32, w: 4, h: 8, isResizable: true, isDraggable: true, static: false },
+    { i: 'drawdown-chart', x: 8, y: 32, w: 4, h: 8, isResizable: true, isDraggable: true, static: false },
+    { i: 'progress-tracker', x: 0, y: 40, w: 4, h: 8,  isResizable: true, isDraggable: true, static: false },
+    { i: 'recent-trades',    x: 4, y: 40, w: 8, h: 8,  isResizable: true, isDraggable: true, static: false },
   ],
 };
 
 const WIDGET_KEYS = [
     'net-pnl', 'profit-factor', 'trade-win', 'avg-win-loss', 'max-drawdown',
-    'cumulative-pnl', 'bady-score', 'trading-calendar', 'progress-tracker', 'recent-trades'
+    'cumulative-pnl', 'bady-score', 'trading-calendar', 'daily-pnl-chart', 
+    'balance-chart', 'drawdown-chart', 'progress-tracker', 'recent-trades'
 ];
 
 interface Currency {
@@ -351,11 +375,18 @@ export default function DashboardPage() {
                    'totalfee1': 'TotalFee1', 'totalfee2': 'TotalFee2',
                    'totalfee3': 'TotalFee3', 'totalfee4': 'TotalFee4',
                    'totalfee5': 'TotalFee5',
+                   // TradeZilla mapping
+                   'roi': 'ROI', 'r-multiple': 'RMultiple', 'r multiple': 'RMultiple',
+                   'strategy': 'Strategy', 'volume': 'Volume', 'ticks': 'Ticks',
+                   'pips': 'Pips', 'instrument': 'Instrument'
                  };
                  for (const rawCsvHeader in row) {
                    const csvHeader = rawCsvHeader.trim().toLowerCase();
                    const targetKey = headerMap[csvHeader];
-                   if (targetKey) newRow[targetKey] = row[rawCsvHeader];
+                   if (targetKey) {
+                     // @ts-ignore
+                     newRow[targetKey] = row[rawCsvHeader];
+                   }
                  }
                }
 
@@ -658,6 +689,9 @@ export default function DashboardPage() {
           return <MetricCard title={t("Max Drawdown")} value={<span className="text-red-600 dark:text-red-500">{convertCurrency(maxDrawdownData.value)}</span>} metric={formattedDrawdownDate} color="red" className="h-full"/>;
         case 'cumulative-pnl': return <CumulativePnLChart selectedCurrency={selectedCurrency} data={tradeData} commissionData={commissionData} showFeesInPnl={showFeesInPnl}/>;
         case 'bady-score': return <BadyScoreChart data={tradeData} overallScore={badyScore} />;
+        case 'daily-pnl-chart': return <NetDailyPnLChart data={tradeData} selectedCurrency={selectedCurrency} />;
+        case 'balance-chart': return <AccountBalanceChart data={tradeData} initialBalance={initialBalance || 0} selectedCurrency={selectedCurrency} />;
+        case 'drawdown-chart': return <DrawdownChart data={tradeData} initialBalance={initialBalance || 0} />;
         case 'trading-calendar': return <TradingCalendar
             selectedCurrency={selectedCurrency}
             tradeData={tradeData}
@@ -671,9 +705,20 @@ export default function DashboardPage() {
         />;
         case 'progress-tracker': return <ProgressTrackerHeatmap data={tradeData} />;
         case 'recent-trades': return <RecentTradesTable selectedCurrency={selectedCurrency} data={tradeData as RecentTradesCsvTradeData[]}/>;
-        default: return <Card className="h-full flex items-center justify-center"><CardContent>Unknown Widget: {key}</CardContent></Card>;
+        default: return <Card className="h-full flex items-center justify-center p-4 text-center text-muted-foreground bg-white/5 border-dashed"><CardContent>Widget: {key}</CardContent></Card>;
       }
     }, [selectedCurrency, convertCurrency, tradeData, commissionData, isEditingLayout, triggerCommissionFileInput, showFeesInPnl, setShowFeesInPnl, handleSetInitialBalance, t, initialBalance, balanceOperations]);
+
+    const resetLayout = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('dashboardLayouts');
+            setLayouts(initialLayouts);
+            toast({
+                title: t('Layout Reset'),
+                description: t('Dashboard layout has been restored to default.'),
+            });
+        }
+    }, [toast, t]);
 
 
    if (!isClient || tradeDataLoading) {
@@ -829,6 +874,11 @@ export default function DashboardPage() {
                 <Edit className="mr-2 h-4 w-4" />
                 {isEditingLayout ? t('Save Layout') : t('Edit Layout')}
             </Button>
+            {isEditingLayout && (
+                <Button variant="ghost" onClick={resetLayout} size="sm" className="h-9 hover-effect text-red-500 hover:text-red-400 hover:bg-red-500/10">
+                    <X className="mr-2 h-4 w-4" /> {t('Reset Layout')}
+                </Button>
+            )}
         </div>
       </div>
 
