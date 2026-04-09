@@ -18,6 +18,8 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { BadyLogo } from './BadyLogo';
+import html2canvas from 'html2canvas';
+import { saveAs } from 'file-saver';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -377,6 +379,33 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
     const [selectedDayForBalance, setSelectedDayForBalance] = useState<Date | null>(null);
     const [balanceInput, setBalanceInput] = useState<string>("");
     const [selectedDayForDetail, setSelectedDayForDetail] = useState<{ date: Date; data: CalendarDayData } | null>(null);
+    const calendarRef = React.useRef<HTMLDivElement>(null);
+
+    const handleCaptureScreenshot = async () => {
+        if (!calendarRef.current) return;
+        
+        try {
+            toast({ title: "Capturing...", description: "Preparing your trading calendar snapshot." });
+            
+            const canvas = await html2canvas(calendarRef.current, {
+                backgroundColor: null,
+                scale: 2, // High quality
+                logging: false,
+                useCORS: true,
+            });
+            
+            const fileName = `BadyTrades-Calendar-${format(currentMonthDate, 'MMM-yyyy')}.png`;
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    saveAs(blob, fileName);
+                    toast({ title: "Snapshot Taken", description: "The calendar view has been saved to your downloads." });
+                }
+            });
+        } catch (error) {
+            console.error("Screenshot capture failed:", error);
+            toast({ title: "Capture Failed", description: "Could not generate screenshot.", variant: "destructive" });
+        }
+    };
 
     const dayData = useMemo(() => calculateDailySummaries(tradeData, commissionData), [tradeData, commissionData]);
 
@@ -434,7 +463,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
     }, [dayData, currentMonthDate, showFeesInPnl]);
 
     return (
-        <Card className="h-full flex flex-col border-border shadow-2xl bg-card overflow-hidden rounded-[32px]">
+        <Card ref={calendarRef} className="h-full flex flex-col border-border shadow-2xl bg-card overflow-hidden rounded-[32px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-8 border-b border-border bg-card z-20">
                  <div className="flex items-center gap-12">
                      <div className="flex items-center gap-3">
@@ -474,7 +503,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                 variant="ghost" 
                                 size="icon" 
                                 className="h-4 w-4 p-0 text-muted-foreground/40 hover:text-foreground transition-colors"
-                                onClick={() => toast({ title: "Snapshot Taken", description: "The calendar view has been saved to your downloads." })}
+                                onClick={handleCaptureScreenshot}
                              >
                                 <Camera className="h-4 w-4" />
                              </Button>

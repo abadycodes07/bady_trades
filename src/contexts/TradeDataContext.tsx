@@ -450,30 +450,34 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
     const tradesToUpsert: any[] = [];
     const existingContentKeyToIdMap = new Map<string, string | number>();
     const existingFingerprints = new Set<string>();
+    const generateFingerprint = (trade: any) => {
+      const dateStr = trade.Date || trade.date || '';
+      const symbol = trade.Symbol || trade.symbol || '';
+      const side = trade.Side || trade.side || '';
+      const qty = parseFloat(trade.Qty || trade.qty || '0').toFixed(4);
+      const price = parseFloat(trade.Price || trade.price || '0').toFixed(5);
+      const netPnl = parseFloat(trade.NetPnL || trade.net_pnl || '0').toFixed(2);
+      const timeStr = trade['Exec Time'] || trade.exec_time || '';
+      
+      return `${dateStr}|${symbol}|${timeStr}|${side}|${qty}|${price}|${netPnl}`;
+    };
 
     tradeData.forEach(trade => {
-      const fingerprint = `${trade.Date || ''}-${trade.Symbol || ''}-${trade['Exec Time'] || ''}-${trade.Side || ''}-${trade.Qty || ''}-${trade.Price || ''}`;
-      existingFingerprints.add(fingerprint);
-      if (trade.id) existingContentKeyToIdMap.set(fingerprint, trade.id);
+      existingFingerprints.add(generateFingerprint(trade));
     });
 
     let duplicatesCount = 0;
     let newTradesCount = 0;
 
     for (const inputTrade of newTradesInput) {
-      // Create a robust fingerprint
-      const dateStr = inputTrade.Date || inputTrade.OpenTime?.split(' ')[0] || '';
-      const timeStr = inputTrade['Exec Time'] || inputTrade.OpenTime?.split(' ')[1] || '';
-      const contentKey = `${dateStr}-${inputTrade.Symbol || ''}-${timeStr}-${inputTrade.Side || ''}-${inputTrade.Qty || ''}-${inputTrade.Price || ''}`;
+      const contentKey = generateFingerprint(inputTrade);
       
       if (existingFingerprints.has(contentKey)) {
         duplicatesCount++;
-        // If we want to skip duplicates entirely, we can just continue here
-        // However, we still prepare 'tradesToUpsert' for existing IDs to ensure data is updated if needed
-        // but for this specific request "only add new data", we should skip if it's already exactly the same.
         continue; 
       } else {
         newTradesCount++;
+        existingFingerprints.add(contentKey); // Add to set so we don't add same trade twice in same batch
       }
 
       let tradeId = uuidv4();

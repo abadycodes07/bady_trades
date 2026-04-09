@@ -200,67 +200,80 @@ export function AppSidebar() {
                 <PlusCircle className="h-5 w-5" />
             </Button>
           </SidebarHeader>
-          <SidebarContent className="flex flex-row gap-0 p-0 overflow-hidden bg-sidebar">
-            <div className="flex flex-col items-center w-[--sidebar-width-icon] border-r border-border/50 bg-sidebar p-2 transition-all">
-              <SidebarMenu className="flex-grow space-y-1">
+          <SidebarContent className="flex flex-row p-0 overflow-hidden bg-sidebar relative">
+            {/* Main Navigation Column (Left/First Column) */}
+            <div className={cn(
+                "flex flex-col items-center bg-sidebar transition-all duration-300",
+                sidebarOpen ? "w-[--sidebar-width-icon] border-r border-border/50 p-2" : "w-full p-2"
+            )}>
+              <SidebarMenu className="space-y-1 w-full flex flex-col items-center">
+                {/* Always show Left Nav Items */}
                 {leftNavItems.map((item) => (
-                  <SidebarMenuItem key={item.href}>
+                  <SidebarMenuItem key={item.href} className="w-full flex justify-center">
                     <Link href={item.href} passHref legacyBehavior>
                       <SidebarMenuButton
                         isActive={pathname === item.href}
-                        tooltip={item.label}
-                        className="hover-effect justify-center !p-2 !size-10"
+                        tooltip={t(item.label)}
+                        className="hover-effect justify-center !p-2 !size-10 rounded-xl"
                         variant="default"
                         onClick={() => isMobile && setOpenMobile(false)}
                       >
                         <item.icon className="h-5 w-5" />
-                        <span className="sr-only">{item.label}</span>
+                        <span className="sr-only">{t(item.label)}</span>
                       </SidebarMenuButton>
                     </Link>
                   </SidebarMenuItem>
                 ))}
-              </SidebarMenu>
-               <div className={cn(
-                   "flex flex-col items-center transition-opacity duration-200 ease-in-out",
-                   sidebarState === 'expanded' ? "opacity-0 pointer-events-none h-0" : "opacity-100 delay-150" // Use sidebarState
-               )}>
-                  <Separator className="my-2 bg-border mx-auto w-3/4" />
-                  <SidebarMenu>
-                      {bottomNavItems.map((item) => (
-                        <SidebarMenuItem key={item.href}>
-                          <Link href={item.href} passHref legacyBehavior>
-                            <SidebarMenuButton
-                              isActive={pathname === item.href}
-                              tooltip={t(item.label)}
-                              className="hover-effect justify-center !p-2 !size-10"
-                              variant="default"
-                              onClick={() => isMobile && setOpenMobile(false)}
-                            >
-                              <item.icon className="h-5 w-5" />
-                              <span className="sr-only">{t(item.label)}</span>
-                            </SidebarMenuButton>
-                          </Link>
-                        </SidebarMenuItem>
-                      ))}
-                      {user && (
-                          <SidebarMenuItem>
-                            <SidebarMenuButton
-                                tooltip={t('Logout')}
-                                className="hover-effect justify-center !p-2 !size-10 text-destructive hover:bg-destructive/10 hover:text-destructive"
+
+                {/* In collapsed mode, also show Right Nav Items here in a grid or stack */}
+                {!sidebarOpen && (
+                    <>
+                        <Separator className="my-2 bg-border/40 w-8 mx-auto" />
+                        {rightNavItems.map((item) => (
+                          <SidebarMenuItem key={item.href} className="w-full flex justify-center">
+                            <Link href={item.href} passHref legacyBehavior>
+                              <SidebarMenuButton
+                                isActive={pathname === item.href}
+                                tooltip={t(item.label)}
+                                className="hover-effect justify-center !p-2 !size-10 rounded-xl"
                                 variant="default"
-                                onClick={handleLogout}
+                                onClick={() => isMobile && setOpenMobile(false)}
                               >
-                                <LogOut className="h-5 w-5" />
-                                <span className="sr-only">{t('Logout')}</span>
-                            </SidebarMenuButton>
+                                <item.icon className="h-5 w-5" />
+                                <span className="sr-only">{t(item.label)}</span>
+                              </SidebarMenuButton>
+                            </Link>
                           </SidebarMenuItem>
-                      )}
-                  </SidebarMenu>
-               </div>
+                        ))}
+                        <Separator className="my-2 bg-border/40 w-8 mx-auto" />
+                        {bottomNavItems.map((item) => (
+                          <SidebarMenuItem key={item.href} className="w-full flex justify-center">
+                            <Link href={item.href} passHref legacyBehavior>
+                              <SidebarMenuButton
+                                isActive={pathname === item.href}
+                                tooltip={t(item.label)}
+                                className="hover-effect justify-center !p-2 !size-10 rounded-xl"
+                                variant="default"
+                                onClick={() => isMobile && setOpenMobile(false)}
+                              >
+                                <item.icon className="h-5 w-5" />
+                                <span className="sr-only">{t(item.label)}</span>
+                              </SidebarMenuButton>
+                            </Link>
+                          </SidebarMenuItem>
+                        ))}
+                    </>
+                )}
+              </SidebarMenu>
             </div>
-            <div className="flex flex-col flex-1 p-2 overflow-y-auto bg-sidebar border-t border-border md:border-t-0 transition-all min-w-0">
+
+            {/* Expanded Right Column (Only visible when open) */}
+            <div className={cn(
+                "flex flex-col flex-1 p-2 overflow-y-auto bg-sidebar border-t border-border md:border-t-0 transition-all min-w-0 h-full",
+                !sidebarOpen && "hidden"
+            )}>
                <SidebarNav items={rightNavItems} />
-                <div className="mt-auto flex flex-col gap-1 group-data-[collapsible=icon]:hidden">
+                <div className="mt-auto flex flex-col gap-1">
                     <Separator className="my-2 bg-border" />
                     <SidebarNav items={bottomNavItems} />
                      <DropdownMenu>
