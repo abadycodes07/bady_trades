@@ -129,11 +129,12 @@ export interface BalanceOperation {
 
 const initialLayouts = {
   lg: [
-    { i: 'net-pnl',        x: 0, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
-    { i: 'profit-factor',  x: 2, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
-    { i: 'trade-win',      x: 4, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
-    { i: 'avg-win-loss',   x: 6, y: 0, w: 3, h: 3, isResizable: true, isDraggable: true, static: false },
-    { i: 'max-drawdown',   x: 9, y: 0, w: 3, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'balance-card',   x: 0, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'net-pnl',        x: 2, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'profit-factor',  x: 4, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'trade-win',      x: 6, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'avg-win-loss',   x: 8, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
+    { i: 'max-drawdown',   x: 10, y: 0, w: 2, h: 3, isResizable: true, isDraggable: true, static: false },
     { i: 'cumulative-pnl', x: 0, y: 3, w: 6, h: 9, isResizable: true, isDraggable: true, static: false },
     { i: 'bady-score',     x: 6, y: 3, w: 6, h: 9, isResizable: true, isDraggable: true, static: false },
     { i: 'trading-calendar', x: 0, y: 12, w: 12, h: 20, isResizable: true, isDraggable: true, static: false },
@@ -146,7 +147,7 @@ const initialLayouts = {
 };
 
 const WIDGET_KEYS = [
-    'net-pnl', 'profit-factor', 'trade-win', 'avg-win-loss', 'max-drawdown',
+    'balance-card', 'net-pnl', 'profit-factor', 'trade-win', 'avg-win-loss', 'max-drawdown',
     'cumulative-pnl', 'bady-score', 'trading-calendar', 'daily-pnl-chart', 
     'balance-chart', 'drawdown-chart', 'progress-tracker', 'recent-trades'
 ];
@@ -598,6 +599,8 @@ export default function DashboardPage() {
           netPnlCardValue = totalNetPnlFromTrades;
       }
 
+      const actualBalance = (initialBalance || 0) + netPnlCardValue;
+
       const calculateProfitFactor = (data: CsvTradeData[]): number | string => {
           const grossProfit = data.reduce((sum, trade) => sum + Math.max(0, parseFloat(trade.GrossPnl || '0')), 0);
           const grossLoss = Math.abs(data.reduce((sum, trade) => sum + Math.min(0, parseFloat(trade.GrossPnl || '0')), 0));
@@ -682,6 +685,7 @@ export default function DashboardPage() {
       const badyScore = (badyScoreComponents.reduce((a, b) => a + b, 0) / badyScoreComponents.length) * 100;
 
       switch (key) {
+        case 'balance-card': return <MetricCard title={t("Current Balance")} value={convertCurrency(actualBalance)} iconType="info" className="h-full border-indigo-500/20 shadow-[0_0_20px_rgba(79,70,229,0.1)]"/>;
         case 'net-pnl': return <MetricCard title={t("Total Net P&L")} value={<span className={netPnlCardValue >= 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"}>{convertCurrency(netPnlCardValue)}</span>} metric={<span>{/* % change */}</span>} iconType="info" className="h-full"/>;
         case 'profit-factor': return <MetricCard title={t("Profit Factor")} value={isFinite(Number(profitFactor)) ? Number(profitFactor).toFixed(2) : '∞'} iconType="progressCircle" progressValue={Math.min(100, (isFinite(Number(profitFactor)) ? Number(profitFactor) : 0) / 3 * 100)} color={Number(profitFactor) >= 1.5 ? 'green' : 'red'} className="h-full"/>;
         case 'trade-win': return <MetricCard title={t("Trade Win %")} value={`${winRate.toFixed(1)}%`} iconType="gauge" gaugeData={{ wins: tradeData.filter(t => parseFloat(t.NetPnL || '0') > 0).length, losses: tradeData.filter(t => parseFloat(t.NetPnL || '0') < 0).length, breakeven: tradeData.filter(t => parseFloat(t.NetPnL || '0') === 0).length }} color={winRate >= 50 ? 'green' : 'red'} className="h-full"/>;
