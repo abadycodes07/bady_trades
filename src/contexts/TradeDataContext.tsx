@@ -451,20 +451,25 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
     const existingContentKeyToIdMap = new Map<string, string | number>();
     const existingFingerprints = new Set<string>();
     const generateFingerprint = (trade: any) => {
-      // Use raw values to avoid "changing numbers" via parseFloat/toFixed
+      // Priority: use the 'ticket' or 'id' if provided in the source
+      const ticket = trade.ticket || trade.id || trade.Ticket || '';
+      if (ticket) return `ticket-${ticket}`;
+
+      // Fallback: Numeric-aware fingerprint
       const dateStr = trade.Date || trade.date || '';
       const symbol = trade.Symbol || trade.symbol || '';
       const side = trade.Side || trade.side || '';
-      const qty = trade.Qty?.toString() || trade.qty?.toString() || '0';
-      const price = trade.Price?.toString() || trade.price?.toString() || '0';
-      const netPnl = trade.NetPnL?.toString() || trade.net_pnl?.toString() || '0';
+      
+      // Normalize numbers to strings to ignore decimal formatting differences (e.g. 10.0 vs 10)
+      const qtyStr = parseFloat(trade.Qty?.toString() || trade.qty?.toString() || '0').toFixed(6);
+      const priceStr = parseFloat(trade.Price?.toString() || trade.price?.toString() || '0').toFixed(6);
+      const profitStr = parseFloat(trade.NetPnL?.toString() || trade.net_pnl?.toString() || trade.profit?.toString() || '0').toFixed(2);
       const timeStr = trade['Exec Time'] || trade.exec_time || '';
       
-      return `${dateStr}|${symbol}|${timeStr}|${side}|${qty}|${price}|${netPnl}`;
+      return `${dateStr}|${symbol}|${timeStr}|${side}|${qtyStr}|${priceStr}|${profitStr}`;
     };
 
     tradeData.forEach(trade => {
-      // Skip demo trades when building the fingerprint set for real comparisons
       if (trade.id?.toString().startsWith('demo-trade-')) return;
       existingFingerprints.add(generateFingerprint(trade));
     });
@@ -483,10 +488,8 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
         existingFingerprints.add(contentKey); // Add to set so we don't add same trade twice in same batch
       }
 
-      let tradeId = uuidv4();
-      
       tradesToUpsert.push({
-        id: tradeId,
+        id: (inputTrade.ticket || inputTrade.id || uuidv4()).toString(),
         user_id: user.id,
         account_id: accountId,
         date: inputTrade.Date,

@@ -8,7 +8,7 @@ interface BadyTradesLogoProps extends React.SVGProps<SVGSVGElement> {
 
 export const BadyTradesLogo: React.FC<BadyTradesLogoProps> = ({ className, ...props }) => (
   <svg
-    viewBox="0 0 160 40"
+    viewBox="0 0 200 40"
     xmlns="http://www.w3.org/2000/svg"
     className={cn('h-10 w-auto', className)}
     {...props}

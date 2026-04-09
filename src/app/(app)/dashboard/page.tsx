@@ -106,6 +106,8 @@ export interface CsvTradeData {
   Mistakes?: string[];
   Setups?: string[];
   BadyScore?: number;
+  ticket?: string | number;
+  exec_time?: string;
 }
 
 export interface CsvCommissionData {
@@ -345,7 +347,12 @@ export default function DashboardPage() {
 
            if (results.data.length > 0) {
              const normalizedData = results.data.map((row, index) => {
-               const newRow: Partial<CsvTradeData> = { id: `csv-trade-${Date.now()}-${index}` };
+                const getRowVal = (key: string) => row[Object.keys(row).find(k => k.trim().toLowerCase() === key) || ''] || '';
+                const ticket = getRowVal('ticket') || getRowVal('Ticket');
+                const newRow: Partial<CsvTradeData> = { 
+                  id: ticket || `csv-trade-${Date.now()}-${index}`,
+                  ticket: ticket
+                };
 
                if (isMT4Format) {
                  const getRowVal = (key: string) => row[Object.keys(row).find(k => k.trim().toLowerCase() === key) || ''] || '';
@@ -584,9 +591,11 @@ export default function DashboardPage() {
       const totalGrossPnlFromTrades = tradeData.reduce((sum, trade) => sum + parseFloat(trade.GrossPnl || '0'), 0);
 
       if (showFeesInPnl) {
+          // If explicitly toggled, include extra manual commissions/cash
           netPnlCardValue = totalNetPnlFromTrades - totalUploadedCommissions - totalNetCashValues;
       } else {
-          netPnlCardValue = totalGrossPnlFromTrades;
+          // Default to Total Net Pnl which usually has all native fees included
+          netPnlCardValue = totalNetPnlFromTrades;
       }
 
       const calculateProfitFactor = (data: CsvTradeData[]): number | string => {

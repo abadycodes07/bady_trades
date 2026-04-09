@@ -52,9 +52,18 @@ export function AddTradeDialog() {
         skipEmptyLines: true,
         complete: (results) => {
           if (results.data && results.data.length > 0) {
-            const normalized = results.data.map((row: any) => {
-              const newRow: any = { ...row };
-              const rawDate = row['T/D'] || row['Date'] || row['closing_time_utc'] || row['time'];
+            const normalized = results.data.map((row: any, index: number) => {
+              // Map MT-specific headers to internal labels
+              const getRowVal = (key: string) => row[Object.keys(row).find(k => k.trim().toLowerCase() === key) || ''] || '';
+              const ticket = getRowVal('ticket') || getRowVal('Ticket');
+              
+              const newRow: any = { 
+                ...row,
+                id: ticket || `csv-trade-${Date.now()}-${index}`,
+                ticket: ticket 
+              };
+
+              const rawDate = getRowVal('closing_time_utc') || getRowVal('time');
               if (rawDate) {
                  try {
                     let p;
@@ -64,10 +73,21 @@ export function AddTradeDialog() {
                         if (isValid(p)) break;
                     }
                     newRow.Date = isValid(p) ? format(p!, 'yyyy-MM-dd') : rawDate;
+                    newRow.exec_time = rawDate;
                  } catch (e) { newRow.Date = rawDate; }
               }
-              newRow.NetPnL = row['Net Proceeds'] || row['NetPnL'] || row['profit'] || '0';
-              newRow.GrossPnl = row['Gross Proceeds'] || row['GrossPnl'] || row['profit'] || '0';
+
+              newRow.Qty = getRowVal('lots') || getRowVal('volume') || '0';
+              newRow.Symbol = getRowVal('symbol') || '';
+              newRow.Side = getRowVal('type') || '';
+              newRow.Price = getRowVal('closing_price') || '0';
+              
+              const profit = parseFloat(getRowVal('profit') || '0');
+              const comm = parseFloat(getRowVal('commission') || '0');
+              const swap = parseFloat(getRowVal('swap') || '0');
+              
+              newRow.GrossPnl = profit.toString();
+              newRow.NetPnL = (profit + comm + swap).toString();
               return newRow;
             });
             resolve(normalized as CsvTradeData[]);

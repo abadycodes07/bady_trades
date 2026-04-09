@@ -43,6 +43,7 @@ import {
   Settings,
   LogOut,
   PlusCircle,
+  Plus,
   Check,
   Replace,
   Target,
@@ -165,9 +166,11 @@ export function AppSidebar() {
        <Sidebar side={isArabic ? "right" : "left"} variant="sidebar" collapsible="icon" className="border-r border-border bg-sidebar overflow-hidden transition-[width] duration-300">
           <SidebarHeader className="p-4 flex flex-col gap-4">
             <Link href="/dashboard" passHref legacyBehavior>
-                <a className="flex items-center gap-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 hover:opacity-80 transition-opacity px-1">
+                <a className="flex items-center gap-4 group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:w-10 group-data-[state=collapsed]:h-10 hover:opacity-80 transition-opacity px-1">
                     {sidebarOpen ? (
-                         <BadyTradesLogo />
+                         <div className="w-auto min-w-[160px]">
+                            <BadyTradesLogo />
+                         </div>
                     ) : (
                          <BadyTradesMarkLogo className="h-6 w-6" /> 
                     )}
@@ -228,42 +231,91 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 ))}
 
-                {/* In collapsed mode, also show Right Nav Items here in a grid */}
-                {!sidebarOpen && (
-                    <>
-                        {rightNavItems.map((item) => (
-                          <SidebarMenuItem key={item.href} className="w-full flex justify-center">
-                            <Link href={item.href} passHref legacyBehavior>
-                              <SidebarMenuButton
-                                isActive={pathname === item.href}
-                                tooltip={t(item.label)}
-                                className="hover-effect justify-center !p-1 !size-8 rounded-lg"
-                                variant="default"
-                                onClick={() => isMobile && setOpenMobile(false)}
-                              >
-                                <item.icon className="h-4 w-4" />
-                                <span className="sr-only">{t(item.label)}</span>
-                              </SidebarMenuButton>
-                            </Link>
-                          </SidebarMenuItem>
-                        ))}
-                        {bottomNavItems.map((item) => (
-                          <SidebarMenuItem key={item.href} className="w-full flex justify-center">
-                            <Link href={item.href} passHref legacyBehavior>
-                              <SidebarMenuButton
-                                isActive={pathname === item.href}
-                                tooltip={t(item.label)}
-                                className="hover-effect justify-center !p-1 !size-8 rounded-lg"
-                                variant="default"
-                                onClick={() => isMobile && setOpenMobile(false)}
-                              >
-                                <item.icon className="h-4 w-4" />
-                                <span className="sr-only">{t(item.label)}</span>
-                              </SidebarMenuButton>
-                            </Link>
-                          </SidebarMenuItem>
-                        ))}
-                    </>
+                {/* In collapsed mode, show EVERYTHING in a nice side-by-side grid */}
+                {!sidebarOpen ? (
+                  <>
+                    {/* Combine ALL items into the 2-column grid when collapsed */}
+                    {[...rightNavItems, ...bottomNavItems].map((item) => (
+                      <SidebarMenuItem key={item.href} className="flex justify-center">
+                        <Link href={item.href} passHref legacyBehavior>
+                          <SidebarMenuButton
+                            isActive={pathname === item.href}
+                            tooltip={t(item.label)}
+                            className="hover-effect justify-center !p-1 !size-9 rounded-lg"
+                            variant="default"
+                            onClick={() => isMobile && setOpenMobile(false)}
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span className="sr-only">{t(item.label)}</span>
+                          </SidebarMenuButton>
+                        </Link>
+                      </SidebarMenuItem>
+                    ))}
+                    {/* Add Profile & Settings to the grid as well */}
+                    <SidebarMenuItem className="flex justify-center">
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                 <button className="!size-9 rounded-lg hover:bg-sidebar-accent flex items-center justify-center transition-all">
+                                    <Avatar className="h-6 w-6">
+                                        <AvatarImage src={user?.user_metadata?.avatar_url || undefined} />
+                                        <AvatarFallback className="text-[10px]">{user?.email?.[0]?.toUpperCase() ?? 'U'}</AvatarFallback>
+                                    </Avatar>
+                                 </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" side="right" align="end">
+                                 <DropdownMenuLabel>My Portfolios</DropdownMenuLabel>
+                                 <DropdownMenuSeparator />
+                                 {accounts.map((account) => (
+                                     <DropdownMenuItem
+                                         key={account.id}
+                                         className="flex items-center justify-between group"
+                                         onClick={() => setSelectedAccountId(account.id)}
+                                     >
+                                         <span className={cn(
+                                             "flex items-center gap-2",
+                                             selectedAccountId === account.id && "text-indigo-500 font-bold"
+                                         )}>
+                                             {account.name}
+                                         </span>
+                                         <Settings className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                     </DropdownMenuItem>
+                                 ))}
+                                 <DropdownMenuSeparator />
+                                 <DropdownMenuItem onClick={() => {
+                                     const event = new CustomEvent('open-add-account-dialog');
+                                     window.dispatchEvent(event);
+                                 }}>
+                                     <Plus className="mr-2 h-4 w-4" />
+                                     <span>Add Account</span>
+                                 </DropdownMenuItem>
+                             </DropdownMenuContent>
+                         </DropdownMenu>
+                    </SidebarMenuItem>
+
+                    <SidebarMenuItem className="flex justify-center">
+                        <Link href="/settings" passHref legacyBehavior>
+                          <SidebarMenuButton
+                            isActive={pathname === '/settings'}
+                            tooltip={t('Settings')}
+                            className="hover-effect justify-center !p-1 !size-9 rounded-lg"
+                            variant="default"
+                            onClick={() => isMobile && setOpenMobile(false)}
+                          >
+                            <Settings className="h-4 w-4" />
+                            <span className="sr-only">{t('Settings')}</span>
+                          </SidebarMenuButton>
+                        </Link>
+                    </SidebarMenuItem>
+                  </>
+                ) : (
+                  <>
+                    {/* In expanded mode, show the regular right items */}
+                    {rightNavItems.map((item) => (
+                      <SidebarMenuItem key={item.href} className="flex justify-center">
+                        {/* ... existing code for expanded mode is handled by the parent container logic ... */}
+                      </SidebarMenuItem>
+                    ))}
+                  </>
                 )}
               </SidebarMenu>
             </div>
