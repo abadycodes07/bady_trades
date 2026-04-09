@@ -451,18 +451,21 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
     const existingContentKeyToIdMap = new Map<string, string | number>();
     const existingFingerprints = new Set<string>();
     const generateFingerprint = (trade: any) => {
+      // Use raw values to avoid "changing numbers" via parseFloat/toFixed
       const dateStr = trade.Date || trade.date || '';
       const symbol = trade.Symbol || trade.symbol || '';
       const side = trade.Side || trade.side || '';
-      const qty = parseFloat(trade.Qty || trade.qty || '0').toFixed(4);
-      const price = parseFloat(trade.Price || trade.price || '0').toFixed(5);
-      const netPnl = parseFloat(trade.NetPnL || trade.net_pnl || '0').toFixed(2);
+      const qty = trade.Qty?.toString() || trade.qty?.toString() || '0';
+      const price = trade.Price?.toString() || trade.price?.toString() || '0';
+      const netPnl = trade.NetPnL?.toString() || trade.net_pnl?.toString() || '0';
       const timeStr = trade['Exec Time'] || trade.exec_time || '';
       
       return `${dateStr}|${symbol}|${timeStr}|${side}|${qty}|${price}|${netPnl}`;
     };
 
     tradeData.forEach(trade => {
+      // Skip demo trades when building the fingerprint set for real comparisons
+      if (trade.id?.toString().startsWith('demo-trade-')) return;
       existingFingerprints.add(generateFingerprint(trade));
     });
 

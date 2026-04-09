@@ -204,9 +204,12 @@ export function AppSidebar() {
             {/* Main Navigation Column (Left/First Column) */}
             <div className={cn(
                 "flex flex-col items-center bg-sidebar transition-all duration-300",
-                sidebarOpen ? "w-[--sidebar-width-icon] border-r border-border/50 p-2" : "w-full p-2"
+                sidebarOpen ? "w-16 border-r border-border/50 p-2" : "w-full p-2"
             )}>
-              <SidebarMenu className="space-y-1 w-full flex flex-col items-center">
+              <SidebarMenu className={cn(
+                  "w-full flex flex-col items-center gap-1",
+                  !sidebarOpen && "grid grid-cols-2 gap-1 p-1"
+              )}>
                 {/* Always show Left Nav Items */}
                 {leftNavItems.map((item) => (
                   <SidebarMenuItem key={item.href} className="w-full flex justify-center">
@@ -225,38 +228,36 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 ))}
 
-                {/* In collapsed mode, also show Right Nav Items here in a grid or stack */}
+                {/* In collapsed mode, also show Right Nav Items here in a grid */}
                 {!sidebarOpen && (
                     <>
-                        <Separator className="my-2 bg-border/40 w-8 mx-auto" />
                         {rightNavItems.map((item) => (
                           <SidebarMenuItem key={item.href} className="w-full flex justify-center">
                             <Link href={item.href} passHref legacyBehavior>
                               <SidebarMenuButton
                                 isActive={pathname === item.href}
                                 tooltip={t(item.label)}
-                                className="hover-effect justify-center !p-2 !size-10 rounded-xl"
+                                className="hover-effect justify-center !p-1 !size-8 rounded-lg"
                                 variant="default"
                                 onClick={() => isMobile && setOpenMobile(false)}
                               >
-                                <item.icon className="h-5 w-5" />
+                                <item.icon className="h-4 w-4" />
                                 <span className="sr-only">{t(item.label)}</span>
                               </SidebarMenuButton>
                             </Link>
                           </SidebarMenuItem>
                         ))}
-                        <Separator className="my-2 bg-border/40 w-8 mx-auto" />
                         {bottomNavItems.map((item) => (
                           <SidebarMenuItem key={item.href} className="w-full flex justify-center">
                             <Link href={item.href} passHref legacyBehavior>
                               <SidebarMenuButton
                                 isActive={pathname === item.href}
                                 tooltip={t(item.label)}
-                                className="hover-effect justify-center !p-2 !size-10 rounded-xl"
+                                className="hover-effect justify-center !p-1 !size-8 rounded-lg"
                                 variant="default"
                                 onClick={() => isMobile && setOpenMobile(false)}
                               >
-                                <item.icon className="h-5 w-5" />
+                                <item.icon className="h-4 w-4" />
                                 <span className="sr-only">{t(item.label)}</span>
                               </SidebarMenuButton>
                             </Link>
