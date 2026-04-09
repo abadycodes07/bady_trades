@@ -461,6 +461,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                              </div>
                          </div>
                      </div>
+                  </div>
                   <div className="flex items-center gap-4">
                      <div className="flex items-center gap-4 px-4 py-2 bg-muted/10 border border-border rounded-full">
                          <div className="flex items-center gap-2">
@@ -503,9 +504,9 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                              ))}
                                          </div>
 
-                                         <div className="pt-4 border-t border-white/5">
+                                         <div className="pt-4 border-t border-border">
                                              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">ECONOMIC EVENTS</h4>
-                                             <div className="flex items-center justify-between p-2 rounded-lg bg-muted/5 border border-white/5 mb-3">
+                                             <div className="flex items-center justify-between p-2 rounded-lg bg-muted/5 border border-border mb-3">
                                                  <span className="text-xs font-bold text-white">Display events</span>
                                                  <Switch className="scale-75 data-[state=checked]:bg-indigo-500" defaultChecked />
                                              </div>
@@ -600,7 +601,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                                         )}>
                                                             {formatTotalCurrency(pnlForCellDisplay, selectedCurrency)}
                                                         </span>
-                                                        <div className="flex items-center gap-2 mt-1 px-2 py-0.5 bg-white/5 rounded-full border border-white/10">
+                                                        <div className="flex items-center gap-2 mt-1 px-2 py-0.5 bg-muted/10 rounded-full border border-border">
                                                             <span className="text-[8px] font-black uppercase text-muted-foreground/60">{data?.trades} TRADES</span>
                                                             <span className={cn("text-[8px] font-black", winRate >= 50 ? "text-emerald-500/60" : "text-rose-500/60")}>{winRate.toFixed(0)}%</span>
                                                         </div>
@@ -636,7 +637,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                            const summary = weeklySummaries[weekKey];
                            const pnl = summary ? (showFeesInPnl ? summary.netProfitLossFromTrades - summary.uploadedCommissions : summary.grossProfitlossFromTrades) : 0;
                            return (
-                               <div key={weekKey} className="flex-1 p-4 flex flex-col items-center justify-center text-center border-b border-white/5 last:border-b-0">
+                               <div key={weekKey} className="flex-1 p-4 flex flex-col items-center justify-center text-center border-b border-border last:border-b-0">
                                     <span className={cn("text-sm font-black tracking-tighter tabular-nums", pnl >= 0 ? "text-emerald-400" : "text-rose-500")}>
                                         {formatTotalCurrency(pnl, selectedCurrency)}
                                     </span>
