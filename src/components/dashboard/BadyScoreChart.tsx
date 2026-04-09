@@ -92,11 +92,11 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
 
 
   return (
-    <Card className="h-full flex flex-col bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl relative overflow-hidden group">
+    <Card className="h-full flex flex-col bg-black border-white/10 shadow-2xl relative overflow-hidden group">
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full group-hover:bg-primary/20 transition-all duration-700" />
       
       <CardHeader className="pb-1">
-        <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-center gap-1.5">
+        <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-white/20 flex items-center justify-center gap-1.5">
           Overall Zella Score
           <Info className="h-3 w-3 opacity-30 cursor-pointer" />
         </CardTitle>
@@ -118,7 +118,7 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
             <PolarGrid gridType="polygon" stroke="rgba(255,255,255,0.08)" strokeWidth={0.5} />
             <PolarAngleAxis
                 dataKey="metric"
-                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: 700 }}
+                tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9, fontWeight: 700 }}
              />
             <PolarRadiusAxis angle={30} domain={[0, 100]} axisLine={false} tick={false} />
             <Radar
@@ -141,7 +141,7 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
          <div className="w-full px-6 mt-2 relative z-10">
              <div className="flex justify-between items-end mb-2">
                 <div>
-                   <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest block mb-1">Current Rating</span>
+                   <span className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-1">Current Rating</span>
                    <span className="text-3xl font-black text-foreground tracking-tighter drop-shadow-md">
                      {overallScore.toFixed(0)}<span className="text-sm font-medium opacity-40 ml-1">/100</span>
                    </span>

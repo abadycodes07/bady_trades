@@ -46,7 +46,7 @@ export function NetDailyPnLChart({ data, selectedCurrency }: NetDailyPnLChartPro
       const date = payload[0].payload.date;
       return (
         <div className="bg-black/80 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{date}</p>
+          <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">{date}</p>
           <p className={val >= 0 ? "text-emerald-400 font-black" : "text-red-400 font-black"}>
             {val >= 0 ? '+' : ''}{val.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
@@ -57,11 +57,11 @@ export function NetDailyPnLChart({ data, selectedCurrency }: NetDailyPnLChartPro
   };
 
   return (
-    <Card className="h-full flex flex-col bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl relative overflow-hidden group">
+    <Card className="h-full flex flex-col bg-black border-white/10 shadow-2xl relative overflow-hidden group">
       <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-primary/5 blur-3xl rounded-full" />
       
       <CardHeader className="pb-2">
-        <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-between">
+        <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-white/20 flex items-center justify-between">
           Net Daily P&L
           <Info className="h-3 w-3 opacity-30 cursor-pointer" />
         </CardTitle>
@@ -76,7 +76,7 @@ export function NetDailyPnLChart({ data, selectedCurrency }: NetDailyPnLChartPro
               hide 
             />
             <YAxis 
-              tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 700 }}
+              tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9, fontWeight: 700 }}
               axisLine={false}
               tickLine={false}
             />

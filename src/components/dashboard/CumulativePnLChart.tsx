@@ -157,11 +157,11 @@ export function CumulativePnLChart({ selectedCurrency, data, commissionData, sho
     'hsl(var(--primary))'; 
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-sm font-medium flex items-center gap-1">
+    <Card className="h-full flex flex-col bg-black border-white/10 shadow-2xl relative overflow-hidden group">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative z-10">
+        <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-white/20 flex items-center gap-1">
           Daily Net Cumulative P&L {showFeesInPnl ? "(Fees Included)" : "(Fees Excluded)"}
-          <Info className="h-3 w-3 text-muted-foreground cursor-pointer" />
+          <Info className="h-3 w-3 opacity-30 cursor-pointer" />
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 pb-4 pl-1 pr-2">

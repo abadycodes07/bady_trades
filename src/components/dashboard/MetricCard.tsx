@@ -118,15 +118,15 @@ const renderVisual = (
                     </div>
                     <div className="flex justify-between w-full mt-2 px-1">
                          <div className="flex flex-col items-center">
-                             <span className="text-[8px] font-black text-zinc-500 uppercase">{t ? t('Wins') : 'Wins'}</span>
+                             <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">{t ? t('Wins') : 'Wins'}</span>
                              <span className="text-[11px] font-black text-emerald-500">{wins}</span>
                          </div>
                          <div className="flex flex-col items-center border-l border-r border-white/5 px-4">
-                             <span className="text-[8px] font-black text-zinc-500 uppercase">{t ? t('BE') : 'BE'}</span>
-                             <span className="text-[11px] font-black text-zinc-400">{breakeven}</span>
+                             <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">{t ? t('BE') : 'BE'}</span>
+                             <span className="text-[11px] font-black text-white/80">{breakeven}</span>
                          </div>
                          <div className="flex flex-col items-center">
-                             <span className="text-[8px] font-black text-zinc-500 uppercase">{t ? t('Losses') : 'Losses'}</span>
+                             <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">{t ? t('Losses') : 'Losses'}</span>
                              <span className="text-[11px] font-black text-rose-500">{losses}</span>
                          </div>
                     </div>
