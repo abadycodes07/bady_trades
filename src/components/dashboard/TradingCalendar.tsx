@@ -18,11 +18,12 @@ import {
   compareAsc,
   startOfWeek,
 } from 'date-fns';
+import { BadyLogo } from './BadyLogo';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, ChevronRight, Info, UploadCloud, TrendingUp, TrendingDown, X, Camera, Settings, RefreshCw, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, UploadCloud, TrendingUp, TrendingDown, X, Camera, Settings, RefreshCw, Plus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -319,14 +320,14 @@ function DayDetailPopup({
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md transition-all duration-300 animate-in fade-in" onClick={onClose}>
             <div
-                className="bg-zinc-900 border border-white/10 rounded-[32px] shadow-2xl w-[900px] max-w-[95vw] max-h-[90vh] overflow-hidden flex flex-col scale-in-center"
+                className="bg-black border border-white/10 rounded-[32px] shadow-2xl w-[900px] max-w-[95vw] max-h-[90vh] overflow-hidden flex flex-col scale-in-center"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header Section */}
                 <div className="p-8 pb-4 flex items-start justify-between">
                     <div className="flex items-center gap-6">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                            <span className="text-2xl font-black text-white">B</span>
+                        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 shadow-lg">
+                            <BadyLogo showText={false} iconSize={32} />
                         </div>
                         <div>
                             <h2 className="text-zinc-400 text-sm font-bold uppercase tracking-[0.2em]">{format(date, 'EEEE, MMMM d, yyyy')}</h2>
@@ -529,8 +530,8 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
     }, [dayData, currentMonthDate, showFeesInPnl]);
 
     return (
-        <Card className="h-full flex flex-col border-none shadow-2xl bg-zinc-900 overflow-hidden rounded-[32px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-8 border-b border-white/5 bg-zinc-900/50 backdrop-blur-xl z-20">
+        <Card className="h-full flex flex-col border-none shadow-2xl bg-black overflow-hidden rounded-[32px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-8 border-b border-white/5 bg-black z-20">
                  <div className="flex items-center gap-12">
                      <div className="flex items-center gap-3">
                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10" onClick={handlePrevMonth}><ChevronLeft className="h-5 w-5"/></Button>
@@ -559,9 +560,73 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                      </div>
 
                      <div className="flex items-center gap-2">
-                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10"><Camera className="h-4 w-4 text-zinc-400"/></Button>
-                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10"><Info className="h-4 w-4 text-zinc-400"/></Button>
-                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10"><Settings className="h-4 w-4 text-zinc-400"/></Button>
+                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group relative">
+                             <Camera className="h-4 w-4 text-zinc-400 group-hover:text-white" />
+                             <span className="absolute -top-12 left-1/2 -translate-x-1/2 bg-zinc-800 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-white/10 shadow-xl">Snapshot</span>
+                         </Button>
+                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group relative">
+                             <Info className="h-4 w-4 text-zinc-400 group-hover:text-white" />
+                         </Button>
+                         <Popover>
+                             <PopoverTrigger asChild>
+                                 <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group relative">
+                                     <Settings className="h-4 w-4 text-zinc-400 group-hover:text-white" />
+                                 </Button>
+                             </PopoverTrigger>
+                             <PopoverContent className="w-64 p-4 bg-zinc-900 border-white/10 rounded-2xl shadow-2xl" align="end">
+                                 <div className="space-y-4">
+                                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Display stats</h4>
+                                     <div className="space-y-1.5">
+                                         {[
+                                             { id: 'r-multiple', label: 'R Multiple' },
+                                             { id: 'daily-pnl', label: 'Daily P/L', checked: true },
+                                             { id: 'ticks', label: 'Ticks' },
+                                             { id: 'pips', label: 'Pips' },
+                                             { id: 'points', label: 'Points' },
+                                             { id: 'trades', label: 'Number of trades', checked: true },
+                                             { id: 'winrate', label: 'Day winrate', checked: true }
+                                         ].map((stat) => (
+                                             <div key={stat.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+                                                 <span className="text-xs font-bold text-zinc-300 group-hover:text-white">{stat.label}</span>
+                                                 <div className={cn("w-5 h-5 rounded-md border-2 border-white/10 flex items-center justify-center transition-all", stat.checked ? "bg-indigo-500 border-indigo-500" : "bg-transparent")}>
+                                                     {stat.checked && <Check className="h-3 w-3 text-white" />}
+                                                 </div>
+                                             </div>
+                                         ))}
+                                     </div>
+                                     
+                                     <div className="pt-4 border-t border-white/5">
+                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Economic events</h4>
+                                         <div className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group mb-4">
+                                             <span className="text-xs font-bold text-zinc-300 group-hover:text-white">Display events</span>
+                                             <div className="w-5 h-5 rounded-md border-2 border-indigo-500 bg-indigo-500 flex items-center justify-center">
+                                                 <Check className="h-3 w-3 text-white" />
+                                             </div>
+                                         </div>
+                                         
+                                         <div className="space-y-4">
+                                             <div>
+                                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-2">Country</p>
+                                                 <Badge variant="outline" className="bg-white/5 border-white/10 text-indigo-400 font-bold px-3 py-1 rounded-lg">United States <X className="h-3 w-3 ml-2 cursor-pointer" /></Badge>
+                                             </div>
+                                             <div>
+                                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-2">Impact</p>
+                                                 <div className="space-y-2">
+                                                     {['High', 'Medium', 'Low'].map((impact, i) => (
+                                                         <div key={impact} className="flex items-center gap-3">
+                                                             <div className={cn("w-4 h-4 rounded border-2 border-white/10", i === 0 ? "bg-indigo-500 border-indigo-500" : "")}>
+                                                                 {i === 0 && <Check className="h-2.5 w-2.5 text-white" />}
+                                                             </div>
+                                                             <span className="text-xs font-bold text-zinc-400">{impact}</span>
+                                                         </div>
+                                                     ))}
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </PopoverContent>
+                         </Popover>
                      </div>
                  </div>
             </CardHeader>
@@ -603,9 +668,9 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                             } else if (isWeekend) {
                                 bgStyle = { backgroundColor: 'rgba(128,128,128,0.08)' };
                             } else if (isProfit) {
-                                bgStyle = { backgroundColor: '#10b981', color: 'white' };
+                                bgStyle = { backgroundColor: 'rgba(16, 185, 129, 0.1)', borderTop: '2px solid rgba(16, 185, 129, 0.4)' };
                             } else if (isLoss) {
-                                bgStyle = { backgroundColor: '#ef4444', color: 'white' };
+                                bgStyle = { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderTop: '2px solid rgba(239, 68, 68, 0.4)' };
                             }
 
                             if (isToday) {

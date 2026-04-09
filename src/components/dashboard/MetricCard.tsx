@@ -197,14 +197,14 @@ export function MetricCard({
     return (
         <Card className={cn(
             "relative overflow-hidden transition-all duration-300 group",
-            "bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl",
-            "hover:bg-white/10 hover:border-white/20 hover:shadow-primary/20",
+            "bg-black border-white/10 shadow-2xl",
+            "hover:bg-white/[0.02] hover:border-white/20 hover:shadow-primary/5",
             "flex flex-col justify-center items-center text-center p-4 h-full",
             className
         )}>
-            {/* Ambient Background Glow */}
-            <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 blur-3xl rounded-full group-hover:bg-primary/25 transition-all duration-700" />
-            <div className="absolute -bottom-12 -left-12 w-24 h-24 bg-white/5 blur-2xl rounded-full group-hover:bg-white/10 transition-all duration-700" />
+            {/* Minimal Ambient Background Glow */}
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/[0.05] blur-3xl rounded-full group-hover:bg-primary/[0.08] transition-all duration-700" />
+            <div className="absolute -bottom-12 -left-12 w-24 h-24 bg-white/[0.02] blur-2xl rounded-full group-hover:bg-white/[0.04] transition-all duration-700" />
             
             <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-center gap-1.5 mb-3">
                  {title}

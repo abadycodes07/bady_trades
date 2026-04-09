@@ -162,7 +162,7 @@ export function AppSidebar() {
            <span className="sr-only">Open Sidebar</span>
          </Button>
        )}
-       <Sidebar side={isArabic ? "right" : "left"} variant="sidebar" collapsible="icon">
+       <Sidebar side={isArabic ? "right" : "left"} variant="sidebar" collapsible="icon" className="border-r border-white/5 bg-black">
           <SidebarHeader className="p-2 flex items-center justify-between">
             <Link href="/dashboard" passHref legacyBehavior>
                 <a className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 hover:opacity-80 transition-opacity px-1">
@@ -175,7 +175,7 @@ export function AppSidebar() {
             </Link>
           </SidebarHeader>
           <SidebarContent className="flex flex-row gap-0 p-0">
-            <div className="flex flex-col items-center w-[--sidebar-width-icon] border-r bg-muted/40 p-2">
+            <div className="flex flex-col items-center w-[--sidebar-width-icon] border-r bg-black p-2">
               <SidebarMenu className="flex-grow">
                 {leftNavItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
@@ -232,7 +232,7 @@ export function AppSidebar() {
                   </SidebarMenu>
                </div>
             </div>
-            <div className="flex flex-col flex-1 p-2 overflow-y-auto">
+            <div className="flex flex-col flex-1 p-2 overflow-y-auto bg-black border-t border-white/5 md:border-t-0">
                <SidebarNav items={rightNavItems} />
                 <div className="mt-auto flex flex-col gap-1 group-data-[collapsible=icon]:hidden">
                     <Separator className="my-2 bg-border" />
