@@ -405,18 +405,28 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
 
     const tradesToUpsert: any[] = [];
     const existingContentKeyToIdMap = new Map<string, string | number>();
+    const existingFingerprints = new Set<string>();
+
     tradeData.forEach(trade => {
-      const key = `${trade.Date || ''}-${trade.Symbol || ''}-${trade['Exec Time'] || ''}-${trade.Side || ''}-${trade.Qty || ''}-${trade.Price || ''}`;
-      if (trade.id) existingContentKeyToIdMap.set(key, trade.id);
+      const fingerprint = `${trade.Date || ''}-${trade.Symbol || ''}-${trade['Exec Time'] || ''}-${trade.Side || ''}-${trade.Qty || ''}-${trade.Price || ''}`;
+      existingFingerprints.add(fingerprint);
+      if (trade.id) existingContentKeyToIdMap.set(fingerprint, trade.id);
     });
 
-    const idsUsedInThisBatch = new Set<string | number>();
+    let duplicatesCount = 0;
+    let newTradesCount = 0;
+
     for (const inputTrade of newTradesInput) {
       const contentKey = `${inputTrade.Date || ''}-${inputTrade.Symbol || ''}-${inputTrade['Exec Time'] || ''}-${inputTrade.Side || ''}-${inputTrade.Qty || ''}-${inputTrade.Price || ''}`;
-      let tradeId: string | number = existingContentKeyToIdMap.get(contentKey) || uuidv4();
-      if (idsUsedInThisBatch.has(tradeId)) tradeId = uuidv4();
-      idsUsedInThisBatch.add(tradeId);
+      
+      if (existingFingerprints.has(contentKey) && !accountId.startsWith('demo')) {
+        duplicatesCount++;
+      } else {
+        newTradesCount++;
+      }
 
+      let tradeId: string | number = existingContentKeyToIdMap.get(contentKey) || uuidv4();
+      
       tradesToUpsert.push({
         id: tradeId,
         user_id: user.id,
@@ -448,11 +458,28 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
       });
     }
 
+    if (newTradesCount === 0 && duplicatesCount > 0) {
+      toast({ 
+        title: 'Already Added', 
+        description: 'All trades in this file have already been imported.',
+        variant: 'default'
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.from('trades').upsert(tradesToUpsert, { onConflict: 'id' });
       if (error) throw error;
 
-      toast({ title: 'Trades Processed', description: `${tradesToUpsert.length} trades saved/updated.` });
+      if (duplicatesCount > 0) {
+        toast({ 
+          title: 'Import Complete', 
+          description: `Added ${newTradesCount} new trades (${duplicatesCount} duplicates skipped).` 
+        });
+      } else {
+        toast({ title: 'Trades Processed', description: `${newTradesCount} trades saved.` });
+      }
 
       const { data: freshData, error: loadError } = await supabase
         .from('trades')
