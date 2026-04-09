@@ -562,7 +562,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                      <div className="flex items-center gap-2">
                          <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group relative">
                              <Camera className="h-4 w-4 text-zinc-400 group-hover:text-white" />
-                             <span className="absolute -top-12 left-1/2 -translate-x-1/2 bg-zinc-800 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-white/10 shadow-xl">Snapshot</span>
+                             <span className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-white/10 shadow-xl">Snapshot</span>
                          </Button>
                          <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-white/5 border-white/10 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group relative">
                              <Info className="h-4 w-4 text-zinc-400 group-hover:text-white" />
@@ -573,7 +573,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                      <Settings className="h-4 w-4 text-zinc-400 group-hover:text-white" />
                                  </Button>
                              </PopoverTrigger>
-                             <PopoverContent className="w-64 p-4 bg-zinc-900 border-white/10 rounded-2xl shadow-2xl" align="end">
+                             <PopoverContent className="w-64 p-4 bg-black border-white/10 rounded-2xl shadow-2xl" align="end">
                                  <div className="space-y-4">
                                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Display stats</h4>
                                      <div className="space-y-1.5">
@@ -709,7 +709,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                                             <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
                                                                 {data?.trades} {t(data?.trades === 1 ? 'trade' : 'trades')}
                                                             </span>
-                                                            <div className="w-1 h-1 rounded-full bg-zinc-700"></div>
+                                                            <div className="w-1 h-1 rounded-full bg-white/20"></div>
                                                             <span className={cn(
                                                                 "text-[9px] font-black tracking-widest",
                                                                 winRate >= 50 ? "text-emerald-500/70" : "text-rose-500/70"

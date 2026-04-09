@@ -59,7 +59,7 @@ export function ProgressTrackerHeatmap({ data }: ProgressTrackerHeatmapProps) {
         if (pnl !== undefined) {
             if (pnl > 0) colorClass = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]';
             else if (pnl < 0) colorClass = 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]';
-            else colorClass = 'bg-slate-500';
+            else colorClass = 'bg-white/10';
         }
 
         cells.push(
