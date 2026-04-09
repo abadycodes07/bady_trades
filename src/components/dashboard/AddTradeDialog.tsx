@@ -126,7 +126,7 @@ export function AddTradeDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md bg-black border-white/10 p-0 overflow-hidden rounded-3xl">
+      <DialogContent className="max-w-md bg-background border-border p-0 overflow-hidden rounded-3xl">
         <div className="bg-indigo-600 p-6 pt-10 text-center relative">
             <DialogTitle className="text-2xl font-black text-white uppercase tracking-tighter">Add Trades</DialogTitle>
             <DialogDescription className="text-white/70 text-sm mt-1">Import your trading history to BadyTrades</DialogDescription>
@@ -137,43 +137,43 @@ export function AddTradeDialog() {
             <div className="grid gap-3">
               <button 
                 onClick={() => { setMethod('csv'); setStep('upload_file'); }}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all text-left group"
+                className="flex items-center gap-4 p-4 rounded-2xl bg-muted/30 border border-border hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all text-left group"
               >
-                <div className="h-10 w-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <div className="h-10 w-10 rounded-xl bg-indigo-500/20 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <FileText className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-bold text-white uppercase text-xs tracking-widest">Upload CSV File</p>
-                  <p className="text-xs text-white/40 mt-1">MetaTrader 4/5 or generic CSV formats</p>
+                  <p className="font-bold text-foreground uppercase text-xs tracking-widest">Upload CSV File</p>
+                  <p className="text-xs text-muted-foreground mt-1">MetaTrader 4/5 or generic CSV formats</p>
                 </div>
               </button>
 
               <button 
                 onClick={() => { setMethod('html'); setStep('upload_file'); }}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all text-left group"
+                className="flex items-center gap-4 p-4 rounded-2xl bg-muted/30 border border-border hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all text-left group"
               >
-                <div className="h-10 w-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <div className="h-10 w-10 rounded-xl bg-blue-500/20 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <History className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-bold text-white uppercase text-xs tracking-widest">Upload HTML Report</p>
-                  <p className="text-xs text-white/40 mt-1">Direct "Save as Detailed Report" from MT4/5</p>
+                  <p className="font-bold text-foreground uppercase text-xs tracking-widest">Upload HTML Report</p>
+                  <p className="text-xs text-muted-foreground mt-1">Direct "Save as Detailed Report" from MT4/5</p>
                 </div>
               </button>
 
               <button 
                 disabled
-                className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 opacity-50 cursor-not-allowed text-left grayscale"
+                className="flex items-center gap-4 p-4 rounded-2xl bg-muted/20 border border-border opacity-50 cursor-not-allowed text-left grayscale"
               >
-                <div className="h-10 w-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-xl bg-orange-500/20 text-orange-500 flex items-center justify-center">
                   <Cloud className="h-5 w-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="font-bold text-white uppercase text-xs tracking-widest">Sync Prop Account</p>
-                    <span className="text-[8px] bg-white/10 px-1.5 py-0.5 rounded-full text-white/60">COMING SOON</span>
+                    <p className="font-bold text-foreground uppercase text-xs tracking-widest">Sync Prop Account</p>
+                    <span className="text-[8px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground font-black">COMING SOON</span>
                   </div>
-                  <p className="text-xs text-white/40 mt-1">Direct connection to prop firm accounts</p>
+                  <p className="text-xs text-muted-foreground mt-1">Direct connection to prop firm accounts</p>
                 </div>
               </button>
             </div>
@@ -185,8 +185,8 @@ export function AddTradeDialog() {
                     <Upload className="h-10 w-10" />
                 </div>
                 <div className="text-center">
-                    <p className="font-black text-white uppercase tracking-widest text-sm">Select {method?.toUpperCase()} File</p>
-                    <p className="text-xs text-white/40 mt-2">Maximum file size: 10MB</p>
+                    <p className="font-black text-foreground uppercase tracking-widest text-sm">Select {method?.toUpperCase()} File</p>
+                    <p className="text-xs text-muted-foreground mt-2">Maximum file size: 10MB</p>
                 </div>
                 <input 
                     type="file" 
@@ -197,13 +197,13 @@ export function AddTradeDialog() {
                 />
                 <Button 
                     variant="default" 
-                    className="w-full bg-indigo-600 hover:bg-indigo-500" 
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white" 
                     disabled={isUploading}
                     onClick={() => fileInputRef.current?.click()}
                 >
                     {isUploading ? 'Processing...' : 'Browse Files'}
                 </Button>
-                <button onClick={() => setStep('choose_method')} className="text-xs text-white/40 hover:text-white transition-colors uppercase tracking-widest font-black">Back to methods</button>
+                <button onClick={() => setStep('choose_method')} className="text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest font-black">Back to methods</button>
             </div>
           )}
 
@@ -216,9 +216,9 @@ export function AddTradeDialog() {
 
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Target Account</Label>
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Target Account</Label>
                         <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-                            <SelectTrigger className="bg-white/5 border-white/10 rounded-xl">
+                            <SelectTrigger className="bg-muted/30 border-border rounded-xl">
                                 <SelectValue placeholder="Select an account" />
                             </SelectTrigger>
                             <SelectContent className="bg-zinc-900 border-white/10">

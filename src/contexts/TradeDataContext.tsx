@@ -417,15 +417,22 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
     let newTradesCount = 0;
 
     for (const inputTrade of newTradesInput) {
-      const contentKey = `${inputTrade.Date || ''}-${inputTrade.Symbol || ''}-${inputTrade['Exec Time'] || ''}-${inputTrade.Side || ''}-${inputTrade.Qty || ''}-${inputTrade.Price || ''}`;
+      // Create a robust fingerprint
+      const dateStr = inputTrade.Date || inputTrade.OpenTime?.split(' ')[0] || '';
+      const timeStr = inputTrade['Exec Time'] || inputTrade.OpenTime?.split(' ')[1] || '';
+      const contentKey = `${dateStr}-${inputTrade.Symbol || ''}-${timeStr}-${inputTrade.Side || ''}-${inputTrade.Qty || ''}-${inputTrade.Price || ''}`;
       
-      if (existingFingerprints.has(contentKey) && !accountId.startsWith('demo')) {
+      if (existingFingerprints.has(contentKey)) {
         duplicatesCount++;
+        // If we want to skip duplicates entirely, we can just continue here
+        // However, we still prepare 'tradesToUpsert' for existing IDs to ensure data is updated if needed
+        // but for this specific request "only add new data", we should skip if it's already exactly the same.
+        continue; 
       } else {
         newTradesCount++;
       }
 
-      let tradeId: string | number = existingContentKeyToIdMap.get(contentKey) || uuidv4();
+      let tradeId = uuidv4();
       
       tradesToUpsert.push({
         id: tradeId,
@@ -458,10 +465,12 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
       });
     }
 
-    if (newTradesCount === 0 && duplicatesCount > 0) {
+    if (newTradesCount === 0) {
       toast({ 
-        title: 'Already Added', 
-        description: 'All trades in this file have already been imported.',
+        title: 'No New Trades', 
+        description: duplicatesCount > 0 
+          ? `All ${duplicatesCount} trades in this file are already in your account.` 
+          : 'The file contains no trades that could be processed.',
         variant: 'default'
       });
       setIsLoading(false);
@@ -469,17 +478,15 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const { error } = await supabase.from('trades').upsert(tradesToUpsert, { onConflict: 'id' });
+      const { error } = await supabase.from('trades').insert(tradesToUpsert);
       if (error) throw error;
 
-      if (duplicatesCount > 0) {
-        toast({ 
-          title: 'Import Complete', 
-          description: `Added ${newTradesCount} new trades (${duplicatesCount} duplicates skipped).` 
-        });
-      } else {
-        toast({ title: 'Trades Processed', description: `${newTradesCount} trades saved.` });
-      }
+      toast({ 
+        title: 'Import Successful', 
+        description: duplicatesCount > 0 
+          ? `Added ${newTradesCount} new trades. Skipped ${duplicatesCount} duplicates.`
+          : `Perfect! All ${newTradesCount} trades have been imported.`
+      });
 
       const { data: freshData, error: loadError } = await supabase
         .from('trades')

@@ -162,7 +162,7 @@ export function AppSidebar() {
            <span className="sr-only">Open Sidebar</span>
          </Button>
        )}
-       <Sidebar side={isArabic ? "right" : "left"} variant="sidebar" collapsible="icon" className="border-r border-white/5 bg-black">
+       <Sidebar side={isArabic ? "right" : "left"} variant="sidebar" collapsible="icon" className="border-r border-border bg-sidebar overflow-hidden transition-[width] duration-300">
           <SidebarHeader className="p-4 flex flex-col gap-4">
             <Link href="/dashboard" passHref legacyBehavior>
                 <a className="flex items-center gap-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 hover:opacity-80 transition-opacity px-1">
@@ -200,8 +200,8 @@ export function AppSidebar() {
                 <PlusCircle className="h-5 w-5" />
             </Button>
           </SidebarHeader>
-          <SidebarContent className="flex flex-row gap-0 p-0">
-            <div className="flex flex-col items-center w-[--sidebar-width-icon] border-r bg-black p-2">
+          <SidebarContent className="flex flex-row gap-0 p-0 overflow-hidden bg-sidebar">
+            <div className="flex flex-col items-center w-10 md:w-1/2 border-r border-border/50 bg-sidebar p-2 transition-all">
               <SidebarMenu className="flex-grow">
                 {leftNavItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
@@ -258,7 +258,7 @@ export function AppSidebar() {
                   </SidebarMenu>
                </div>
             </div>
-            <div className="flex flex-col flex-1 p-2 overflow-y-auto bg-black border-t border-white/5 md:border-t-0">
+            <div className="flex flex-col flex-1 p-2 overflow-y-auto bg-sidebar border-t border-border md:border-t-0 md:w-1/2 transition-all">
                <SidebarNav items={rightNavItems} />
                 <div className="mt-auto flex flex-col gap-1 group-data-[collapsible=icon]:hidden">
                     <Separator className="my-2 bg-border" />

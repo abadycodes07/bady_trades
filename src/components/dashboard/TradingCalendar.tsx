@@ -33,6 +33,8 @@ import { Input } from '@/components/ui/input';
 import type { CsvTradeData, CsvCommissionData, BalanceOperation } from '@/app/(app)/dashboard/page';
 import { isMarketHoliday, getHoliday, isWeekend as isWeekendDay } from '@/lib/market-holidays';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { BadyTradesMarkLogo } from '@/components/icons/badytrades-mark-logo';
+import { RunningPnLChart } from './RunningPnLChart';
 
 interface Currency {
     code: string;
@@ -210,9 +212,6 @@ const formatTotalCurrency = (value: number, currency: Currency): React.ReactNode
     });
     return <span className="inline-flex items-center" dir="ltr">{sign}{displaySymbol}{formattedAmount}</span>;
 }
-
-import { BadyTradesMarkLogo } from '@/components/icons/badytrades-mark-logo';
-
 // High-Fidelity Day Detail Popup
 function DayDetailPopup({
     date,
@@ -247,7 +246,7 @@ function DayDetailPopup({
 
     return (
         <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="max-w-[450px] w-full p-0 gap-0 bg-black border-border rounded-3xl overflow-hidden flex flex-col shadow-2xl z-[100]">
+            <DialogContent className="max-w-[450px] w-full p-0 gap-0 bg-background border-border rounded-3xl overflow-hidden flex flex-col shadow-2xl z-[100]">
                 {/* Visual Header Banner */}
                 <div className={cn(
                     "p-6 pt-10 flex flex-col items-center text-center relative overflow-hidden",
@@ -273,6 +272,8 @@ function DayDetailPopup({
                 </div>
 
                 <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
+                    {/* Visual Chart - Added per request */}
+                    <RunningPnLChart trades={data.tradeList} className="mb-2" />
                     {/* Primary Stats Grid */}
                     <div className="grid grid-cols-4 gap-2">
                         {[
