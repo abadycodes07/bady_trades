@@ -108,14 +108,14 @@ export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableP
     };
 
     return (
-        <Card className="h-full flex flex-col bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl relative overflow-hidden group">
+        <Card className="h-full flex flex-col bg-card border-border shadow-2xl relative overflow-hidden group">
             <div className="absolute -top-12 -left-12 w-32 h-32 bg-primary/5 blur-3xl rounded-full" />
             
             <Tabs defaultValue="recent" className="flex flex-col h-full z-10">
-                <CardHeader className="p-0 flex-shrink-0 bg-white/5 border-b border-white/5">
+                <CardHeader className="p-0 flex-shrink-0 bg-muted/10 border-b border-border">
                     <TabsList className="grid w-full grid-cols-2 h-12 bg-transparent rounded-none p-1">
-                        <TabsTrigger value="recent" className="text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-white/5 data-[state=active]:text-primary transition-all duration-300">RECENT TRADES</TabsTrigger>
-                        <TabsTrigger value="open" className="text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-white/5 data-[state=active]:text-primary transition-all duration-300">OPEN POSITIONS</TabsTrigger>
+                        <TabsTrigger value="recent" className="text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-muted/20 data-[state=active]:text-primary transition-all duration-300">RECENT TRADES</TabsTrigger>
+                        <TabsTrigger value="open" className="text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-muted/20 data-[state=active]:text-primary transition-all duration-300">OPEN POSITIONS</TabsTrigger>
                     </TabsList>
                 </CardHeader>
 
@@ -123,8 +123,8 @@ export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableP
                      <TabsContent value="recent" className="mt-0 h-full data-[state=active]:flex flex-col">
                          <ScrollArea className="flex-grow">
                             <Table>
-                                <TableHeader className="bg-black/20 backdrop-blur-md sticky top-0 z-20">
-                                    <TableRow className="hover:bg-transparent border-white/5">
+                                <TableHeader className="bg-muted/20 backdrop-blur-md sticky top-0 z-20">
+                                    <TableRow className="hover:bg-transparent border-border">
                                         <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Date</TableHead>
                                         <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Symbol</TableHead>
                                         <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">Net P&L</TableHead>
@@ -137,9 +137,9 @@ export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableP
                                         </TableRow>
                                     )}
                                     {processedTrades.map((trade) => (
-                                        <TableRow key={trade.id} className="hover:bg-white/5 border-white/5 transition-colors duration-200">
+                                        <TableRow key={trade.id} className="hover:bg-muted/5 border-border transition-colors duration-200">
                                             <TableCell className="px-4 py-3 text-[11px] font-black text-muted-foreground/60">{format(trade.originalDate, 'MMM dd, yyyy')}</TableCell>
-                                            <TableCell className="px-4 py-3 text-[11px] font-black text-white">{trade.Symbol}</TableCell>
+                                            <TableCell className="px-4 py-3 text-[11px] font-black text-foreground">{trade.Symbol}</TableCell>
                                             <TableCell className="px-4 py-3 text-right">{formatPnL(trade.netPnLValue)}</TableCell>
                                         </TableRow>
                                     ))}
@@ -151,8 +151,8 @@ export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableP
                     <TabsContent value="open" className="mt-0 h-full data-[state=active]:flex flex-col">
                         <ScrollArea className="flex-grow">
                             <Table>
-                                <TableHeader className="bg-black/20 backdrop-blur-md sticky top-0 z-20">
-                                    <TableRow className="hover:bg-transparent border-white/5">
+                                <TableHeader className="bg-muted/20 backdrop-blur-md sticky top-0 z-20">
+                                    <TableRow className="hover:bg-transparent border-border">
                                         <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Date</TableHead>
                                         <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Symbol</TableHead>
                                         <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">P/L</TableHead>
@@ -165,9 +165,9 @@ export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableP
                                         </TableRow>
                                     )}
                                     {processedOpenPositions.map((pos) => (
-                                        <TableRow key={pos.id} className="hover:bg-white/5 border-white/5 transition-colors duration-200">
+                                        <TableRow key={pos.id} className="hover:bg-muted/5 border-border transition-colors duration-200">
                                             <TableCell className="px-4 py-3 text-[11px] font-black text-muted-foreground/60">{pos.openDate}</TableCell>
-                                            <TableCell className="px-4 py-3 text-[11px] font-black text-white">{pos.symbol}</TableCell>
+                                            <TableCell className="px-4 py-3 text-[11px] font-black text-foreground">{pos.symbol}</TableCell>
                                             <TableCell className="px-4 py-3 text-right">{formatPnL(pos.unrealizedPnL)}</TableCell>
                                         </TableRow>
                                     ))}

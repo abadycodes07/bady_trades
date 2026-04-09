@@ -107,26 +107,26 @@ const renderVisual = (
                 <div className="flex flex-col items-center w-full px-2">
                     <div className="relative h-14 w-full">
                          <svg viewBox="0 0 100 50" className="absolute inset-0 h-full w-full overflow-visible drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]">
-                             <path d={describeArc(centerX, centerY, radius, 0, Math.PI)} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={strokeWidth} strokeLinecap="round" />
+                             <path d={describeArc(centerX, centerY, radius, 0, Math.PI)} fill="none" stroke="currentColor" className="text-muted-foreground/10" strokeWidth={strokeWidth} strokeLinecap="round" />
                              {wins > 0 && <path d={describeArc(centerX, centerY, radius, 0, winEnd)} fill="none" stroke="#10b981" strokeWidth={strokeWidth} strokeLinecap="round" />}
                              {breakeven > 0 && <path d={describeArc(centerX, centerY, radius, winEnd, beEnd)} fill="none" stroke="#94a3b8" strokeWidth={strokeWidth} strokeLinecap="round" />}
                              {losses > 0 && <path d={describeArc(centerX, centerY, radius, beEnd, lossEnd)} fill="none" stroke="#ef4444" strokeWidth={strokeWidth} strokeLinecap="round" />}
                          </svg>
                          <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
-                             <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{wins + losses + breakeven} {t ? t('Trades') : 'Trades'}</span>
+                             <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{wins + losses + breakeven} {t ? t('Trades') : 'Trades'}</span>
                          </div>
                     </div>
                     <div className="flex justify-between w-full mt-2 px-1">
                          <div className="flex flex-col items-center">
-                             <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">{t ? t('Wins') : 'Wins'}</span>
+                             <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-widest">{t ? t('Wins') : 'Wins'}</span>
                              <span className="text-[11px] font-black text-emerald-500">{wins}</span>
                          </div>
-                         <div className="flex flex-col items-center border-l border-r border-white/5 px-4">
-                             <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">{t ? t('BE') : 'BE'}</span>
-                             <span className="text-[11px] font-black text-white/80">{breakeven}</span>
+                         <div className="flex flex-col items-center border-l border-r border-border px-4">
+                             <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-widest">{t ? t('BE') : 'BE'}</span>
+                             <span className="text-[11px] font-black text-foreground/80">{breakeven}</span>
                          </div>
                          <div className="flex flex-col items-center">
-                             <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">{t ? t('Losses') : 'Losses'}</span>
+                             <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-widest">{t ? t('Losses') : 'Losses'}</span>
                              <span className="text-[11px] font-black text-rose-500">{losses}</span>
                          </div>
                     </div>
@@ -138,12 +138,12 @@ const renderVisual = (
              const positiveLoss = Math.max(0, Math.abs(barData?.loss ?? 0));
              const totalValue = positiveWin + positiveLoss;
 
-             if (totalValue === 0) return <div className="w-full h-2 rounded-full bg-white/5"></div>;
+             if (totalValue === 0) return <div className="w-full h-2 rounded-full bg-muted/10"></div>;
 
              const winPercent = (positiveWin / totalValue) * 100;
              return (
                  <div className="flex flex-col w-full gap-2 px-1">
-                    <div className="flex items-center w-full h-2.5 rounded-full overflow-hidden bg-white/5 border border-white/5">
+                    <div className="flex items-center w-full h-2.5 rounded-full overflow-hidden bg-muted/10 border border-border">
                         <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-700" style={{ width: `${winPercent}%` }} />
                         <div className="h-full bg-gradient-to-r from-rose-500 to-rose-700 shadow-[0_0_10px_rgba(239,68,68,0.3)] transition-all duration-700" style={{ width: `${100 - winPercent}%` }} />
                     </div>
@@ -197,8 +197,8 @@ export function MetricCard({
     return (
         <Card className={cn(
             "relative overflow-hidden transition-all duration-300 group",
-            "bg-black border-white/10 shadow-2xl",
-            "hover:bg-white/[0.02] hover:border-white/20 hover:shadow-primary/5",
+            "bg-card border-border shadow-2xl",
+            "hover:bg-muted/10 hover:border-border/80 hover:shadow-primary/5",
             "flex flex-col justify-center items-center text-center p-4 h-full",
             className
         )}>
@@ -232,7 +232,7 @@ export function MetricCard({
                       "text-[10px] font-medium text-muted-foreground/80 mt-2 w-full text-center"
                   )}>
                      {iconType === 'bar' && barData && selectedCurrency ? (
-                          <div className="flex justify-between px-2 bg-black/20 py-1 rounded-full border border-white/5">
+                          <div className="flex justify-between px-2 bg-muted/20 py-1 rounded-full border border-border">
                              <span className="text-green-400 font-bold">
                                  {formatCurrencyValue(barData.win, selectedCurrency)}
                              </span>
@@ -241,7 +241,7 @@ export function MetricCard({
                              </span>
                           </div>
                       ) : (
-                         <span className="bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+                         <span className="bg-muted/10 px-2 py-0.5 rounded-full border border-border">
                             {metric}
                          </span>
                       )}

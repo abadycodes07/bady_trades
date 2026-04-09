@@ -47,7 +47,7 @@ const plans = [
       'Trading Playbook Creation',
       'Mentor Mode Access',
       '5 GB Data Storage',
-      'Zella University Access',
+      'Bady University Access',
       'Dedicated Support',
     ],
     isPopular: false,

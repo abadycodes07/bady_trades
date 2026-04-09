@@ -53,7 +53,7 @@ export function DrawdownChart({ data, initialBalance }: DrawdownChartProps) {
       const pct = payload[0].payload.drawdownPercent;
       const date = payload[0].payload.displayDate;
       return (
-        <div className="bg-black/90 backdrop-blur-xl border border-white/10 p-3 rounded-xl shadow-2xl">
+        <div className="bg-popover/90 backdrop-blur-xl border border-border p-3 rounded-xl shadow-2xl">
           <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">{date}</p>
           <p className="text-sm font-black text-red-400">
             {val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({pct}%)
@@ -65,7 +65,7 @@ export function DrawdownChart({ data, initialBalance }: DrawdownChartProps) {
   };
 
   return (
-    <Card className="h-full flex flex-col bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl relative overflow-hidden group text-white">
+    <Card className="h-full flex flex-col bg-card border-border shadow-2xl relative overflow-hidden group">
       <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl rounded-full" />
       
       <CardHeader className="pb-2">
@@ -84,10 +84,10 @@ export function DrawdownChart({ data, initialBalance }: DrawdownChartProps) {
                 <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-muted-foreground/5" />
             <XAxis dataKey="date" hide />
             <YAxis 
-               tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 700 }}
+               tick={{ fill: 'currentColor', fontSize: 9, fontWeight: 700, className: 'text-muted-foreground/40' }}
                axisLine={false}
                tickLine={false}
             />

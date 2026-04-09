@@ -7,6 +7,7 @@ import { AppHeader } from '@/components/app-header';
 import AuthWrapper from '@/components/auth/AuthWrapper';
 import { TradeDataProvider } from '@/contexts/TradeDataContext';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
+import { AddTradeDialog } from '@/components/dashboard/AddTradeDialog';
 
 function AppLayoutContent({ children }: { children: ReactNode }) {
   const { isArabic } = useLanguage();
@@ -19,6 +20,7 @@ function AppLayoutContent({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+      <AddTradeDialog />
     </SidebarProvider>
   );
 }

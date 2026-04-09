@@ -92,12 +92,12 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
 
 
   return (
-    <Card className="h-full flex flex-col bg-black border-white/10 shadow-2xl relative overflow-hidden group">
+    <Card className="h-full flex flex-col bg-card border-border shadow-2xl relative overflow-hidden group">
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full group-hover:bg-primary/20 transition-all duration-700" />
       
       <CardHeader className="pb-1">
-        <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-white/20 flex items-center justify-center gap-1.5">
-          Overall Zella Score
+        <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-center gap-1.5">
+          Overall Bady-score
           <Info className="h-3 w-3 opacity-30 cursor-pointer" />
         </CardTitle>
       </CardHeader>
@@ -115,10 +115,10 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
                      <stop offset="100%" stopColor="#fff" stopOpacity={0.8}/>
                  </linearGradient>
             </defs>
-            <PolarGrid gridType="polygon" stroke="rgba(255,255,255,0.08)" strokeWidth={0.5} />
+            <PolarGrid gridType="polygon" stroke="currentColor" className="text-muted-foreground/10" strokeWidth={0.5} />
             <PolarAngleAxis
                 dataKey="metric"
-                tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9, fontWeight: 700 }}
+                tick={{ fill: 'currentColor', fontSize: 9, fontWeight: 700, className: 'text-muted-foreground/60' }}
              />
             <PolarRadiusAxis angle={30} domain={[0, 100]} axisLine={false} tick={false} />
             <Radar

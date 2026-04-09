@@ -8,7 +8,7 @@ const goals = [
   { id: '1', title: 'Achieve 60% Win Rate', current: 58, target: 60, unit: '%' },
   { id: '2', title: 'Increase Avg. R-Multiple to 2.0', current: 1.8, target: 2.0, unit: ' R', step: 0.1 },
   { id: '3', title: 'Reduce Avg. Losing Trade Size', current: 45, target: 35, unit: '$', lowerIsBetter: true },
-  { id: '4', title: 'Complete Zella University Module 3', current: 75, target: 100, unit: '%' },
+  { id: '4', title: 'Complete Bady University Module 3', current: 75, target: 100, unit: '%' },
 ];
 
 export default function ProgressTrackerPage() {

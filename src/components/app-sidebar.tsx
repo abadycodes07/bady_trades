@@ -163,16 +163,42 @@ export function AppSidebar() {
          </Button>
        )}
        <Sidebar side={isArabic ? "right" : "left"} variant="sidebar" collapsible="icon" className="border-r border-white/5 bg-black">
-          <SidebarHeader className="p-2 flex items-center justify-between">
+          <SidebarHeader className="p-4 flex flex-col gap-4">
             <Link href="/dashboard" passHref legacyBehavior>
-                <a className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 hover:opacity-80 transition-opacity px-1">
+                <a className="flex items-center gap-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 hover:opacity-80 transition-opacity px-1">
                     {sidebarOpen ? (
-                         <BadyTradesLogo className="h-6" />
+                         <BadyTradesLogo />
                     ) : (
-                        <BadyTradesMarkLogo className="h-6 w-6" /> 
+                         <BadyTradesMarkLogo className="h-6 w-6" /> 
                     )}
                 </a>
             </Link>
+
+            <div className="group-data-[collapsible=icon]:hidden px-1">
+                <Button 
+                    variant="default" 
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest rounded-xl h-10 shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2"
+                    onClick={() => {
+                        const event = new CustomEvent('open-add-trade-dialog');
+                        window.dispatchEvent(event);
+                    }}
+                >
+                    <PlusCircle className="h-4 w-4" />
+                    <span>{t('Add Trade')}</span>
+                </Button>
+            </div>
+            
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="hidden group-data-[collapsible=icon]:flex h-10 w-10 mx-auto rounded-xl bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all shadow-none"
+                onClick={() => {
+                    const event = new CustomEvent('open-add-trade-dialog');
+                    window.dispatchEvent(event);
+                }}
+            >
+                <PlusCircle className="h-5 w-5" />
+            </Button>
           </SidebarHeader>
           <SidebarContent className="flex flex-row gap-0 p-0">
             <div className="flex flex-col items-center w-[--sidebar-width-icon] border-r bg-black p-2">

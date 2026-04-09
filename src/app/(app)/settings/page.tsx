@@ -279,7 +279,7 @@ export default function SettingsPage() {
               <p className="text-muted-foreground">
                 A small Expert Advisor (EA) plugin runs inside your MetaTrader app on your PC.
                 It reads your account every 30 seconds and securely sends your trades, balance, deposits, and withdrawals to BadyTrades.
-                This is the same method used by Tradezella, Edgewonk, and other professional journaling platforms. 
+                This is the same method used by professional journaling platforms. 
                 <strong> Your broker login credentials are NEVER shared with BadyTrades.</strong>
               </p>
             </div>

@@ -661,14 +661,14 @@ export default function DashboardPage() {
       });
       const maxDrawdownData = calculateMaxDrawdown(tradeData, showFeesInPnl, dailyCommissionsMap, dailyNetCashMapAgg);
 
+      const maxDrawdownScore = Math.max(0, 1 - (Math.abs(maxDrawdownData.value) / 5000));
       const badyScoreComponents = [
          winRate / 100,
          Math.min(1, (isFinite(Number(profitFactor)) ? Number(profitFactor) : 0) / 3),
          Math.min(1, (isFinite(Number(avgWinLossData.ratio)) ? Number(avgWinLossData.ratio) : 0) / 3),
+         maxDrawdownScore
       ].filter(score => isFinite(score) && !isNaN(score));
-      const badyScore = badyScoreComponents.length > 0
-         ? (badyScoreComponents.reduce((a, b) => a + b, 0) / badyScoreComponents.length) * 100
-         : 0;
+      const badyScore = (badyScoreComponents.reduce((a, b) => a + b, 0) / badyScoreComponents.length) * 100;
 
       switch (key) {
         case 'net-pnl': return <MetricCard title={t("Total Net P&L")} value={<span className={netPnlCardValue >= 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"}>{convertCurrency(netPnlCardValue)}</span>} metric={<span>{/* % change */}</span>} iconType="info" className="h-full"/>;
