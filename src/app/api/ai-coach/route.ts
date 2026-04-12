@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid trades data' }, { status: 400 });
     }
 
-    const apiKey = process.env.GOOGLE_GENAI_API_KEY || "AIzaSyBnj8CZ4lKT9fyS9Gd0IiOo9MlKwBYd9H8";
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({
         assessment: "AI Coach is not configured. Please set GOOGLE_GENAI_API_KEY in your environment.",
