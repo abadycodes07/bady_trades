@@ -96,19 +96,23 @@ export function RunningPnLChart({ trades, className }: RunningPnLChartProps) {
     return points;
   }, [trades]);
 
-  const minPnL = Math.min(...chartData.map(d => d.pnl), -100);
-  const maxPnL = Math.max(...chartData.map(d => d.pnl), 100);
-  const margin = (maxPnL - minPnL) * 0.2;
+  const minPnL = chartData.length > 0 ? Math.min(...chartData.map(d => d.pnl)) : 0;
+  const maxPnL = chartData.length > 0 ? Math.max(...chartData.map(d => d.pnl)) : 0;
+  
+  // ensure we have at least SOME vertical space so margin isn't 0
+  const adjustedMin = Math.min(minPnL, minPnL > 0 ? 0 : -10);
+  const adjustedMax = Math.max(maxPnL, maxPnL < 0 ? 0 : 10);
+  const margin = (adjustedMax - adjustedMin) * 0.2;
+
+  const domainMin = adjustedMin - margin;
+  const domainMax = adjustedMax + margin;
 
   const off = useMemo(() => {
-    const dataMax = Math.max(...chartData.map((i) => i.pnl));
-    const dataMin = Math.min(...chartData.map((i) => i.pnl));
+    if (domainMax <= 0) return 0;
+    if (domainMin >= 0) return 1;
 
-    if (dataMax <= 0) return 0;
-    if (dataMin >= 0) return 1;
-
-    return dataMax / (dataMax - dataMin);
-  }, [chartData]);
+    return domainMax / (domainMax - domainMin);
+  }, [domainMax, domainMin]);
 
   if (chartData.length === 0) return null;
 
@@ -143,7 +147,7 @@ export function RunningPnLChart({ trades, className }: RunningPnLChartProps) {
             tick={{ fontSize: 9, fontWeight: 700, fill: 'currentColor' }} 
             className="text-muted-foreground/40"
             tickFormatter={(value) => `$${value}`}
-            domain={[minPnL - margin, maxPnL + margin]}
+            domain={[domainMin, domainMax]}
           />
           <Tooltip 
             contentStyle={{ backgroundColor: 'hsl(var(--background))', borderRadius: '12px', border: '1px solid hsl(var(--border))', fontSize: '12px', fontWeight: 'bold' }}

@@ -2,12 +2,13 @@
 
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, FileText, ChevronRight, ChevronDown, Calendar as CalendarIcon, Settings, Filter } from 'lucide-react';
+import { PlayCircle, FileText, Calendar as CalendarIcon, Settings, Filter } from 'lucide-react';
 import { format, parse, isValid, compareDesc } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useTradeData } from '@/contexts/TradeDataContext';
 import { RunningPnLChart } from '@/components/dashboard/RunningPnLChart';
 import { BadyTradesMarkLogo } from '@/components/icons/badytrades-mark-logo';
+import { Calendar } from '@/components/ui/calendar';
 
 interface DaySummary {
     date: Date;
@@ -23,11 +24,7 @@ interface DaySummary {
 
 export default function DayViewPage() {
     const { tradeData, isLoading } = useTradeData();
-    const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
-
-    const toggleDay = (dateKey: string) => {
-        setExpandedDays(prev => ({ ...prev, [dateKey]: !prev[dateKey] }));
-    };
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
     const { daySummaries, totalPnl } = useMemo(() => {
         if (!tradeData || tradeData.length === 0) return { daySummaries: [], totalPnl: 0 };
@@ -98,7 +95,7 @@ export default function DayViewPage() {
     }
 
     return (
-        <div className="container mx-auto max-w-7xl pt-4 pb-20 px-6 font-sans">
+        <div className="container mx-auto max-w-[1500px] pt-4 pb-20 px-6 font-sans">
             {/* Header Area */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
@@ -128,104 +125,133 @@ export default function DayViewPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-3">
-                {daySummaries.length === 0 && (
-                    <div className="text-center py-20 bg-[#121212] rounded-xl">
-                        <p className="text-white/40 text-sm">No structured day data available.</p>
-                    </div>
-                )}
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
+                {/* Main Days Accumulator */}
+                <div className="flex flex-col gap-4 flex-1 w-full min-w-0">
+                    {daySummaries.length === 0 && (
+                        <div className="text-center py-20 bg-[#121212] rounded-xl">
+                            <p className="text-white/40 text-sm">No structured day data available.</p>
+                        </div>
+                    )}
 
-                {daySummaries.map((day) => {
-                    const isExpanded = expandedDays[day.dateKey];
-                    const isWin = day.netPnl >= 0;
-                    const winRate = day.trades.length > 0 ? (day.wins / day.trades.length) * 100 : 0;
-                    
-                    const grossWins = day.trades.filter(t => t.net_pnl > 0).reduce((s, t) => s + t.net_pnl, 0);
-                    const grossLosses = Math.abs(day.trades.filter(t => t.net_pnl < 0).reduce((s, t) => s + t.net_pnl, 0));
-                    const profitFactor = grossLosses === 0 ? (grossWins > 0 ? '∞' : '0.00') : (grossWins / grossLosses).toFixed(2);
+                    {daySummaries.map((day) => {
+                        const isWin = day.netPnl >= 0;
+                        const winRate = day.trades.length > 0 ? (day.wins / day.trades.length) * 100 : 0;
+                        
+                        const grossWins = day.trades.filter(t => t.net_pnl > 0).reduce((s, t) => s + t.net_pnl, 0);
+                        const grossLosses = Math.abs(day.trades.filter(t => t.net_pnl < 0).reduce((s, t) => s + t.net_pnl, 0));
+                        const profitFactor = grossLosses === 0 ? (grossWins > 0 ? '∞' : '0.00') : (grossWins / grossLosses).toFixed(2);
 
-                    return (
-                        <div key={day.dateKey} className="bg-[#101010] rounded-xl overflow-hidden shadow-none border-b border-r border-[#1a1a1a]">
-                            {/* Day Header (Clickable) */}
-                            <div 
-                                className={cn("px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-[#141414] transition-none border-b border-transparent", isExpanded ? "border-[#1a1a1a] border-b" : "")}
-                                onClick={() => toggleDay(day.dateKey)}
-                            >
-                                <div className="flex items-center gap-3">
-                                    {isExpanded ? <ChevronDown className="h-4 w-4 text-white/40" /> : <ChevronRight className="h-4 w-4 text-white/40" />}
-                                    <div className="flex items-baseline gap-2">
-                                        <h3 className="text-sm font-bold text-white tracking-tight">{format(day.date, 'E, MMM dd, yyyy')}</h3>
-                                        <span className="text-white/30 text-[10px] mx-1">•</span>
-                                        <span className={cn(
-                                            "text-xs font-bold tracking-tight",
-                                            isWin ? "text-[#0F8A5D]" : "text-[#D73A49]"
-                                        )}>
-                                            Net P&L {isWin ? '+' : '-'}${Math.abs(day.netPnl).toFixed(2)}
-                                        </span>
+                        return (
+                            <div key={day.dateKey} className="bg-[#121212] rounded-xl overflow-hidden shadow-none border border-transparent hover:border-white/[0.04]">
+                                {/* Day Header Wrapper (Non-collapsible) */}
+                                <div className="px-5 py-4 flex items-center justify-between border-b border-white/[0.04] bg-[#141414]">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-baseline gap-2">
+                                            <h3 className="text-[14px] font-bold text-white tracking-tight">{format(day.date, 'E, MMM dd, yyyy')}</h3>
+                                            <span className="text-white/30 text-[10px] mx-1">•</span>
+                                            <span className={cn(
+                                                "text-xs font-bold tracking-tight",
+                                                isWin ? "text-[#0F8A5D]" : "text-[#D73A49]"
+                                            )}>
+                                                Net P&L {isWin ? '+' : '-'}${Math.abs(day.netPnl).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] rounded-md text-white/80 text-[10px] font-bold tracking-wider transition-none">
+                                            <PlayCircle className="h-3 w-3 text-indigo-400" /> Replay
+                                        </button>
+                                        <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] rounded-md text-white/80 text-[10px] font-bold tracking-wider transition-none">
+                                            <FileText className="h-3 w-3 text-white/50" /> Add Note
+                                        </button>
+                                        <button className="h-7 w-7 rounded-md bg-[#1a1a1a] hover:bg-[#222] flex items-center justify-center ml-2">
+                                            <BadyTradesMarkLogo className="h-3 w-3 text-indigo-400" />
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                    <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a]  hover:bg-[#222] rounded-md text-white/80 text-[9px] font-bold uppercase tracking-wider transition-none">
-                                        <PlayCircle className="h-3 w-3 text-indigo-400" /> Replay
-                                    </button>
-                                    <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] rounded-md text-white/80 text-[9px] font-bold uppercase tracking-wider transition-none">
-                                        <FileText className="h-3 w-3 text-white/50" /> Add Note
-                                    </button>
-                                    <button className="h-7 w-7 rounded-sm bg-[#1a1a1a] hover:bg-[#222] flex items-center justify-center ml-2">
-                                        <BadyTradesMarkLogo className="h-3 w-3 text-indigo-400" />
-                                    </button>
-                                </div>
-                            </div>
 
-                            {/* Expandable Body */}
-                            {isExpanded && (
-                                <div className="px-5 pt-3 pb-5 flex flex-col md:flex-row gap-8 bg-[#101010]">
+                                {/* Full Body */}
+                                <div className="px-5 pt-3 pb-5 flex flex-col md:flex-row gap-8 bg-[#121212]">
                                     {/* Left Side: Chart */}
-                                    <div className="flex-1 min-w-[300px]">
-                                        <RunningPnLChart trades={day.trades} className="h-[140px] mt-0" />
+                                    <div className="flex-[1.5] w-full min-w-0">
+                                        <RunningPnLChart trades={day.trades} className="h-[160px] mt-2 mb-1" />
                                     </div>
                                     
                                     {/* Right Side: Stats */}
-                                    <div className="flex-[1.5] grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4 pt-4 shrink-0 max-w-[600px] mr-auto">
-                                        <div className="flex flex-col gap-1">
-                                            <p className="text-[10px] font-bold text-white/40 tracking-wider">TOTAL TRADES</p>
-                                            <p className="text-[15px] font-bold text-white">{day.trades.length}</p>
-                                            <div className="mt-2 flex flex-col gap-0.5">
+                                    <div className="flex-1 min-w-[280px] grid grid-cols-2 gap-y-7 gap-x-4 pt-4 shrink-0">
+                                        <div className="flex flex-col gap-1.5">
+                                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Total Trades</p>
+                                            <p className="text-[16px] font-bold text-white tracking-tight">{day.trades.length}</p>
+                                            <div className="mt-3 flex flex-col gap-1">
                                                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Win Rate</p>
-                                                 <p className="text-[11px] font-bold text-white">{winRate.toFixed(2)}%</p>
+                                                 <p className="text-[12px] font-bold text-white">{winRate.toFixed(2)}%</p>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col gap-1">
-                                            <p className="text-[10px] font-bold text-white/40 tracking-wider">GROSS P&L</p>
-                                            <p className={cn("text-[15px] font-bold", day.grossPnl >= 0 ? "text-white" : "text-white")}>
-                                                ${day.grossPnl.toFixed(2)}
+                                        <div className="flex flex-col gap-1.5">
+                                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Gross P&L</p>
+                                            <p className={cn("text-[16px] font-bold tracking-tight", day.grossPnl >= 0 ? "text-white" : "text-white")}>
+                                                {day.grossPnl >= 0 ? '' : '-'}${Math.abs(day.grossPnl).toFixed(2)}
                                             </p>
-                                            <div className="mt-2 flex flex-col gap-0.5">
+                                            <div className="mt-3 flex flex-col gap-1">
                                                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Volume</p>
-                                                 <p className="text-[11px] font-bold text-white">{day.volume > 0 ? day.volume : '0.00'}</p>
+                                                 <p className="text-[12px] font-bold text-white">{day.volume > 0 ? day.volume : '0.00'}</p>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col gap-1">
-                                            <p className="text-[10px] font-bold text-white/40 tracking-wider">WINNERS / LOSERS</p>
-                                            <p className="text-[15px] font-bold text-white">{day.wins} / {day.losses}</p>
-                                            <div className="mt-2 flex flex-col gap-0.5">
+                                        <div className="flex flex-col gap-1.5">
+                                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Winners / Losers</p>
+                                            <p className="text-[16px] font-bold text-white tracking-tight">{day.wins} / {day.losses}</p>
+                                            <div className="mt-3 flex flex-col gap-1">
                                                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Profit Factor</p>
-                                                 <p className="text-[11px] font-bold text-white">{profitFactor}</p>
+                                                 <p className="text-[12px] font-bold text-white">{profitFactor}</p>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col gap-1">
-                                            <p className="text-[10px] font-bold text-white/40 tracking-wider">COMMISSIONS</p>
-                                            <p className="text-[15px] font-bold text-white">${day.commissions.toFixed(2)}</p>
-                                            <div className="mt-2 flex flex-col gap-0.5">
-                                                {/* empty spacing block */}
-                                            </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Commissions</p>
+                                            <p className="text-[16px] font-bold text-white tracking-tight">${day.commissions.toFixed(2)}</p>
                                         </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    );
-                })}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Right Sticky Calendar */}
+                <div className="w-[300px] shrink-0 sticky top-6 hidden lg:block">
+                    <div className="bg-[#121212] rounded-xl border border-white/5 overflow-hidden shadow-2xl p-4">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelectedDate}
+                            className="w-full bg-transparent max-w-full font-sans"
+                            classNames={{
+                                months: "w-full",
+                                month: "w-full space-y-4",
+                                caption: "flex justify-center pt-1 relative items-center mb-4 text-white font-bold",
+                                caption_label: "text-sm",
+                                nav: "space-x-1 flex items-center bg-white/5 rounded-md",
+                                nav_button: "h-7 w-7 bg-transparent hover:bg-white/10 text-white p-0 opacity-100 flex items-center justify-center rounded-md transition-none",
+                                nav_button_previous: "absolute left-1",
+                                nav_button_next: "absolute right-1",
+                                table: "w-full border-collapse space-y-1 mb-2",
+                                head_row: "flex w-full mb-2",
+                                head_cell: "text-white/40 rounded-md w-9 font-bold text-[10px] uppercase tracking-wider",
+                                row: "flex w-full mt-2",
+                                cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 w-9",
+                                day: "h-8 w-8 p-0 font-medium aria-selected:opacity-100 hover:bg-white/10 rounded-sm text-white/80 transition-none",
+                                day_range_start: "day-range-start",
+                                day_range_end: "day-range-end",
+                                day_selected: "bg-indigo-600 text-white hover:bg-indigo-600 hover:text-white focus:bg-indigo-600 focus:text-white",
+                                day_today: "bg-white/10 text-white font-bold",
+                                day_outside: "text-white/20 opacity-50",
+                                day_disabled: "text-muted-foreground opacity-50",
+                                day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                                day_hidden: "invisible",
+                            }}
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     );
