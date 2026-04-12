@@ -63,8 +63,10 @@ Based on this data, provide a brief trading coach analysis. Your response must b
 Be direct, specific, and tough-love honest. Reference specific metrics. Keep each tip under 20 words.`;
 
     // Call Google Gemini API directly
+    // Using v1 endpoint and gemini-1.5-flash for maximum production stability
+    const modelId = "gemini-1.5-flash";
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,7 +81,9 @@ Be direct, specific, and tough-love honest. Reference specific metrics. Keep eac
     );
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error?.message || response.statusText;
+      throw new Error(`Gemini API [${response.status}]: ${errorMessage}`);
     }
 
     const data = await response.json();
@@ -88,7 +92,8 @@ Be direct, specific, and tough-love honest. Reference specific metrics. Keep eac
     // Extract JSON from the response
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error('Could not parse AI response');
+      console.error('Raw text for parsing failure:', rawText);
+      throw new Error('Could not parse AI response into valid JSON format');
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
@@ -101,11 +106,13 @@ Be direct, specific, and tough-love honest. Reference specific metrics. Keep eac
     });
 
   } catch (error: any) {
-    console.error('AI Coach error:', error);
+    console.error('AI Coach technical error:', error);
+    
+    // We expose the error message for diagnostics during this fix phase
     return NextResponse.json({
-      assessment: "Unable to generate analysis at this time.",
-      tips: ["Ensure your winning trades have a positive R-multiple.", "Review your worst trade to identify what went wrong."],
-      warnings: [],
+      assessment: "Diagnostic Error: " + error.message,
+      tips: ["Please verify your GOOGLE_GENAI_API_KEY in the Railway dashboard.", "Ensure your Google AI Studio account has no billing or quota issues."],
+      warnings: ["Technical Detail: check your server logs for the full stack trace."],
       score: null,
       error: error.message,
     }, { status: 500 });
