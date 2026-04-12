@@ -63,10 +63,12 @@ Based on this data, provide a brief trading coach analysis. Your response must b
 Be direct, specific, and tough-love honest. Reference specific metrics. Keep each tip under 20 words.`;
 
     // Call Google Gemini API directly
-    // Using v1beta and gemini-3-flash as per diagnostic feedback
-    const modelId = "gemini-3-flash";
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`,
+    // Using v1beta and gemini-3-flash-preview (series 3 series requested by user)
+    const primaryModel = "gemini-3-flash-preview";
+    const fallbackModel = "gemini-1.5-flash";
+    
+    let response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,6 +81,25 @@ Be direct, specific, and tough-love honest. Reference specific metrics. Keep eac
         }),
       }
     );
+
+    // If primary model fails with 404, try fallback stable model
+    if (!response.ok && response.status === 404) {
+      console.warn(`Primary model ${primaryModel} not found, trying fallback ${fallbackModel}`);
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${fallbackModel}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 512,
+            },
+          }),
+        }
+      );
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -111,7 +132,7 @@ Be direct, specific, and tough-love honest. Reference specific metrics. Keep eac
     // We expose the error message for diagnostics during this fix phase
     return NextResponse.json({
       assessment: "Diagnostic Error: " + error.message,
-      tips: ["Please verify your GOOGLE_GENAI_API_KEY in the Railway dashboard.", "Ensure your Google AI Studio account has no billing or quota issues."],
+      tips: ["Please verify your GOOGLE_GENAI_API_KEY in the Railway dashboard.", "Ensure there are no leading/trailing spaces or typos (like backslashes) in the key."],
       warnings: ["Technical Detail: check your server logs for the full stack trace."],
       score: null,
       error: error.message,
