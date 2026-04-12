@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronLeft, ChevronRight, Info, UploadCloud, TrendingUp, TrendingDown, X, Camera, Settings, RefreshCw, Plus, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, UploadCloud, TrendingUp, TrendingDown, X, Camera, Settings, RefreshCw, Plus, Check, FileText, PlayCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -214,7 +214,141 @@ const formatTotalCurrency = (value: number, currency: Currency): React.ReactNode
     });
     return <span className="inline-flex items-center" dir="ltr">{sign}{displaySymbol}{formattedAmount}</span>;
 }
-// High-Fidelity Day Detail Popup
+// AI Coach panel component
+function AiCoachPanel({ trades, date, onClose }: { 
+  trades: CalendarDayData['tradeList']; 
+  date: Date; 
+  onClose: () => void; 
+}) {
+  const [loading, setLoading] = React.useState(false);
+  const [result, setResult] = React.useState<{
+    assessment: string;
+    tips: string[];
+    warnings: string[];
+    score: number | null;
+  } | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const analyze = React.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/ai-coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: format(date, 'MMMM d, yyyy'),
+          trades: trades.map(t => ({
+            symbol: t.symbol,
+            side: t.side,
+            netPnl: t.netPnl,
+            grossPnl: t.grossPnl,
+            execTime: t.execTime,
+            rMultiple: t.rMultiple,
+            strategy: t.strategy,
+          })),
+        }),
+      });
+      const data = await response.json();
+      setResult(data);
+    } catch (err: any) {
+      setError('Failed to connect to AI coach.');
+    } finally {
+      setLoading(false);
+    }
+  }, [trades, date]);
+
+  React.useEffect(() => {
+    analyze();
+  }, [analyze]);
+
+  return (
+    <div className="absolute inset-0 bg-zinc-950/95 backdrop-blur-md z-10 flex flex-col rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Header */}
+      <div className="flex items-center justify-between p-5 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
+            <BadyTradesMarkLogo className="h-5 w-5 text-indigo-400" />
+          </div>
+          <div>
+            <p className="text-xs font-black text-white uppercase tracking-[0.15em]">AI Coach</p>
+            <p className="text-[9px] text-indigo-400/70 font-bold uppercase tracking-widest">{format(date, 'MMM d, yyyy')} Analysis</p>
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <div className="h-12 w-12 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400/60 animate-pulse">Analyzing your trades...</p>
+          </div>
+        )}
+        {error && (
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4">
+            <p className="text-xs font-bold text-rose-400">{error}</p>
+            <button onClick={analyze} className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300">Retry</button>
+          </div>
+        )}
+        {result && !loading && (
+          <>
+            {/* Score */}
+            {result.score !== null && (
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Discipline Score</p>
+                <div className="flex items-center justify-center gap-2">
+                  <span className={cn(
+                    "text-4xl font-black",
+                    result.score >= 70 ? "text-emerald-400" : result.score >= 50 ? "text-amber-400" : "text-rose-400"
+                  )}>{result.score}</span>
+                  <span className="text-lg font-black text-white/30">/100</span>
+                </div>
+              </div>
+            )}
+
+            {/* Assessment */}
+            <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-4">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400/60 mb-2">Assessment</p>
+              <p className="text-sm font-semibold text-white/90 leading-relaxed">{result.assessment}</p>
+            </div>
+
+            {/* Warnings */}
+            {result.warnings.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-rose-400/60 px-1">⚠ Alerts</p>
+                {result.warnings.map((w, i) => (
+                  <div key={i} className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-3 flex items-start gap-2">
+                    <span className="text-rose-400 text-sm mt-0.5">!</span>
+                    <p className="text-xs font-medium text-rose-300/80">{w}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Tips */}
+            {result.tips.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400/60 px-1">Coaching Tips</p>
+                {result.tips.map((tip, i) => (
+                  <div key={i} className="bg-white/3 border border-white/5 rounded-xl p-3 flex items-start gap-3">
+                    <span className="h-5 w-5 rounded-full bg-indigo-600/30 text-indigo-400 text-[9px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                    <p className="text-xs font-medium text-white/70">{tip}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// High-Fidelity Day Detail Popup — Tradezilla Style
 function DayDetailPopup({
     date,
     data,
@@ -235,141 +369,253 @@ function DayDetailPopup({
     open: boolean;
 }) {
     const { t } = useLanguage();
+    const [showAiCoach, setShowAiCoach] = React.useState(false);
+    const [aiViewed, setAiViewed] = React.useState(false);
+
     const pnlForDay = showFeesInPnl
-        ? data.profitloss - data.commission - data.totalSECFee 
+        ? data.profitloss - data.commission - data.totalSECFee
         : data.grossProfitloss;
     const winRate = data.trades > 0 ? (data.winningTrades / data.trades) * 100 : 0;
+    const isLosingDay = pnlForDay < 0;
 
-    const runningBalance = initialBalance !== undefined && cumulativePnlUpToDay !== undefined
-        ? initialBalance + cumulativePnlUpToDay
+    // Calculate per-trade Gross P&L
+    const grossPnlTotal = data.tradeList.reduce((s, t) => s + t.grossPnl, 0);
+
+    // Calculate profit factor
+    const grossWins = data.tradeList.filter(t => t.grossPnl > 0).reduce((s, t) => s + t.grossPnl, 0);
+    const grossLosses = Math.abs(data.tradeList.filter(t => t.grossPnl < 0).reduce((s, t) => s + t.grossPnl, 0));
+    const profitFactor = grossLosses === 0 ? (grossWins > 0 ? '∞' : '0.00') : (grossWins / grossLosses).toFixed(2);
+
+    // Avg loss for R-Multiple calculation
+    const losingTrades = data.tradeList.filter(t => t.netPnl < 0);
+    const avgLoss = losingTrades.length > 0
+        ? Math.abs(losingTrades.reduce((s, t) => s + t.netPnl, 0) / losingTrades.length)
         : null;
 
-    const isLosingDay = pnlForDay < 0;
+    const calcRMultiple = (netPnl: number, rMultipleFromCsv?: string): string => {
+        if (rMultipleFromCsv && !isNaN(parseFloat(rMultipleFromCsv))) {
+            const r = parseFloat(rMultipleFromCsv);
+            return (r >= 0 ? '+' : '') + r.toFixed(2) + 'R';
+        }
+        if (avgLoss && avgLoss > 0) {
+            const r = netPnl / avgLoss;
+            return (r >= 0 ? '+' : '') + r.toFixed(2) + 'R';
+        }
+        return '—';
+    };
+
+    const handleAiClick = () => {
+        setShowAiCoach(true);
+        setAiViewed(true);
+    };
 
     return (
         <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="max-w-[450px] w-full p-0 gap-0 bg-background border-border rounded-3xl overflow-hidden flex flex-col shadow-2xl z-[100]">
+            <DialogContent className="max-w-[600px] w-full p-0 gap-0 bg-zinc-950 border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-[0_40px_80px_rgba(0,0,0,0.8)] z-[100]">
+                
                 {/* Visual Header Banner */}
                 <div className={cn(
-                    "p-6 pt-10 flex flex-col items-center text-center relative overflow-hidden",
-                    isLosingDay ? "bg-rose-500/90" : "bg-emerald-500/90"
+                    "p-5 pb-6 flex flex-col relative overflow-hidden",
+                    isLosingDay ? "bg-gradient-to-br from-rose-600 to-rose-900" : "bg-gradient-to-br from-emerald-500 to-emerald-800"
                 )}>
-                    {/* Logo in left corner as requested */}
-                    <div className="absolute top-4 left-4">
-                        <BadyTradesMarkLogo className={cn("h-7 w-7 opacity-80", isLosingDay ? "text-white" : "text-white")} />
+                    {/* Noise texture overlay */}
+                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/noise.png')] pointer-events-none" />
+                    
+                    {/* Top row: Logo + Date + Buttons */}
+                    <div className="flex items-start justify-between mb-3 relative z-10">
+                        <div className="flex items-center gap-2">
+                            <BadyTradesMarkLogo className="h-6 w-6 text-white/80" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {/* Replay button */}
+                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-all">
+                                <PlayCircle className="h-3 w-3" />
+                                Replay
+                            </button>
+                            {/* Add Note button */}
+                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-all">
+                                <FileText className="h-3 w-3" />
+                                Add Note
+                            </button>
+                            {/* AI Coach button */}
+                            <button
+                                onClick={handleAiClick}
+                                className="relative flex items-center justify-center h-8 w-8 bg-white/20 hover:bg-indigo-500 rounded-full transition-all group"
+                                title="AI Coach Analysis"
+                            >
+                                <BadyTradesMarkLogo className="h-4 w-4 text-white" />
+                                {!aiViewed && (
+                                    <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-rose-400 border border-white animate-pulse" />
+                                )}
+                            </button>
+                            {/* Close */}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 text-white border-0"
+                                onClick={onClose}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
 
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute top-4 right-4 h-8 w-8 rounded-full bg-muted/30 hover:bg-muted/50 text-white" 
-                        onClick={onClose}
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-1">{format(date, 'EEEE, MMMM d, yyyy')}</p>
-                    <h2 className="text-4xl font-black text-white tracking-tighter drop-shadow-md">
-                        {formatTotalCurrency(pnlForDay, currency)}
-                    </h2>
+                    {/* Date + P&L */}
+                    <div className="relative z-10">
+                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/70 mb-1">{format(date, 'EEEE, MMMM d, yyyy')}</p>
+                        <h2 className="text-3xl font-black text-white tracking-tight">
+                            {pnlForDay >= 0 ? '+' : ''}{formatTotalCurrency(pnlForDay, currency)}
+                        </h2>
+                    </div>
+
+                    {/* Stats row */}
+                    <div className="grid grid-cols-4 gap-2 mt-4 relative z-10">
+                        {[
+                            { label: 'Total Trades', value: data.trades.toString() },
+                            { label: 'Gross P&L', value: `${grossPnlTotal >= 0 ? '+' : ''}$${grossPnlTotal.toFixed(2)}` },
+                            { label: 'Winners / Losers', value: `${data.winningTrades} / ${data.losingTrades}` },
+                            { label: 'Commission', value: `$${data.commission.toFixed(2)}` },
+                        ].map((s) => (
+                            <div key={s.label} className="bg-black/20 backdrop-blur-sm rounded-xl p-2 text-center">
+                                <p className="text-[7px] font-black uppercase tracking-widest text-white/50 mb-0.5">{s.label}</p>
+                                <p className="text-xs font-black text-white">{s.value}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-2 relative z-10">
+                        {[
+                            { label: 'Win Rate', value: `${winRate.toFixed(1)}%` },
+                            { label: 'Profit Factor', value: profitFactor.toString() },
+                        ].map((s) => (
+                            <div key={s.label} className="bg-black/20 backdrop-blur-sm rounded-xl p-2 text-center">
+                                <p className="text-[7px] font-black uppercase tracking-widest text-white/50 mb-0.5">{s.label}</p>
+                                <p className="text-xs font-black text-white">{s.value}</p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
-                <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
-                    {/* Visual Chart - Added per request */}
-                    <RunningPnLChart trades={data.tradeList} className="mb-2" />
-                    {/* Primary Stats Grid */}
-                    <div className="grid grid-cols-4 gap-2">
-                        {[
-                            { label: 'ROI', value: data.tradeList[0]?.roi ? `${data.tradeList[0].roi}%` : '0.0%', color: 'emerald' },
-                            { label: 'R-MULTIPLE', value: data.tradeList[0]?.rMultiple || '0.00' },
-                            { label: 'VOLUME', value: data.tradeList[0]?.volume || '0' },
-                            { label: 'STRATEGY', value: data.tradeList[0]?.strategy || '---' }
-                        ].map((s, i) => (
-                            <div key={i} className="bg-muted/10 rounded-xl p-2 border border-border/50 text-center">
-                                <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-tighter leading-tight mb-1">{s.label}</p>
-                                <p className={cn("text-xs font-black truncate", s.color === 'emerald' ? "text-emerald-400" : "text-foreground")}>{s.value}</p>
-                            </div>
-                        ))}
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto max-h-[55vh] relative">
+                    {/* AI Coach Overlay */}
+                    {showAiCoach && (
+                        <AiCoachPanel
+                            trades={data.tradeList}
+                            date={date}
+                            onClose={() => setShowAiCoach(false)}
+                        />
+                    )}
+
+                    {/* Running P&L Chart */}
+                    <div className="px-4 pt-4">
+                        <RunningPnLChart trades={data.tradeList} className="mb-1" />
                     </div>
 
-                    {/* Trade Success Stats */}
-                    <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-muted/10 rounded-xl p-3 border border-border/50 text-center">
-                            <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">TRADES</p>
-                            <p className="text-lg font-black">{data.trades}</p>
+                    {/* Trade Table */}
+                    <div className="px-4 pb-4">
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30 mb-3">Trades</p>
+                        
+                        {/* Table Header */}
+                        <div className="grid text-[8px] font-black uppercase tracking-widest text-white/30 pb-2 border-b border-white/5 mb-1" 
+                             style={{ gridTemplateColumns: '80px 90px 55px 75px 75px 60px 90px 80px 40px' }}>
+                            <span>Open Time</span>
+                            <span>Ticker</span>
+                            <span>Side</span>
+                            <span>Instrument</span>
+                            <span>Net P&L</span>
+                            <span>Net ROI</span>
+                            <span>R-Multiple</span>
+                            <span>Strategy</span>
+                            <span>Replay</span>
                         </div>
-                        <div className="bg-muted/5 rounded-xl p-3 border border-border/50 text-center">
-                            <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">WINS</p>
-                            <p className="text-lg font-black text-emerald-400">{data.winningTrades}</p>
-                        </div>
-                        <div className="bg-rose-500/5 rounded-xl p-3 border border-border/50 text-center">
-                            <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">LOSSES</p>
-                            <p className="text-lg font-black text-rose-500">{data.losingTrades}</p>
-                        </div>
-                    </div>
 
-                    {/* Win Rate Progress Bar */}
-                    <div className="bg-muted/10 rounded-xl p-4 border border-border/50">
-                        <div className="flex justify-between items-center mb-2">
-                            <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-[0.2em]">WIN RATE</p>
-                            <p className="text-sm font-black text-foreground">{winRate.toFixed(1)}%</p>
-                        </div>
-                        <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
-                            <div 
-                                className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" 
-                                style={{ width: `${winRate}%` }} 
-                            />
-                        </div>
-                    </div>
-
-                    {/* Best Trade & Balance Section */}
-                    <div className="space-y-2">
-                         <div className="bg-emerald-500/5 rounded-xl p-4 border border-emerald-500/10 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <TrendingUp className="h-4 w-4 text-emerald-400" />
-                                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">BEST TRADE</p>
-                            </div>
-                            <p className="text-sm font-black text-emerald-400">
-                                {formatTotalCurrency(Math.max(...data.tradeList.map(t => t.netPnl), 0), currency)}
-                            </p>
-                         </div>
-
-                         <div className="bg-muted/10 rounded-2xl p-4 border border-border/50">
-                            <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">ACCOUNT BALANCE</p>
-                            <p className="text-2xl font-black text-foreground">
-                                {runningBalance ? formatTotalCurrency(runningBalance, currency) : "N/A"}
-                            </p>
-                            <p className="text-[8px] text-muted-foreground/40 mt-1 uppercase font-bold tracking-widest">Initial balance + cumulative P&L</p>
-                         </div>
-                    </div>
-
-                    {/* Detailed Trade List */}
-                    <div className="space-y-2 pb-2">
-                        <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] mb-3">TRADE BREAKDOWN</p>
-                        {data.tradeList.map((trade, i) => (
-                            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/5 border border-border/30">
-                                <div className="flex items-center gap-3">
-                                    <Badge className={cn(
-                                        "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 min-w-[36px] justify-center", 
-                                        trade.side === 'Buy' ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-500"
-                                    )}>
-                                        {trade.side.toUpperCase()}
-                                    </Badge>
-                                    <div>
-                                        <p className="text-xs font-black text-foreground leading-none mb-1">{trade.symbol}</p>
-                                        <p className="text-[8px] font-bold text-muted-foreground/40">{trade.strategy || 'N/A'}</p>
+                        {/* Trade Rows */}
+                        <div className="space-y-1">
+                            {data.tradeList.map((trade, i) => {
+                                const isWin = trade.netPnl >= 0;
+                                const rMultiple = calcRMultiple(trade.netPnl, trade.rMultiple);
+                                const roi = trade.roi ? `${parseFloat(trade.roi) >= 0 ? '+' : ''}${parseFloat(trade.roi).toFixed(2)}%` : '—';
+                                const instrument = trade.symbol || 'N/A';
+                                // Parse time
+                                let timeDisplay = '—';
+                                if (trade.execTime) {
+                                    const timePart = trade.execTime.includes(' ') ? trade.execTime.split(' ')[1] : trade.execTime;
+                                    timeDisplay = timePart?.substring(0, 8) || trade.execTime;
+                                }
+                                
+                                return (
+                                    <div
+                                        key={i}
+                                        className="grid items-center py-2 border-b border-white/5 hover:bg-white/3 transition-colors rounded-lg px-1"
+                                        style={{ gridTemplateColumns: '80px 90px 55px 75px 75px 60px 90px 80px 40px' }}
+                                    >
+                                        {/* Open Time */}
+                                        <span className="text-[10px] font-mono text-white/50">{timeDisplay}</span>
+                                        
+                                        {/* Ticker badge */}
+                                        <div>
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-[9px] font-black tracking-wide">
+                                                {trade.symbol || 'N/A'}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Side */}
+                                        <span className={cn("text-[10px] font-black uppercase", isWin ? "text-white/70" : "text-white/70")}>
+                                            {trade.side?.toUpperCase() === 'BUY' ? 'LONG' : 
+                                             trade.side?.toUpperCase() === 'SELL' ? 'SHORT' : 
+                                             trade.side?.toUpperCase() || '—'}
+                                        </span>
+                                        
+                                        {/* Instrument */}
+                                        <span className="text-[10px] text-white/50 truncate">{instrument}</span>
+                                        
+                                        {/* Net P&L */}
+                                        <span className={cn("text-[11px] font-black", isWin ? "text-emerald-400" : "text-rose-400")}>
+                                            {isWin ? '+' : ''}{formatTotalCurrency(trade.netPnl, currency)}
+                                        </span>
+                                        
+                                        {/* Net ROI */}
+                                        <span className={cn("text-[10px] font-bold", isWin ? "text-emerald-400/70" : "text-rose-400/70")}>{roi}</span>
+                                        
+                                        {/* R-Multiple */}
+                                        <span className={cn("text-[10px] font-bold", 
+                                            rMultiple === '—' ? "text-white/30" :
+                                            rMultiple.startsWith('+') ? "text-emerald-400/70" : "text-rose-400/70"
+                                        )}>{rMultiple}</span>
+                                        
+                                        {/* Strategy */}
+                                        <span className="text-[9px] text-white/30 truncate">{trade.strategy || '—'}</span>
+                                        
+                                        {/* Replay */}
+                                        <button className="flex items-center justify-center h-6 w-6 rounded-full bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white transition-all">
+                                            <PlayCircle className="h-3 w-3" />
+                                        </button>
                                     </div>
-                                </div>
-                                <p className={cn("text-xs font-black", trade.netPnl >= 0 ? "text-emerald-400" : "text-rose-500")}>
-                                    {formatTotalCurrency(trade.netPnl, currency)}
-                                </p>
-                            </div>
-                        ))}
+                                );
+                            })}
+                        </div>
+
+                        {data.tradeList.length === 0 && (
+                            <p className="text-center text-white/30 text-xs py-6">No trades to display</p>
+                        )}
+                    </div>
+
+                    {/* Footer buttons */}
+                    <div className="flex items-center justify-between px-4 pb-4 pt-2 border-t border-white/5">
+                        <Button variant="ghost" onClick={onClose} className="text-white/50 hover:text-white font-bold text-sm">
+                            Cancel
+                        </Button>
+                        <Button className="bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest px-6 rounded-xl">
+                            View Details
+                        </Button>
                     </div>
                 </div>
             </DialogContent>
         </Dialog>
     );
 }
+
+
 
 export function TradingCalendar({selectedCurrency, tradeData, commissionData, balanceOperations = [], onUploadCommissionsClick, showFeesInPnl, onShowFeesToggle, onSetInitialBalance, initialBalance}: TradingCalendarProps) {
     const { isArabic, t } = useLanguage();
