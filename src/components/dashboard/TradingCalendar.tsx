@@ -415,32 +415,32 @@ function DayDetailPopup({
                 
                 {/* Visual Header Banner */}
                 <div className={cn(
-                    "p-5 pb-6 flex flex-col relative overflow-hidden",
-                    isLosingDay ? "bg-gradient-to-br from-rose-600 to-rose-900" : "bg-gradient-to-br from-emerald-500 to-emerald-800"
+                    "p-6 pb-8 flex flex-col relative overflow-hidden",
+                    isLosingDay ? "bg-[#3f0f15]" : "bg-[#0b4831]"
                 )}>
                     {/* Noise texture overlay */}
-                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/noise.png')] pointer-events-none" />
+                    <div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/noise.png')] pointer-events-none" />
                     
                     {/* Top row: Logo + Date + Buttons */}
-                    <div className="flex items-start justify-between mb-3 relative z-10">
+                    <div className="flex items-start justify-between mb-2 relative z-10">
                         <div className="flex items-center gap-2">
-                            <BadyTradesMarkLogo className="h-6 w-6 text-white/80" />
+                            <BadyTradesMarkLogo className="h-5 w-5 text-white/80" />
                         </div>
                         <div className="flex items-center gap-2">
                             {/* Replay button */}
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-all">
+                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-all">
                                 <PlayCircle className="h-3 w-3" />
                                 Replay
                             </button>
                             {/* Add Note button */}
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-all">
+                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-all">
                                 <FileText className="h-3 w-3" />
                                 Add Note
                             </button>
                             {/* AI Coach button */}
                             <button
                                 onClick={handleAiClick}
-                                className="relative flex items-center justify-center h-8 w-8 bg-white/20 hover:bg-indigo-500 rounded-full transition-all group"
+                                className="relative flex items-center justify-center h-8 w-8 bg-white/10 hover:bg-indigo-500 rounded-full transition-all group"
                                 title="AI Coach Analysis"
                             >
                                 <BadyTradesMarkLogo className="h-4 w-4 text-white" />
@@ -452,7 +452,7 @@ function DayDetailPopup({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 text-white border-0"
+                                className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 text-white border-0"
                                 onClick={onClose}
                             >
                                 <X className="h-4 w-4" />
@@ -461,37 +461,39 @@ function DayDetailPopup({
                     </div>
 
                     {/* Date + P&L */}
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/70 mb-1">{format(date, 'EEEE, MMMM d, yyyy')}</p>
-                        <h2 className="text-3xl font-black text-white tracking-tight">
+                    <div className="relative z-10 mb-6">
+                        <p className="text-xs font-black uppercase tracking-wider text-white/80 mb-1">{format(date, 'EEEE, MMMM d, yyyy')}</p>
+                        <h2 className="text-4xl font-extrabold text-white tracking-tight">
                             {pnlForDay >= 0 ? '+' : ''}{formatTotalCurrency(pnlForDay, currency)}
                         </h2>
                     </div>
 
-                    {/* Stats row */}
-                    <div className="grid grid-cols-4 gap-2 mt-4 relative z-10">
-                        {[
-                            { label: 'Total Trades', value: data.trades.toString() },
-                            { label: 'Gross P&L', value: `${grossPnlTotal >= 0 ? '+' : ''}$${grossPnlTotal.toFixed(2)}` },
-                            { label: 'Winners / Losers', value: `${data.winningTrades} / ${data.losingTrades}` },
-                            { label: 'Commission', value: `$${data.commission.toFixed(2)}` },
-                        ].map((s) => (
-                            <div key={s.label} className="bg-black/20 backdrop-blur-sm rounded-xl p-2 text-center">
-                                <p className="text-[7px] font-black uppercase tracking-widest text-white/50 mb-0.5">{s.label}</p>
-                                <p className="text-xs font-black text-white">{s.value}</p>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mt-2 relative z-10">
-                        {[
-                            { label: 'Win Rate', value: `${winRate.toFixed(1)}%` },
-                            { label: 'Profit Factor', value: profitFactor.toString() },
-                        ].map((s) => (
-                            <div key={s.label} className="bg-black/20 backdrop-blur-sm rounded-xl p-2 text-center">
-                                <p className="text-[7px] font-black uppercase tracking-widest text-white/50 mb-0.5">{s.label}</p>
-                                <p className="text-xs font-black text-white">{s.value}</p>
-                            </div>
-                        ))}
+                    {/* Stats pills */}
+                    <div className="flex flex-col gap-2 relative z-10 max-w-lg">
+                        <div className="flex items-center gap-2">
+                            {[
+                                { label: 'Total Trades', value: data.trades.toString() },
+                                { label: 'Gross P&L', value: `${grossPnlTotal >= 0 ? '+' : ''}$${grossPnlTotal.toFixed(2)}` },
+                                { label: 'Winners / Losers', value: `${data.winningTrades} / ${data.losingTrades}` },
+                                { label: 'Commission', value: `$${data.commission.toFixed(2)}` },
+                            ].map((s) => (
+                                <div key={s.label} className="flex-1 bg-black/20 rounded-2xl py-2 px-3 text-center flex flex-col justify-center min-w-[90px]">
+                                    <p className="text-[8px] font-black uppercase tracking-widest text-white/50 mb-0.5">{s.label}</p>
+                                    <p className="text-xs font-black text-white">{s.value}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-2 max-w-[200px]">
+                            {[
+                                { label: 'Win Rate', value: `${winRate.toFixed(1)}%` },
+                                { label: 'Profit Factor', value: profitFactor.toString() },
+                            ].map((s) => (
+                                <div key={s.label} className="flex-1 bg-black/20 rounded-2xl py-2 px-3 text-center flex flex-col justify-center">
+                                    <p className="text-[8px] font-black uppercase tracking-widest text-white/50 mb-0.5">{s.label}</p>
+                                    <p className="text-xs font-black text-white">{s.value}</p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
