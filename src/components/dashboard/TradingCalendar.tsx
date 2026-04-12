@@ -17,6 +17,7 @@ import {
   compareAsc,
   startOfWeek,
 } from 'date-fns';
+import { useRouter } from 'next/navigation';
 import { BadyLogo } from './BadyLogo';
 import html2canvas from 'html2canvas';
 import { saveAs } from 'file-saver';
@@ -548,8 +549,9 @@ function DayDetailPopup({
                                 return (
                                     <div
                                         key={i}
-                                        className="grid items-center py-2 border-b border-white/5 hover:bg-white/3 transition-colors rounded-lg px-1"
+                                        className="grid items-center py-2 border-b border-white/5 hover:bg-white/3 transition-colors rounded-lg px-1 cursor-pointer group"
                                         style={{ gridTemplateColumns: '80px 90px 55px 75px 75px 60px 90px 80px 40px' }}
+                                        onClick={() => window.location.href = `/trades/${trade.id || 'N-A'}`}
                                     >
                                         {/* Open Time */}
                                         <span className="text-[10px] font-mono text-white/50">{timeDisplay}</span>
@@ -607,8 +609,11 @@ function DayDetailPopup({
                         <Button variant="ghost" onClick={onClose} className="text-white/50 hover:text-white font-bold text-sm">
                             Cancel
                         </Button>
-                        <Button className="bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest px-6 rounded-xl">
-                            View Details
+                        <Button 
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest px-6 rounded-xl"
+                            onClick={() => window.location.href = `/trades?date=${format(date, 'yyyy-MM-dd')}`}
+                        >
+                            View Day Details
                         </Button>
                     </div>
                 </div>

@@ -24,9 +24,12 @@ interface TradePoint {
 interface RunningPnLChartProps {
   trades: any[];
   className?: string;
+  chartId?: string;
 }
 
-export function RunningPnLChart({ trades, className }: RunningPnLChartProps) {
+export function RunningPnLChart({ trades, className, chartId }: RunningPnLChartProps) {
+  const containerId = useMemo(() => chartId || `chart-${Math.random().toString(36).substr(2, 9)}`, [chartId]);
+  
   const chartData = useMemo(() => {
     if (!trades || trades.length === 0) return [];
 
@@ -62,11 +65,9 @@ export function RunningPnLChart({ trades, className }: RunningPnLChartProps) {
       });
 
       // Add some intermediate "movement" points if the trade lasted longer than a minute
-      // This is a high-fidelity simulation of price action for visual impact as requested
       const durationMs = closeTime.getTime() - openTime.getTime();
       if (durationMs > 60000) {
           const midTime = new Date(openTime.getTime() + durationMs / 2);
-          // Simulate some volatility: go 20% further or pull back
           const volatility = pnl > 0 ? pnl * 1.2 : pnl * 0.8; 
           points.push({
               time: format(midTime, 'HH:mm:ss'),
@@ -96,29 +97,32 @@ export function RunningPnLChart({ trades, className }: RunningPnLChartProps) {
     return points;
   }, [trades]);
 
-  const minPnL = chartData.length > 0 ? Math.min(...chartData.map(d => d.pnl)) : 0;
-  const maxPnL = chartData.length > 0 ? Math.max(...chartData.map(d => d.pnl)) : 0;
+  const minPnLValue = chartData.length > 0 ? Math.min(...chartData.map(d => d.pnl)) : 0;
+  const maxPnLValue = chartData.length > 0 ? Math.max(...chartData.map(d => d.pnl)) : 0;
   
-  // ensure we have at least SOME vertical space so margin isn't 0
-  const adjustedMin = Math.min(minPnL, minPnL > 0 ? 0 : -10);
-  const adjustedMax = Math.max(maxPnL, maxPnL < 0 ? 0 : 10);
-  const margin = (adjustedMax - adjustedMin) * 0.2;
+  // Adjusted baseline for the zero line
+  const adjustedMin = Math.min(minPnLValue, 0);
+  const adjustedMax = Math.max(maxPnLValue, 0);
+  
+  // Domain with padding
+  const vMargin = Math.max((adjustedMax - adjustedMin) * 0.1, 10);
+  const domainMin = adjustedMin - vMargin;
+  const domainMax = adjustedMax + vMargin;
 
-  const domainMin = adjustedMin - margin;
-  const domainMax = adjustedMax + margin;
-
+  // offset for the zero line (inverse for SVG coordinates)
   const off = useMemo(() => {
-    if (domainMax <= 0) return 0;
-    if (domainMin >= 0) return 100; // using percentages for standard CSS
-
-    return (domainMax / (domainMax - domainMin)) * 100;
+    const totalRange = domainMax - domainMin;
+    if (totalRange <= 0) return 0.5;
+    return (domainMax / totalRange) * 100;
   }, [domainMax, domainMin]);
 
-  let determinedFillType: 'allPositive' | 'allNegative' | 'mixed' | 'neutral' = 'neutral';
-  if (minPnL >= 0 && maxPnL > 0) determinedFillType = 'allPositive';
-  else if (maxPnL <= 0 && minPnL < 0) determinedFillType = 'allNegative';
-  else if (minPnL < 0 && maxPnL > 0) determinedFillType = 'mixed';
-  else if (minPnL === 0 && maxPnL === 0) determinedFillType = 'neutral';
+  const lastValue = chartData.length > 0 ? chartData[chartData.length - 1].pnl : 0;
+
+  // Determine fill strategy
+  let fillType: 'positive' | 'negative' | 'mixed' = 'mixed';
+  if (minPnLValue >= 0 && maxPnLValue > 0) fillType = 'positive';
+  else if (maxPnLValue <= 0 && minPnLValue < 0) fillType = 'negative';
+  else if (minPnLValue < 0 && maxPnLValue > 0) fillType = 'mixed';
 
   if (chartData.length === 0) return null;
 
@@ -128,46 +132,19 @@ export function RunningPnLChart({ trades, className }: RunningPnLChartProps) {
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
           <defs>
-              {determinedFillType === 'allPositive' && (
-                <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.6}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
-                </linearGradient>
-              )}
-              {determinedFillType === 'allNegative' && (
-                <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.6}/>
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
-                </linearGradient>
-              )}
-              {determinedFillType === 'mixed' && (
-                <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.6} /> 
-                  <stop offset={`${off}%`} stopColor="#10b981" stopOpacity={0.1} />
-                  <stop offset={`${off}%`} stopColor="#ef4444" stopOpacity={0.1} />
-                  <stop offset="100%" stopColor="#ef4444" stopOpacity={0.6} />
-                </linearGradient>
-              )}
-              {(determinedFillType === 'neutral') && (
-                 <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--muted))" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="hsl(var(--muted))" stopOpacity={0.1}/>
-                 </linearGradient>
-               )}
+            {/* Split Gradient based on the zero line offset */}
+            <linearGradient id={`${containerId}-splitColor`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset={0} stopColor="#10b981" stopOpacity={0.4} />
+              <stop offset={`${off}%`} stopColor="#10b981" stopOpacity={0.05} />
+              <stop offset={`${off}%`} stopColor="#ef4444" stopOpacity={0.05} />
+              <stop offset={1} stopColor="#ef4444" stopOpacity={0.4} />
+            </linearGradient>
             
-            <linearGradient id="lineColor" x1="0" y1="0" x2="0" y2="1">
-                {(determinedFillType === 'allPositive' || determinedFillType === 'neutral') && (
-                  <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                )}
-                {determinedFillType === 'allNegative' && (
-                  <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
-                )}
-                {determinedFillType === 'mixed' && (
-                  <>
-                    <stop offset={`${Math.max(0, off - 0.1)}%`} stopColor="#10b981" stopOpacity={1} />
-                    <stop offset={`${Math.min(100, off + 0.1)}%`} stopColor="#ef4444" stopOpacity={1} />
-                  </>
-                )}
+            <linearGradient id={`${containerId}-lineColor`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset={0} stopColor="#10b981" stopOpacity={1} />
+              <stop offset={`${off}%`} stopColor="#10b981" stopOpacity={1} />
+              <stop offset={`${off}%`} stopColor="#ef4444" stopOpacity={1} />
+              <stop offset={1} stopColor="#ef4444" stopOpacity={1} />
             </linearGradient>
           </defs>
           <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="currentColor" className="text-border/30" />
@@ -198,9 +175,9 @@ export function RunningPnLChart({ trades, className }: RunningPnLChartProps) {
           <Area
             type="monotone"
             dataKey="pnl"
-            stroke="url(#lineColor)"
+            stroke={`url(#${containerId}-lineColor)`}
             strokeWidth={3}
-            fill="url(#splitColor)"
+            fill={`url(#${containerId}-splitColor)`}
             animationDuration={1500}
             baseValue={0}
           />

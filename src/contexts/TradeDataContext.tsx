@@ -590,30 +590,41 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
     await addTradesToAccount(newTradesInput, selectedAccountId || 'demo-account');
   }, [addTradesToAccount, selectedAccountId]);
 
-  const clearTrades = useCallback(async () => {
-    setIsLoading(true);
-    if (selectedAccountId === 'demo-account') {
-      setTradeData([]);
-      setIsLoading(false);
-      return;
-    }
-    if (supabase && user) {
+  // --- Update Trade Annotations ---
+  const updateTrade = useCallback(async (tradeId: string, updates: Partial<CsvTradeData>) => {
+    // 1. Optimistic UI update
+    setTradeData(prev => prev.map(t => 
+      (t.id?.toString() === tradeId || t.ticket?.toString() === tradeId || t.Ticket?.toString() === tradeId) 
+        ? { ...t, ...updates } 
+        : t
+    ));
+
+    // 2. Persist to Supabase if logged in
+    if (supabase && user && !isDemoMode) {
       try {
-        let delQuery = supabase.from('trades').delete().eq('user_id', user.id);
-        if (selectedAccountId) delQuery = delQuery.eq('account_id', selectedAccountId);
-        const { error } = await delQuery;
+        const dbUpdates: any = {};
+        if (updates.Note !== undefined) dbUpdates.note = updates.Note;
+        if (updates.Tags !== undefined) dbUpdates.tags = updates.Tags;
+        if (updates.Mistakes !== undefined) dbUpdates.mistakes = updates.Mistakes;
+        if (updates.Setups !== undefined) dbUpdates.setups = updates.Setups;
+        if (updates.BadyScore !== undefined) dbUpdates.bady_score = updates.BadyScore;
+        // In case there are other fields we want to persist
+        if (updates.Strategy !== undefined) dbUpdates.strategy = updates.Strategy;
+
+        const { error } = await supabase
+          .from('trades')
+          .update(dbUpdates)
+          .eq('id', tradeId)
+          .eq('user_id', user.id);
+
         if (error) throw error;
-        toast({ title: 'Trades Cleared', description: 'All trades have been cleared.' });
-        setTradeData([]);
-      } catch (error: any) {
-        console.error("Error clearing trades:", error);
-        toast({ title: 'Error Clearing Trades', description: error.message, variant: 'destructive' });
+      } catch (err: any) {
+        console.error("Failed to update trade in Supabase:", err);
+        // We could revert optimistic update here if desired, but usually better to just show an error toast
+        toast({ title: "Sync failed", description: "Your changes were made locally but couldn't be saved to the database.", variant: "destructive" });
       }
-    } else {
-        setTradeData([]);
     }
-    setIsLoading(false);
-  }, [user, selectedAccountId, toast]);
+  }, [user, isDemoMode, toast]);
 
   return (
     <TradeDataContext.Provider value={{
@@ -621,6 +632,7 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
       createAccount, updateAccountInitialBalance,
       addTrades, addTradesToAccount, clearTrades,
       deleteAccount, clearTradesForAccount,
+      updateTrade, // Exporting the new update method
       isLoading, setIsLoading, isDemoMode
     }}>
       {children}

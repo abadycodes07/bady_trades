@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format, parse, isValid } from 'date-fns';
+import { useRouter } from 'next/navigation';
 import type { CsvTradeData as DashboardCsvTradeData } from '@/app/(app)/dashboard/page'; // Import from dashboard
 
 interface Currency {
@@ -32,6 +33,7 @@ interface RecentTradesTableProps {
 }
 
 export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableProps) {
+    const router = useRouter();
     const processedTrades = React.useMemo(() => {
         return data
             .map((trade, index) => {
@@ -137,7 +139,11 @@ export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableP
                                         </TableRow>
                                     )}
                                     {processedTrades.map((trade) => (
-                                        <TableRow key={trade.id} className="hover:bg-muted/5 border-border transition-colors duration-200">
+                                        <TableRow 
+                                            key={trade.id} 
+                                            className="hover:bg-muted/5 border-border transition-colors duration-200 cursor-pointer active:scale-[0.99] transition-transform"
+                                            onClick={() => router.push(`/trades/${trade.id}`)}
+                                        >
                                             <TableCell className="px-4 py-3 text-[11px] font-black text-muted-foreground/60">{format(trade.originalDate, 'MMM dd, yyyy')}</TableCell>
                                             <TableCell className="px-4 py-3 text-[11px] font-black text-foreground">{trade.Symbol}</TableCell>
                                             <TableCell className="px-4 py-3 text-right">{formatPnL(trade.netPnLValue)}</TableCell>

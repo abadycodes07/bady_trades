@@ -159,13 +159,13 @@ export default function DayViewPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] rounded-md text-white/80 text-[10px] font-bold tracking-wider transition-none">
+                                        <button onClick={() => window.location.href = `/trades/${day.trades[0]?.id}`} className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] rounded-md text-white/80 text-[10px] font-bold tracking-wider transition-none">
                                             <PlayCircle className="h-3 w-3 text-indigo-400" /> Replay
                                         </button>
-                                        <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] rounded-md text-white/80 text-[10px] font-bold tracking-wider transition-none">
+                                        <button onClick={() => window.location.href = `/trades/${day.trades[0]?.id}`} className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] rounded-md text-white/80 text-[10px] font-bold tracking-wider transition-none">
                                             <FileText className="h-3 w-3 text-white/50" /> Add Note
                                         </button>
-                                        <button className="h-7 w-7 rounded-md bg-[#1a1a1a] hover:bg-[#222] flex items-center justify-center ml-2">
+                                        <button onClick={() => window.location.href = `/trades/${day.trades[0]?.id}`} className="h-7 w-7 rounded-md bg-[#1a1a1a] hover:bg-[#222] flex items-center justify-center ml-2">
                                             <BadyTradesMarkLogo className="h-3 w-3 text-indigo-400" />
                                         </button>
                                     </div>
@@ -175,7 +175,7 @@ export default function DayViewPage() {
                                 <div className="px-5 pt-3 pb-5 flex flex-col md:flex-row gap-8 bg-[#121212]">
                                     {/* Left Side: Chart */}
                                     <div className="flex-[1.5] w-full min-w-0">
-                                        <RunningPnLChart trades={day.trades} className="h-[160px] mt-2 mb-1" />
+                                        <RunningPnLChart trades={day.trades} className="h-[160px] mt-2 mb-1" chartId={day.dateKey} />
                                     </div>
                                     
                                     {/* Right Side: Stats */}
