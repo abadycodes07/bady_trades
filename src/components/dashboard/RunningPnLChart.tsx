@@ -117,14 +117,15 @@ export function RunningPnLChart({ trades, className, chartId }: RunningPnLChartP
   }, [domainMax, domainMin]);
 
   const lastValue = chartData.length > 0 ? chartData[chartData.length - 1].pnl : 0;
-
-  // Determine fill strategy
-  let fillType: 'positive' | 'negative' | 'mixed' = 'mixed';
-  if (minPnLValue >= 0 && maxPnLValue > 0) fillType = 'positive';
-  else if (maxPnLValue <= 0 && minPnLValue < 0) fillType = 'negative';
-  else if (minPnLValue < 0 && maxPnLValue > 0) fillType = 'mixed';
+  const isPositiveDay = lastValue >= 0;
 
   if (chartData.length === 0) return null;
+
+  // Use semantic colors
+  const winColor = 'var(--win-green)';
+  const lossColor = 'var(--loss-red)';
+  const winOpacity = '0.4';
+  const lossOpacity = '0.4';
 
   return (
     <div className={cn("w-full h-[200px] mt-4", className)}>
@@ -134,20 +135,20 @@ export function RunningPnLChart({ trades, className, chartId }: RunningPnLChartP
           <defs>
             {/* Split Gradient based on the zero line offset */}
             <linearGradient id={`${containerId}-splitColor`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset={0} stopColor="#10b981" stopOpacity={0.4} />
-              <stop offset={`${off}%`} stopColor="#10b981" stopOpacity={0.05} />
-              <stop offset={`${off}%`} stopColor="#ef4444" stopOpacity={0.05} />
-              <stop offset={1} stopColor="#ef4444" stopOpacity={0.4} />
+              <stop offset={0} stopColor={winColor} stopOpacity={winOpacity} />
+              <stop offset={`${off}%`} stopColor={winColor} stopOpacity={0.05} />
+              <stop offset={`${off}%`} stopColor={lossColor} stopOpacity={0.05} />
+              <stop offset={1} stopColor={lossColor} stopOpacity={lossOpacity} />
             </linearGradient>
             
             <linearGradient id={`${containerId}-lineColor`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset={0} stopColor="#10b981" stopOpacity={1} />
-              <stop offset={`${off}%`} stopColor="#10b981" stopOpacity={1} />
-              <stop offset={`${off}%`} stopColor="#ef4444" stopOpacity={1} />
-              <stop offset={1} stopColor="#ef4444" stopOpacity={1} />
+              <stop offset={0} stopColor={winColor} stopOpacity={1} />
+              <stop offset={`${off}%`} stopColor={winColor} stopOpacity={1} />
+              <stop offset={`${off}%`} stopColor={lossColor} stopOpacity={1} />
+              <stop offset={1} stopColor={lossColor} stopOpacity={1} />
             </linearGradient>
           </defs>
-          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="currentColor" className="text-border/30" />
+          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="currentColor" className="text-border/20" />
           <XAxis 
             dataKey="time" 
             axisLine={false} 
@@ -166,20 +167,28 @@ export function RunningPnLChart({ trades, className, chartId }: RunningPnLChartP
             domain={[domainMin, domainMax]}
           />
           <Tooltip 
-            contentStyle={{ backgroundColor: 'hsl(var(--background))', borderRadius: '12px', border: '1px solid hsl(var(--border))', fontSize: '12px', fontWeight: 'bold' }}
-            itemStyle={{ color: 'hsl(var(--foreground))' }}
-            labelClassName="text-muted-foreground text-[10px] uppercase font-black"
-            formatter={(value: number) => [`$${value.toFixed(2)}`, 'Cumulative P&L']}
+            contentStyle={{ 
+              backgroundColor: 'var(--stats-card)', 
+              borderRadius: '8px', 
+              border: '1px solid var(--stats-card-border)', 
+              fontSize: '11px', 
+              fontWeight: 'bold',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}
+            itemStyle={{ color: 'var(--foreground)' }}
+            labelClassName="text-muted-foreground text-[9px] uppercase font-black mb-1"
+            formatter={(value: number) => [`$${value.toLocaleString()}`, 'P&L']}
           />
-          <ReferenceLine y={0} stroke="currentColor" className="text-border/50" strokeWidth={1} />
+          <ReferenceLine y={0} stroke="currentColor" className="text-border/30" strokeWidth={1} />
           <Area
             type="monotone"
             dataKey="pnl"
-            stroke={`url(#${containerId}-lineColor)`}
-            strokeWidth={3}
+            stroke={isPositiveDay ? winColor : lossColor} // Make main line reflect overall status
+            strokeWidth={2.5}
             fill={`url(#${containerId}-splitColor)`}
             animationDuration={1500}
             baseValue={0}
+            activeDot={{ r: 4, stroke: 'var(--background)', strokeWidth: 2 }}
           />
         </AreaChart>
       </ResponsiveContainer>
