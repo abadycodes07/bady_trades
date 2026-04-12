@@ -26,7 +26,7 @@ interface TradeDataContextType {
   updateAccountInitialBalance: (accountId: string, amount: number) => Promise<void>;
   addTrades: (newTrades: CsvTradeData[], accountId?: string) => void;
   addTradesToAccount: (newTrades: CsvTradeData[], accountId: string) => Promise<void>;
-  clearTrades: () => void;
+  clearTrades: () => Promise<void>;
   deleteAccount: (accountId: string) => Promise<void>;
   clearTradesForAccount: (accountId: string) => Promise<void>;
   isLoading: boolean;
@@ -411,6 +411,11 @@ export const TradeDataProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: 'Error clearing trades', description: error.message, variant: 'destructive' });
     }
   }, [user, selectedAccountId, toast]);
+
+  const clearTrades = useCallback(async () => {
+    if (!selectedAccountId) return;
+    await clearTradesForAccount(selectedAccountId);
+  }, [selectedAccountId, clearTradesForAccount]);
 
   // --- Update Account Balance ---
   const updateAccountInitialBalance = useCallback(async (accountId: string, amount: number) => {
