@@ -109,10 +109,16 @@ export function RunningPnLChart({ trades, className }: RunningPnLChartProps) {
 
   const off = useMemo(() => {
     if (domainMax <= 0) return 0;
-    if (domainMin >= 0) return 1;
+    if (domainMin >= 0) return 100; // using percentages for standard CSS
 
-    return domainMax / (domainMax - domainMin);
+    return (domainMax / (domainMax - domainMin)) * 100;
   }, [domainMax, domainMin]);
+
+  let determinedFillType: 'allPositive' | 'allNegative' | 'mixed' | 'neutral' = 'neutral';
+  if (minPnL >= 0 && maxPnL > 0) determinedFillType = 'allPositive';
+  else if (maxPnL <= 0 && minPnL < 0) determinedFillType = 'allNegative';
+  else if (minPnL < 0 && maxPnL > 0) determinedFillType = 'mixed';
+  else if (minPnL === 0 && maxPnL === 0) determinedFillType = 'neutral';
 
   if (chartData.length === 0) return null;
 
@@ -122,13 +128,46 @@ export function RunningPnLChart({ trades, className }: RunningPnLChartProps) {
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
           <defs>
-            <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-              <stop offset={off} stopColor="#10b981" stopOpacity={0.3} />
-              <stop offset={off} stopColor="#ef4444" stopOpacity={0.3} />
-            </linearGradient>
+              {determinedFillType === 'allPositive' && (
+                <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.6}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+                </linearGradient>
+              )}
+              {determinedFillType === 'allNegative' && (
+                <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.6}/>
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
+                </linearGradient>
+              )}
+              {determinedFillType === 'mixed' && (
+                <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.6} /> 
+                  <stop offset={`${off}%`} stopColor="#10b981" stopOpacity={0.1} />
+                  <stop offset={`${off}%`} stopColor="#ef4444" stopOpacity={0.1} />
+                  <stop offset="100%" stopColor="#ef4444" stopOpacity={0.6} />
+                </linearGradient>
+              )}
+              {(determinedFillType === 'neutral') && (
+                 <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--muted))" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="hsl(var(--muted))" stopOpacity={0.1}/>
+                 </linearGradient>
+               )}
+            
             <linearGradient id="lineColor" x1="0" y1="0" x2="0" y2="1">
-                <stop offset={off} stopColor="#10b981" stopOpacity={1} />
-                <stop offset={off} stopColor="#ef4444" stopOpacity={1} />
+                {(determinedFillType === 'allPositive' || determinedFillType === 'neutral') && (
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                )}
+                {determinedFillType === 'allNegative' && (
+                  <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
+                )}
+                {determinedFillType === 'mixed' && (
+                  <>
+                    <stop offset={`${Math.max(0, off - 0.1)}%`} stopColor="#10b981" stopOpacity={1} />
+                    <stop offset={`${Math.min(100, off + 0.1)}%`} stopColor="#ef4444" stopOpacity={1} />
+                  </>
+                )}
             </linearGradient>
           </defs>
           <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="currentColor" className="text-border/30" />

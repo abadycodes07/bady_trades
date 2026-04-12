@@ -181,13 +181,15 @@ export default function DayViewPage() {
                                     {/* Right Side: Stats */}
                                     <div className="flex-1 min-w-[280px] grid grid-cols-2 gap-y-7 gap-x-4 pt-4 shrink-0">
                                         <div className="flex flex-col gap-1.5">
-                                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Total Trades</p>
-                                            <p className="text-[16px] font-bold text-white tracking-tight">{day.trades.length}</p>
-                                            <div className="mt-3 flex flex-col gap-1">
-                                                 <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Win Rate</p>
-                                                 <p className="text-[12px] font-bold text-white">{winRate.toFixed(2)}%</p>
-                                            </div>
+                                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Total Trades ({day.trades.length})</p>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                           {day.trades.map((t, idx) => (
+                                              <button key={idx} onClick={() => window.location.href = `/trades/${t.id}`} className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] rounded-md text-white/80 text-[10px] font-bold tracking-wider transition-none">
+                                                  <PlayCircle className="h-3 w-3 text-indigo-400" /> {t.Symbol}
+                                              </button>
+                                           ))}
                                         </div>
+                                    </div>
                                         <div className="flex flex-col gap-1.5">
                                             <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Gross P&L</p>
                                             <p className={cn("text-[16px] font-bold tracking-tight", day.grossPnl >= 0 ? "text-white" : "text-white")}>

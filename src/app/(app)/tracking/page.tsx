@@ -281,7 +281,11 @@ export default function TradeViewPage() {
                                 const status = isWin ? 'WIN' : (isLoss ? 'LOSS' : 'BE');
                                 
                                 return (
-                                    <TableRow key={trade.id || i} className="border-b border-white/[0.02] hover:bg-white/[0.02] transition-colors border-transparent cursor-pointer">
+                                    <TableRow 
+                                        key={trade.id || i} 
+                                        className="border-b border-white/[0.02] hover:bg-white/[0.02] transition-colors border-transparent cursor-pointer"
+                                        onClick={() => window.location.href = `/trades/${trade.id}`}
+                                    >
                                         <TableCell className="text-center pl-4 pt-4 pb-4"><input type="checkbox" className="rounded-[4px] bg-white/5 border-white/10 accent-indigo-600 w-3.5 h-3.5 appearance-none checked:bg-indigo-600 relative overflow-hidden" /></TableCell>
                                         <TableCell className="text-[11px] font-mono text-white/60 pt-4 pb-4">
                                             {format(trade.parsedDate, 'MM/dd/yyyy')}
