@@ -182,7 +182,7 @@ export function RunningPnLChart({ trades, className, chartId }: RunningPnLChartP
             labelClassName="text-muted-foreground text-[9px] uppercase font-black mb-1"
             formatter={(value: number) => [`$${value.toLocaleString()}`, 'P&L']}
           />
-          <ReferenceLine y={0} stroke="rgba(156, 163, 175, 0.5)" strokeWidth={1.5} strokeDasharray="none" />
+          <ReferenceLine y={0} stroke="rgba(156, 163, 175, 0.8)" strokeWidth={2} strokeDasharray="none" />
           <Area
             type="monotone"
             dataKey="pnl"

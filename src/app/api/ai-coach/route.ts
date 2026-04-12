@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.GOOGLE_GENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({
-        assessment: "AI Coach is not configured. Please set GOOGLE_GENAI_API_KEY in your environment.",
-        tips: ["Configure your Google AI API key to enable AI coaching feedback."],
-        warnings: [],
+        assessment: "AI Coach is not configured. please add GOOGLE_GENAI_API_KEY to your Railway environment variables.",
+        tips: ["Go to Railway Dashboard > Variables > New Variable", "Add GOOGLE_GENAI_API_KEY with your key from Google AI Studio."],
+        warnings: ["AI features are currently disabled."],
         score: null,
       });
     }

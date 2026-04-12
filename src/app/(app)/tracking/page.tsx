@@ -59,11 +59,12 @@ export default function TradeViewPage() {
                  }
              }
 
-             const netPnl = parseFloat((trade.NetPnL || (trade as any)['Net Proceeds']) || '0');
+             const netPnl = parseFloat((trade.NetPnL || trade['Net Proceeds'] || trade['P&L']) || '0');
              const grossPnl = parseFloat((trade.GrossPnl || trade.NetPnL) || '0');
-             const rAmount = parseFloat((trade.ROI) || '0');
-             const closePrice = trade.ClosePrice || (trade as any)['Exit Price'] || (trade as any)['Close Price'];
-             const entryPrice = trade.Price || (trade as any)['Entry Price'];
+             const roi = parseFloat((trade.ROI || trade['ROI %']) || '0');
+             const rMultiple = parseFloat((trade.RMultiple || trade['R-Multiple'] || trade['R']) || '0');
+             const closePrice = trade.ClosePrice || trade['Exit Price'] || trade['Close Price'];
+             const entryPrice = trade.Price || trade['Entry Price'];
              
              totalPnl += netPnl;
              if (netPnl > 0) {
@@ -80,7 +81,8 @@ export default function TradeViewPage() {
                  ...trade,
                  parsedDate: parsedDate || new Date(0),
                  net_pnl: netPnl,
-                 roi_safe: rAmount,
+                 roi_safe: roi,
+                 r_multiple: rMultiple,
                  close_price_safe: closePrice,
                  entry_price_safe: entryPrice,
                  open_time: trade.OpenTime || `${format(parsedDate || new Date(), 'yyyy-MM-dd')} ${trade['Exec Time'] || '00:00:00'}`,
@@ -115,7 +117,7 @@ export default function TradeViewPage() {
     const arcEndDegrees = (winRateVal / 100) * 180;
 
     if (isLoading) {
-        return <div className="container mx-auto p-6 text-center text-muted-foreground">Loading trade view...</div>;
+        return <div className="container mx-auto p-6 text-center text-muted-foreground transition-all">Loading Bady trades...</div>;
     }
 
     return (
@@ -123,17 +125,17 @@ export default function TradeViewPage() {
             {/* Header Area */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hidden md:flex hover:bg-[var(--stats-card-hover)]"><ChevronLeft className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-[var(--stats-card-hover)]"><ChevronLeft className="h-4 w-4" /></Button>
                     <h1 className="text-xl font-bold text-[var(--foreground)] tracking-tight">Trade View</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" className="bg-[var(--stats-card)] border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)] text-[var(--foreground)]/80 hidden md:flex items-center gap-2 h-9 text-xs">
+                    <Button variant="outline" className="bg-[var(--stats-card)] border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)] text-[var(--foreground)]/80 flex items-center gap-2 h-9 text-xs">
                         <Filter className="h-3 w-3 text-muted-foreground" /> Filters
                     </Button>
-                    <Button variant="outline" className="bg-[var(--stats-card)] border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)] text-[var(--foreground)]/80 hidden md:flex items-center gap-2 h-9 text-xs">
+                    <Button variant="outline" className="bg-[var(--stats-card)] border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)] text-[var(--foreground)]/80 flex items-center gap-2 h-9 text-xs">
                         <CalendarIcon className="h-3 w-3 text-muted-foreground" /> Date range
                     </Button>
-                    <Button variant="outline" className="bg-[var(--stats-card)] border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)] text-[var(--foreground)]/80 hidden md:flex items-center gap-2 h-9 text-xs flex-1 sm:flex-initial justify-between">
+                    <Button variant="outline" className="bg-[var(--stats-card)] border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)] text-[var(--foreground)]/80 flex items-center gap-2 h-9 text-xs">
                        All accounts
                     </Button>
                 </div>
@@ -142,105 +144,100 @@ export default function TradeViewPage() {
             {/* Top 4 Metrics Widgets */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {/* 1. Net Cumulative P&L */}
-                <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between p-5 h-[120px] shadow-sm">
-                    <div className="flex items-center text-muted-foreground">
+                <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between p-5 h-[130px] shadow-sm group hover:border-[var(--win-green)]/30 transition-all overflow-hidden relative">
+                    <div className="flex items-center text-muted-foreground relative z-10">
                         <p className="text-[11px] font-bold tracking-wide">Net cumulative P&L</p>
                         <Info className="h-3 w-3 ml-2 opacity-50" />
                     </div>
-                    <div className="flex items-end justify-between gap-4 h-full">
-                        <h2 className="text-[26px] font-bold tracking-tight mb-1 text-[var(--foreground)]">
-                            {stats?.totalPnl && stats.totalPnl < 0 ? '-' : ''}${Math.abs(stats?.totalPnl || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <div className="flex items-center justify-between gap-4 h-full relative z-10">
+                        <h2 className={cn("text-[26px] font-bold tracking-tight mb-1", (stats?.totalPnl || 0) >= 0 ? "text-[var(--win-green)]" : "text-[var(--loss-red)]")}>
+                            {(stats?.totalPnl || 0) < 0 ? '-' : ''}${Math.abs(stats?.totalPnl || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </h2>
-                        <div className="flex-1 max-w-[120px] -mb-2">
-                             <RunningPnLChart trades={sortedTrades} className="h-10 mt-0 mx-0 opacity-100" />
+                        <div className="flex-1 max-w-[140px] h-12">
+                             <RunningPnLChart trades={sortedTrades} className="h-full w-full opacity-60" />
                         </div>
                     </div>
+                    <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[var(--win-green)]/10 to-transparent"></div>
                 </div>
 
                 {/* 2. Profit Factor */}
-                <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between p-5 h-[120px] shadow-sm">
+                <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between p-5 h-[130px] shadow-sm hover:border-[var(--win-green)]/30 transition-all">
                      <div className="flex items-center text-muted-foreground">
                          <p className="text-[11px] font-bold tracking-wide">Profit factor</p>
                          <Info className="h-3 w-3 ml-2 opacity-50" />
                      </div>
-                     <div className="flex items-end justify-between h-full pt-1">
-                         <h2 className="text-[26px] font-bold text-[var(--foreground)] tracking-tight mb-0.5">{stats?.profitFactor.toFixed(2) || '0.00'}</h2>
-                         <div className="relative w-12 h-12 mb-0.5 pointer-events-none">
+                     <div className="flex items-center justify-between h-full pt-1">
+                         <h2 className="text-[26px] font-bold text-[var(--foreground)] tracking-tight">{stats?.profitFactor.toFixed(2) || '0.00'}</h2>
+                         <div className="relative w-14 h-14 mb-0.5">
                              <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                                 {/* Background Ring Red */}
                                  <path
                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                                      fill="none"
                                      stroke="var(--loss-red)"
                                      strokeWidth="3.5"
-                                     opacity="0.2"
+                                     opacity="0.1"
                                  />
-                                 {/* Foreground Ring Green */}
                                  <path
                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                                      fill="none"
                                      stroke="var(--win-green)"
                                      strokeWidth="3.5"
                                      strokeDasharray={pfStrokeDasharray}
+                                     strokeLinecap="round"
+                                     className="transition-all duration-1000 ease-out"
                                  />
                              </svg>
+                             <div className="absolute inset-0 flex items-center justify-center">
+                                 <div className="w-1.5 h-1.5 rounded-full bg-[var(--win-green)]/40 shadow-[0_0_8px_var(--win-green)]"></div>
+                             </div>
                          </div>
                      </div>
                 </div>
 
                 {/* 3. Trade Win % */}
-                <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between p-5 h-[120px] shadow-sm">
+                <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between p-5 h-[130px] shadow-sm hover:border-[var(--win-green)]/30 transition-all">
                      <div className="flex items-center text-muted-foreground mb-1">
                           <p className="text-[11px] font-bold tracking-wide">Trade win %</p>
                          <Info className="h-3 w-3 ml-2 opacity-50" />
                      </div>
-                     <div className="flex items-end justify-between relative mt-auto h-full">
+                     <div className="flex items-center justify-between relative mt-auto h-full">
                          <h2 className="text-[26px] font-bold text-[var(--foreground)] tracking-tight mb-0.5">{stats?.winRate.toFixed(1) || '0.0'}%</h2>
                          
-                         {/* Half Circle Gauge */}
-                         <div className="absolute right-0 bottom-0.5 w-[72px] flex flex-col items-center">
-                             <svg viewBox="0 0 100 50" className="w-[60px] h-[30px] overflow-visible">
-                                 {/* Background Rail */}
-                                 <path d={describeArc(50, 45, 45, 0, 180)} fill="none" stroke="var(--loss-red)" strokeWidth="10" strokeLinecap="round" opacity="0.2"/>
-                                 {/* Foreground Arc */}
-                                 <path d={describeArc(50, 45, 45, 0, arcEndDegrees)} fill="none" stroke="var(--win-green)" strokeWidth="10" strokeLinecap="round" />
+                         <div className="absolute right-0 bottom-2 w-[80px] flex flex-col items-center">
+                             <svg viewBox="0 0 100 50" className="w-[70px] h-[35px] overflow-visible">
+                                 <path d={describeArc(50, 45, 42, 0, 180)} fill="none" stroke="var(--foreground)" strokeWidth="8" strokeLinecap="round" opacity="0.05"/>
+                                 <path d={describeArc(50, 45, 42, 0, arcEndDegrees)} fill="none" stroke="var(--win-green)" strokeWidth="8" strokeLinecap="round" className="transition-all duration-1000 ease-out" />
                              </svg>
-                             <div className="flex w-[60px] justify-between text-[8px] font-bold mt-2">
-                                <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[var(--win-green)]"></span><span className="text-[var(--win-green)]">{stats?.winCount || 0}</span></div>
-                                <div className="text-muted-foreground/30">{stats?.totalTrades || 0}</div>
-                                <div className="flex items-center gap-1.5 text-[var(--loss-red)]"><span className="text-[var(--loss-red)]">{stats?.lossCount || 0}</span><span className="w-1.5 h-1.5 rounded-full bg-[var(--loss-red)]"></span></div>
+                             <div className="flex w-full justify-between text-[8px] font-black mt-2 px-1">
+                                <span className="text-[var(--win-green)] font-black">{stats?.winCount || 0}</span>
+                                <span className="text-muted-foreground/30">{stats?.totalTrades || 0}</span>
+                                <span className="text-[var(--loss-red)] font-black">{stats?.lossCount || 0}</span>
                              </div>
                          </div>
                      </div>
                 </div>
 
                 {/* 4. Avg Win/Loss Trade */}
-                <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between pt-5 px-5 pb-[22px] h-[120px] shadow-sm">
+                <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between pt-5 px-5 pb-5 h-[130px] shadow-sm hover:border-[var(--win-green)]/30 transition-all">
                      <div className="flex items-center text-muted-foreground">
                           <p className="text-[11px] font-bold tracking-wide">Avg win/loss trade</p>
                          <Info className="h-3 w-3 ml-2 opacity-50" />
                      </div>
                      <div className="mt-auto w-full">
-                        <div className="flex items-baseline justify-between mb-2">
+                        <div className="flex items-baseline justify-between mb-3">
                             <h2 className="text-[26px] font-bold text-[var(--foreground)] tracking-tight leading-none">{stats?.rewardToRisk.toFixed(2) || '0.00'}</h2>
-                            <div className="flex gap-4 text-[10px] font-bold">
-                                <span className="text-[var(--win-green)]">${Math.abs(stats?.avgWin || 0).toFixed(1)}</span>
-                                <span className="text-[var(--loss-red)]">-${Math.abs(stats?.avgLoss || 0).toFixed(1)}</span>
+                            <div className="flex gap-4 text-[9px] font-black uppercase tracking-tighter">
+                                <span className="text-[var(--win-green)]">${Math.abs(stats?.avgWin || 0).toFixed(0)}</span>
+                                <span className="text-[var(--loss-red)]">-${Math.abs(stats?.avgLoss || 0).toFixed(0)}</span>
                             </div>
                         </div>
-                        {/* Thin Bi-directional Bar */}
-                        <div className="w-full h-[3px] flex rounded-full overflow-hidden bg-[var(--foreground)]/5 relative">
-                            {/* Visual Middle Divider */}
+                        <div className="w-full h-1.5 flex rounded-full overflow-hidden bg-muted/10 relative border border-border/10">
                             <div className="absolute left-[50%] top-0 bottom-0 w-[1px] bg-[var(--background)] z-10"></div>
-                            
-                            {/* Win Ratio - Maps to left side */}
                             <div className="h-full flex-1 flex justify-end">
-                                <div className="h-full bg-[var(--win-green)] transition-all" style={{ width: `${Math.min(100, Math.max(0, (stats?.avgWin || 0) / ((stats?.avgWin || 1) + (stats?.avgLoss || 1)) * 100))}%` }}></div>
+                                <div className="h-full bg-[var(--win-green)] transition-all duration-1000" style={{ width: `${Math.min(100, Math.max(0, (stats?.avgWin || 0) / ((stats?.avgWin || 1) + (stats?.avgLoss || 1)) * 100))}%` }}></div>
                             </div>
-                            
-                            {/* Loss Ratio - Maps to right side */}
                             <div className="h-full flex-1 flex justify-start">
-                                <div className="h-full bg-[var(--loss-red)] transition-all" style={{ width: `${Math.min(100, Math.max(0, (stats?.avgLoss || 0) / ((stats?.avgLoss || 1) + (stats?.avgWin || 1)) * 100))}%` }}></div>
+                                <div className="h-full bg-[var(--loss-red)] transition-all duration-1000" style={{ width: `${Math.min(100, Math.max(0, (stats?.avgLoss || 0) / ((stats?.avgLoss || 1) + (stats?.avgWin || 1)) * 100))}%` }}></div>
                             </div>
                         </div>
                      </div>
@@ -248,31 +245,33 @@ export default function TradeViewPage() {
             </div>
 
             {/* Main Trades Table Card */}
-            <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-xl flex flex-col overflow-hidden pb-4 shadow-sm">
-                <div className="flex items-center justify-between p-5 border-b border-[var(--stats-card-border)]">
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-[var(--foreground)] rounded-[4px] bg-[var(--stats-card-hover)]"><Settings className="h-3.5 w-3.5" /></Button>
+            <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-xl flex flex-col overflow-hidden pb-4 shadow-xl">
+                <div className="flex items-center justify-between p-5 border-b border-[var(--stats-card-border)] bg-muted/5">
+                    <div className="flex items-center gap-3">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[var(--foreground)] rounded-md bg-[var(--stats-card-hover)]/40"><Settings className="h-4 w-4" /></Button>
+                        <div className="h-4 w-[1px] bg-[var(--stats-card-border)] mx-1"></div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Trades Journal</p>
                     </div>
-                    <Button className="bg-[var(--stats-card-hover)] hover:brightness-110 text-[var(--foreground)]/80 h-7 text-[11px] font-medium px-4 rounded-[4px] border border-[var(--stats-card-border)] transition-none shadow-sm">
+                    <Button variant="outline" className="bg-[var(--stats-card-hover)] hover:brightness-110 text-[var(--foreground)]/60 h-8 text-[11px] font-black uppercase tracking-widest px-4 rounded-md border-[var(--stats-card-border)] transition-all">
                         Bulk actions <ChevronDown className="h-3 w-3 opacity-50 ml-2" />
                     </Button>
                 </div>
                 
-                <div className="overflow-x-auto min-h-[500px]">
+                <div className="overflow-x-auto min-h-[600px]">
                     <Table>
                         <TableHeader>
-                            <TableRow className="border-b border-[var(--stats-card-border)] hover:bg-transparent">
+                            <TableRow className="border-b border-[var(--stats-card-border)] hover:bg-transparent bg-muted/10">
                                 <TableHead className="w-12 text-center pl-4"><input type="checkbox" className="rounded-sm bg-[var(--stats-card-hover)] border-[var(--stats-card-border)]" /></TableHead>
-                                <TableHead className="text-[10px] font-bold text-muted-foreground tracking-wide">Open date</TableHead>
-                                <TableHead className="text-[10px] font-bold text-muted-foreground tracking-wide">Symbol</TableHead>
-                                <TableHead className="text-[10px] font-bold text-muted-foreground tracking-wide text-center">Status</TableHead>
-                                <TableHead className="text-[10px] font-bold text-muted-foreground tracking-wide">Close date</TableHead>
-                                <TableHead className="text-[10px] font-bold text-muted-foreground tracking-wide text-center">Entry price</TableHead>
-                                <TableHead className="text-[10px] font-bold text-muted-foreground tracking-wide text-center">Exit price</TableHead>
-                                <TableHead className="text-[10px] font-bold text-muted-foreground tracking-wide text-right">Net P&L</TableHead>
-                                <TableHead className="text-[10px] font-bold text-muted-foreground tracking-wide text-right">Net ROI</TableHead>
-                                <TableHead className="text-[10px] font-bold text-muted-foreground tracking-wide text-center">Bady Insights</TableHead>
-                                <TableHead className="text-[10px] font-bold text-muted-foreground tracking-wide text-center">Bady Scale</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4">Open date</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4">Symbol</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">Status</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4">Close date</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">Entry price</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">Exit price</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-right">Net P&L</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-right">Net ROI</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">Bady Insights</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">Bady Scale</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -281,71 +280,76 @@ export default function TradeViewPage() {
                                 const isLoss = trade.net_pnl < 0;
                                 const status = isWin ? 'WIN' : (isLoss ? 'LOSS' : 'BE');
                                 
+                                // Bady Scale Math 
+                                const pnlRatio = Math.min(100, Math.max(0, (trade.net_pnl / (stats?.avgWin || 1)) * 50 + 50));
+
                                 return (
                                     <TableRow 
                                         key={trade.id || i} 
-                                        className="border-b border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)]/30 transition-colors border-transparent cursor-pointer"
+                                        className="group border-b border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)] transition-all cursor-pointer"
                                         onClick={() => window.location.href = `/trades/${trade.id}`}
                                     >
-                                        <TableCell className="text-center pl-4 pt-4 pb-4"><input type="checkbox" className="rounded-[4px] bg-[var(--stats-card-hover)] border-[var(--stats-card-border)] accent-indigo-600 w-3.5 h-3.5 appearance-none checked:bg-indigo-600 relative overflow-hidden" /></TableCell>
-                                        <TableCell className="text-[11px] font-mono text-[var(--foreground)]/60 pt-4 pb-4">
+                                        <TableCell className="text-center pl-4 py-4"><input type="checkbox" className="rounded-sm bg-[var(--stats-card-hover)] border-[var(--stats-card-border)] accent-[var(--win-green)]" /></TableCell>
+                                        <TableCell className="text-[11px] font-mono text-[var(--foreground)]/60 py-4">
                                             {format(trade.parsedDate, 'MM/dd/yyyy')}
                                         </TableCell>
-                                        <TableCell className="text-[11px] font-bold text-[var(--foreground)] pt-4 pb-4">{trade.Symbol || 'N/A'}</TableCell>
-                                        <TableCell className="text-center pt-4 pb-4">
+                                        <TableCell className="text-[12px] font-black text-[var(--foreground)] py-4 tracking-tight">{trade.Symbol || 'N/A'}</TableCell>
+                                        <TableCell className="text-center py-4">
                                             <span className={cn(
-                                                "text-[9px] font-bold uppercase px-2 py-0.5 rounded-[4px] inline-block min-w-[45px]",
-                                                isWin ? "text-[var(--win-green)]" : 
-                                                isLoss ? "text-[var(--loss-red)]" : 
-                                                "text-muted-foreground"
+                                                "text-[9px] font-black uppercase px-2 py-1 rounded-[4px] border inline-block min-w-[50px] tracking-widest",
+                                                isWin ? "text-[var(--win-green)] border-[var(--win-green)]/20 bg-[var(--win-green)]/5" : 
+                                                isLoss ? "text-[var(--loss-red)] border-[var(--loss-red)]/20 bg-[var(--loss-red)]/5" : 
+                                                "text-muted-foreground border-border/20 bg-muted/10"
                                             )}>{status}</span>
                                         </TableCell>
-                                        <TableCell className="text-[11px] font-mono text-[var(--foreground)]/60 pt-4 pb-4">
+                                        <TableCell className="text-[11px] font-mono text-[var(--foreground)]/60 py-4">
                                             {format(trade.parsedDate, 'MM/dd/yyyy')}
                                         </TableCell>
-                                        <TableCell className="text-[11px] font-medium text-[var(--foreground)]/60 text-center pt-4 pb-4">{trade.entry_price_safe ? `$${parseFloat(trade.entry_price_safe).toLocaleString()}` : '-'}</TableCell>
-                                        <TableCell className="text-[11px] font-medium text-[var(--foreground)]/60 text-center pt-4 pb-4">{trade.close_price_safe ? `$${parseFloat(trade.close_price_safe).toLocaleString()}` : '-'}</TableCell>
-                                        <TableCell className={cn("text-[11px] font-bold text-right pt-4 pb-4", isWin ? "text-[var(--win-green)]" : "text-[var(--loss-red)]")}>
+                                        <TableCell className="text-[11px] font-bold text-[var(--foreground)]/50 text-center py-4">{trade.entry_price_safe ? `$${parseFloat(trade.entry_price_safe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : '-'}</TableCell>
+                                        <TableCell className="text-[11px] font-bold text-[var(--foreground)]/50 text-center py-4">{trade.close_price_safe ? `$${parseFloat(trade.close_price_safe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : '-'}</TableCell>
+                                        <TableCell className={cn("text-[12px] font-black text-right py-4", isWin ? "text-[var(--win-green)]" : "text-[var(--loss-red)]")}>
                                             {isWin ? '+' : ''}${Math.abs(trade.net_pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </TableCell>
-                                        <TableCell className={cn("text-[11px] font-medium text-right pt-4 pb-4", isWin ? "text-[var(--win-green)]/80" : "text-[var(--loss-red)]/80")}>
+                                        <TableCell className={cn("text-[11px] font-black text-right py-4 px-2", isWin ? "text-[var(--win-green)]/70" : "text-[var(--loss-red)]/70")}>
                                             {typeof trade.roi_safe === 'number' ? `${trade.roi_safe > 0 ? '+' : ''}${trade.roi_safe.toFixed(2)}%` : '-'}
                                         </TableCell>
-                                        <TableCell className="text-center pt-4 pb-4 text-[11px] text-[var(--foreground)]/20">-</TableCell>
-                                        <TableCell className="text-center pt-4 pb-4 text-[11px] text-[var(--foreground)]/20">-</TableCell>
+                                        <TableCell className="text-center py-4 text-[11px] font-black text-[var(--foreground)]/60">
+                                            {trade.r_multiple ? `${trade.r_multiple} R` : '-'}
+                                        </TableCell>
+                                        <TableCell className="text-center py-4 px-6 min-w-[120px]">
+                                            <div className="w-full h-1 bg-muted/20 rounded-full overflow-hidden relative group-hover:bg-muted/40 transition-all">
+                                                <div 
+                                                    className={cn("h-full transition-all duration-700", isWin ? "bg-[var(--win-green)]" : "bg-[var(--loss-red)]")} 
+                                                    style={{ width: `${pnlRatio}%` }}
+                                                />
+                                                <div className="absolute left-[50%] top-0 h-full w-[1px] bg-background"></div>
+                                            </div>
+                                        </TableCell>
                                     </TableRow>
                                 )
                             })}
-                            {paginatedTrades.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={11} className="text-center py-24 text-muted-foreground/30 text-sm border-b-0">
-                                        No trades matching the criteria.
-                                    </TableCell>
-                                </TableRow>
-                            )}
                         </TableBody>
                     </Table>
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="flex items-center justify-between px-6 pt-6 pb-2 text-[11px] font-medium text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                        <span>Trades per page</span>
-                        <div className="bg-[var(--stats-card-hover)] border border-[var(--stats-card-border)] py-1 px-2 rounded-sm flex items-center gap-1.5 text-[var(--foreground)]/80 cursor-pointer">
+                <div className="flex items-center justify-between px-6 pt-6 pb-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground/40">
+                    <div className="flex items-center gap-4">
+                        <span>Trades per page:</span>
+                        <div className="bg-[var(--stats-card-hover)] border border-[var(--stats-card-border)] py-1.5 px-3 rounded-md flex items-center gap-3 text-[var(--foreground)]/80 cursor-pointer hover:bg-muted/20 transition-all">
                             {tradesPerPage} <ChevronDown className="h-3 w-3 opacity-50" />
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-4">
-                        <span>{Math.min(1 + (currentPage - 1) * tradesPerPage, sortedTrades.length)} – {Math.min(currentPage * tradesPerPage, sortedTrades.length)} of {sortedTrades.length} trades</span>
-                        <div className="flex items-center gap-2">
-                            <span className="px-2">{currentPage} of {totalPages || 1} pages</span>
-                            <div className="flex gap-1 ml-2">
-                                <Button variant="ghost" size="icon" className="h-6 w-6 bg-[var(--stats-card-hover)] hover:brightness-110 text-muted-foreground rounded-sm hover:text-[var(--foreground)]" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                                    <ChevronLeft className="h-3 w-3" />
+                    <div className="flex items-center gap-6">
+                        <span>{Math.min(1 + (currentPage - 1) * tradesPerPage, sortedTrades.length)} – {Math.min(currentPage * tradesPerPage, sortedTrades.length)} of {sortedTrades.length}</span>
+                        <div className="flex items-center gap-4">
+                            <div className="flex gap-2">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 bg-muted/10 hover:bg-muted/20 text-muted-foreground rounded-md transition-all" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                                    <ChevronLeft className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 bg-primary text-primary-foreground rounded-sm shadow-sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
-                                    <ChevronRight className="h-3 w-3" />
+                                <Button variant="ghost" size="icon" className="h-8 w-8 bg-[var(--win-green)]/10 hover:bg-[var(--win-green)]/20 text-[var(--win-green)] rounded-md transition-all shadow-sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
+                                    <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>
                         </div>

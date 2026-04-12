@@ -722,11 +722,11 @@ export default function DashboardPage() {
       const badyScore = (badyScoreComponents.reduce((a, b) => a + b, 0) / badyScoreComponents.length) * 100;
 
       switch (key) {
-        case 'balance-card': return <MetricCard title={t("Current Balance")} value={convertCurrency(actualBalance)} iconType="info" className="h-full border-border/20 shadow-xl"/>;
+        case 'balance-card': return <MetricCard title={t("Current Balance")} value={convertCurrency(actualBalance)} color={actualBalance >= (initialBalance || 0) ? 'green' : 'red'} iconType="info" className="h-full border-border/20 shadow-xl"/>;
         case 'net-pnl': return <MetricCard title={t("Total Net P&L")} value={convertCurrency(netPnlCardValue)} color={netPnlCardValue >= 0 ? 'green' : 'red'} iconType="info" className="h-full"/>;
-        case 'profit-factor': return <MetricCard title={t("Profit Factor")} value={isFinite(Number(profitFactor)) ? Number(profitFactor).toFixed(2) : '∞'} iconType="progressCircle" progressValue={Math.min(100, (isFinite(Number(profitFactor)) ? Number(profitFactor) : 0) / 3 * 100)} color={Number(profitFactor) >= 1.5 ? 'green' : 'red'} className="h-full"/>;
+        case 'profit-factor': return <MetricCard title={t("Profit Factor")} value={isFinite(Number(profitFactor)) ? Number(profitFactor).toFixed(2) : '0.00'} iconType="progressCircle" progressValue={Math.min(100, (isFinite(Number(profitFactor)) ? Number(profitFactor) : 0) / 3 * 100)} color={Number(profitFactor) >= 1 ? 'green' : 'red'} className="h-full"/>;
         case 'trade-win': return <MetricCard title={t("Trade Win %")} value={`${winRate.toFixed(1)}%`} iconType="gauge" gaugeData={{ wins: tradeData.filter(t => parseFloat(t.NetPnL || '0') > 0).length, losses: tradeData.filter(t => parseFloat(t.NetPnL || '0') < 0).length, breakeven: tradeData.filter(t => parseFloat(t.NetPnL || '0') === 0).length }} color={winRate >= 50 ? 'green' : 'red'} className="h-full"/>;
-        case 'avg-win-loss': return <MetricCard title={t("Avg win/loss trade")} value={avgWinLossData.ratio} iconType="bar" barData={avgWinLossData} color="neutral" selectedCurrency={selectedCurrency} className="h-full"/>;
+        case 'avg-win-loss': return <MetricCard title={t("Avg win/loss trade")} value={avgWinLossData.ratio} iconType="bar" barData={avgWinLossData} color={Number(avgWinLossData.ratio) >= 1 ? 'green' : 'red'} selectedCurrency={selectedCurrency} className="h-full"/>;
         case 'max-drawdown':
           let formattedDrawdownDate = '';
           if (maxDrawdownData.date) {
