@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlayCircle, FileText, ChevronRight, ChevronDown, Calendar as CalendarIcon, Settings, Filter } from 'lucide-react';
 import { format, parse, isValid, compareDesc } from 'date-fns';
@@ -30,12 +29,6 @@ export default function DayViewPage() {
         setExpandedDays(prev => ({ ...prev, [dateKey]: !prev[dateKey] }));
     };
 
-    const expandedAll = () => {
-        const all: Record<string, boolean> = {};
-        daySummaries.forEach(s => all[s.dateKey] = true);
-        setExpandedDays(all);
-    }
-
     const { daySummaries, totalPnl } = useMemo(() => {
         if (!tradeData || tradeData.length === 0) return { daySummaries: [], totalPnl: 0 };
 
@@ -46,7 +39,6 @@ export default function DayViewPage() {
             const rawDate = trade.Date || trade['T/D'];
             if (!rawDate) return;
 
-            // Attempt to parse Date robustly
             let parsedDate: Date | undefined;
             const dateFormatsToTry = ['yyyy-MM-dd', 'MM/dd/yy', 'MM/dd/yyyy', 'M/d/yy', 'M/dd/yyyy', 'MM/d/yyyy'];
             for (const fmt of dateFormatsToTry) {
@@ -97,7 +89,6 @@ export default function DayViewPage() {
             tPnl += netPnl;
         });
 
-        // Sort days descending
         const sorted = Object.values(groups).sort((a, b) => compareDesc(a.date, b.date));
         return { daySummaries: sorted, totalPnl: tPnl };
     }, [tradeData]);
@@ -107,148 +98,134 @@ export default function DayViewPage() {
     }
 
     return (
-        <div className="container mx-auto max-w-7xl pt-4 pb-20 px-6">
+        <div className="container mx-auto max-w-7xl pt-4 pb-20 px-6 font-sans">
             {/* Header Area */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">Day View</h1>
-                    <div className="flex bg-zinc-900 rounded-lg p-1">
-                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-md h-7 px-4">Day</Button>
-                        <Button size="sm" variant="ghost" className="text-white/50 hover:text-white rounded-md h-7 px-4">Week</Button>
+                    <h1 className="text-xl font-bold text-white tracking-tight">Day View</h1>
+                    <div className="flex bg-[#121212] rounded-md p-1 border border-white/[0.05]">
+                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-[4px] h-6 px-3 text-[11px] font-medium transition-none">Day</Button>
+                        <Button size="sm" variant="ghost" className="text-white/50 hover:text-white rounded-[4px] h-6 px-3 text-[11px] font-medium transition-none">Week</Button>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" className="bg-zinc-900 border-white/5 hover:bg-zinc-800 hidden md:flex items-center gap-2 h-9">
-                        <Filter className="h-4 w-4 text-white/50" /> Filters
+                    <Button variant="outline" className="bg-[#121212] border-white/5 hover:bg-[#1a1a1a] text-white/80 hidden md:flex items-center gap-2 h-8 text-[11px] rounded-md">
+                        <Filter className="h-3 w-3 text-white/50" /> Filters
                     </Button>
-                    <Button variant="outline" className="bg-zinc-900 border-white/5 hover:bg-zinc-800 hidden md:flex items-center gap-2 h-9">
-                        <CalendarIcon className="h-4 w-4 text-white/50" /> Date range
+                    <Button variant="outline" className="bg-[#121212] border-white/5 hover:bg-[#1a1a1a] text-white/80 hidden md:flex items-center gap-2 h-8 text-[11px] rounded-md">
+                        <CalendarIcon className="h-3 w-3 text-white/50" /> Date range
                     </Button>
-                    <Button className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-9 ml-2 rounded-lg gap-2">
-                        <span className="relative flex h-2 w-2">
+                    <Button className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-8 ml-2 rounded-md gap-2 text-[11px]">
+                        <span className="relative flex h-1.5 w-1.5">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-40"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
                         </span>
                         Start my day
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 bg-zinc-900 border border-white/5 rounded-lg text-white/50 hover:text-white ml-1">
-                        <Settings className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/5 rounded-md text-white/40 hover:text-white ml-2">
+                        <Settings className="h-3 w-3" />
                     </Button>
                 </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-6">
-                {/* Main Content: List of Days */}
-                <div className="flex-1 space-y-4">
-                    {daySummaries.length === 0 && (
-                        <div className="text-center py-20 bg-zinc-900/50 rounded-2xl border border-white/5 border-dashed">
-                            <p className="text-white/40">No structured day data available.</p>
-                        </div>
-                    )}
+            <div className="flex flex-col gap-3">
+                {daySummaries.length === 0 && (
+                    <div className="text-center py-20 bg-[#121212] rounded-xl">
+                        <p className="text-white/40 text-sm">No structured day data available.</p>
+                    </div>
+                )}
 
-                    {daySummaries.map((day) => {
-                        const isExpanded = expandedDays[day.dateKey];
-                        const isWin = day.netPnl >= 0;
-                        const winRate = day.trades.length > 0 ? (day.wins / day.trades.length) * 100 : 0;
-                        
-                        // calc profit factor for day
-                        const grossWins = day.trades.filter(t => t.net_pnl > 0).reduce((s, t) => s + t.net_pnl, 0);
-                        const grossLosses = Math.abs(day.trades.filter(t => t.net_pnl < 0).reduce((s, t) => s + t.net_pnl, 0));
-                        const profitFactor = grossLosses === 0 ? (grossWins > 0 ? '∞' : '0.00') : (grossWins / grossLosses).toFixed(2);
+                {daySummaries.map((day) => {
+                    const isExpanded = expandedDays[day.dateKey];
+                    const isWin = day.netPnl >= 0;
+                    const winRate = day.trades.length > 0 ? (day.wins / day.trades.length) * 100 : 0;
+                    
+                    const grossWins = day.trades.filter(t => t.net_pnl > 0).reduce((s, t) => s + t.net_pnl, 0);
+                    const grossLosses = Math.abs(day.trades.filter(t => t.net_pnl < 0).reduce((s, t) => s + t.net_pnl, 0));
+                    const profitFactor = grossLosses === 0 ? (grossWins > 0 ? '∞' : '0.00') : (grossWins / grossLosses).toFixed(2);
 
-                        return (
-                            <Card key={day.dateKey} className="overflow-hidden border-white/5 bg-zinc-950 shadow-lg">
-                                {/* Day Header (Clickable) */}
-                                <div 
-                                    className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors border-b border-transparent data-[state=open]:border-white/5"
-                                    data-state={isExpanded ? 'open' : 'closed'}
-                                    onClick={() => toggleDay(day.dateKey)}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        {isExpanded ? <ChevronDown className="h-4 w-4 text-white/50" /> : <ChevronRight className="h-4 w-4 text-white/50" />}
-                                        <div className="flex items-baseline gap-2">
-                                            <h3 className="text-base font-bold text-white">{format(day.date, 'E, MMM dd, yyyy')}</h3>
-                                            <span className="text-white/50 text-sm">•</span>
-                                            <span className={cn(
-                                                "text-sm font-bold tracking-tight",
-                                                isWin ? "text-emerald-400" : "text-rose-400"
-                                            )}>
-                                                Net P&L {isWin ? '+' : '-'}${Math.abs(day.netPnl).toFixed(2)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 border border-white/5 hover:bg-zinc-800 rounded-full text-white text-[10px] font-bold uppercase tracking-widest transition-all">
-                                            <PlayCircle className="h-3 w-3 text-indigo-400" /> Replay
-                                        </button>
-                                        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 border border-white/5 hover:bg-zinc-800 rounded-full text-white text-[10px] font-bold uppercase tracking-widest transition-all">
-                                            <FileText className="h-3 w-3 text-white/50" /> Add Note
-                                        </button>
-                                        <button className="h-7 w-7 rounded-full bg-indigo-600/20 flex items-center justify-center hover:bg-indigo-600/40 border border-indigo-500/20 ml-2">
-                                            <BadyTradesMarkLogo className="h-3.5 w-3.5 text-indigo-400" />
-                                        </button>
+                    return (
+                        <div key={day.dateKey} className="bg-[#101010] rounded-xl overflow-hidden shadow-none border-b border-r border-[#1a1a1a]">
+                            {/* Day Header (Clickable) */}
+                            <div 
+                                className={cn("px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-[#141414] transition-none border-b border-transparent", isExpanded ? "border-[#1a1a1a] border-b" : "")}
+                                onClick={() => toggleDay(day.dateKey)}
+                            >
+                                <div className="flex items-center gap-3">
+                                    {isExpanded ? <ChevronDown className="h-4 w-4 text-white/40" /> : <ChevronRight className="h-4 w-4 text-white/40" />}
+                                    <div className="flex items-baseline gap-2">
+                                        <h3 className="text-sm font-bold text-white tracking-tight">{format(day.date, 'E, MMM dd, yyyy')}</h3>
+                                        <span className="text-white/30 text-[10px] mx-1">•</span>
+                                        <span className={cn(
+                                            "text-xs font-bold tracking-tight",
+                                            isWin ? "text-[#0F8A5D]" : "text-[#D73A49]"
+                                        )}>
+                                            Net P&L {isWin ? '+' : '-'}${Math.abs(day.netPnl).toFixed(2)}
+                                        </span>
                                     </div>
                                 </div>
+                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a]  hover:bg-[#222] rounded-md text-white/80 text-[9px] font-bold uppercase tracking-wider transition-none">
+                                        <PlayCircle className="h-3 w-3 text-indigo-400" /> Replay
+                                    </button>
+                                    <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] rounded-md text-white/80 text-[9px] font-bold uppercase tracking-wider transition-none">
+                                        <FileText className="h-3 w-3 text-white/50" /> Add Note
+                                    </button>
+                                    <button className="h-7 w-7 rounded-sm bg-[#1a1a1a] hover:bg-[#222] flex items-center justify-center ml-2">
+                                        <BadyTradesMarkLogo className="h-3 w-3 text-indigo-400" />
+                                    </button>
+                                </div>
+                            </div>
 
-                                {/* Expandable Body */}
-                                {isExpanded && (
-                                    <div className="p-5 flex flex-col md:flex-row gap-8 bg-black/20">
-                                        {/* Left Side: Chart */}
-                                        <div className="flex-1 min-w-[300px]">
-                                            <RunningPnLChart trades={day.trades} className="h-[120px] mt-0" />
+                            {/* Expandable Body */}
+                            {isExpanded && (
+                                <div className="px-5 pt-3 pb-5 flex flex-col md:flex-row gap-8 bg-[#101010]">
+                                    {/* Left Side: Chart */}
+                                    <div className="flex-1 min-w-[300px]">
+                                        <RunningPnLChart trades={day.trades} className="h-[140px] mt-0" />
+                                    </div>
+                                    
+                                    {/* Right Side: Stats */}
+                                    <div className="flex-[1.5] grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4 pt-4 shrink-0 max-w-[600px] mr-auto">
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-[10px] font-bold text-white/40 tracking-wider">TOTAL TRADES</p>
+                                            <p className="text-[15px] font-bold text-white">{day.trades.length}</p>
+                                            <div className="mt-2 flex flex-col gap-0.5">
+                                                 <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Win Rate</p>
+                                                 <p className="text-[11px] font-bold text-white">{winRate.toFixed(2)}%</p>
+                                            </div>
                                         </div>
-                                        
-                                        {/* Right Side: Stats */}
-                                        <div className="flex-[1.5] grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4 pt-2">
-                                            <div>
-                                                <p className="text-[10px] font-medium text-white/50 mb-1">Total Trades</p>
-                                                <p className="text-lg font-bold text-white">{day.trades.length}</p>
-                                                <p className="text-xs font-medium text-white/30 mt-1">Win Rate {winRate.toFixed(2)}%</p>
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-[10px] font-bold text-white/40 tracking-wider">GROSS P&L</p>
+                                            <p className={cn("text-[15px] font-bold", day.grossPnl >= 0 ? "text-white" : "text-white")}>
+                                                ${day.grossPnl.toFixed(2)}
+                                            </p>
+                                            <div className="mt-2 flex flex-col gap-0.5">
+                                                 <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Volume</p>
+                                                 <p className="text-[11px] font-bold text-white">{day.volume > 0 ? day.volume : '0.00'}</p>
                                             </div>
-                                            <div>
-                                                <p className="text-[10px] font-medium text-white/50 mb-1">Gross P&L</p>
-                                                <p className="text-lg font-bold text-white">${day.grossPnl.toFixed(2)}</p>
-                                                <p className="text-xs font-medium text-white/30 mt-1">Volume {day.volume > 0 ? day.volume : 'N/A'}</p>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-[10px] font-bold text-white/40 tracking-wider">WINNERS / LOSERS</p>
+                                            <p className="text-[15px] font-bold text-white">{day.wins} / {day.losses}</p>
+                                            <div className="mt-2 flex flex-col gap-0.5">
+                                                 <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Profit Factor</p>
+                                                 <p className="text-[11px] font-bold text-white">{profitFactor}</p>
                                             </div>
-                                            <div>
-                                                <p className="text-[10px] font-medium text-white/50 mb-1">Winners / Losers</p>
-                                                <p className="text-lg font-bold text-white">{day.wins} / {day.losses}</p>
-                                                <p className="text-xs font-medium text-white/30 mt-1">Profit Factor {profitFactor}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-medium text-white/50 mb-1">Commissions</p>
-                                                <p className="text-lg font-bold text-white">${day.commissions.toFixed(2)}</p>
-                                                <p className="text-xs font-medium text-transparent mt-1">-</p> {/* Spacer */}
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-[10px] font-bold text-white/40 tracking-wider">COMMISSIONS</p>
+                                            <p className="text-[15px] font-bold text-white">${day.commissions.toFixed(2)}</p>
+                                            <div className="mt-2 flex flex-col gap-0.5">
+                                                {/* empty spacing block */}
                                             </div>
                                         </div>
                                     </div>
-                                )}
-                            </Card>
-                        );
-                    })}
-                </div>
-
-                {/* Right Column: Mini Calendar Placeholder */}
-                <div className="w-[300px] hidden lg:block shrink-0">
-                    <Card className="bg-zinc-950 border-white/5 sticky top-6 shadow-xl">
-                        <div className="p-4 flex items-center justify-between border-b border-white/5">
-                            <h3 className="font-bold text-white">{format(new Date(), 'MMMM yyyy')}</h3>
-                            <div className="flex gap-1">
-                                <Button variant="ghost" size="icon" className="h-6 w-6"><ChevronRight className="h-4 w-4 rotate-180" /></Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6"><ChevronRight className="h-4 w-4" /></Button>
-                            </div>
+                                </div>
+                            )}
                         </div>
-                        <div className="p-4 flex flex-col items-center py-10 text-center space-y-4">
-                            <div className="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center">
-                                <CalendarIcon className="h-5 w-5 text-white/30" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold text-white mb-1">Filter by Date</p>
-                                <p className="text-xs text-white/50 max-w-[200px]">Interactive mini calendar syncing with your day view will go here.</p>
-                            </div>
-                        </div>
-                    </Card>
-                </div>
+                    );
+                })}
             </div>
         </div>
     );

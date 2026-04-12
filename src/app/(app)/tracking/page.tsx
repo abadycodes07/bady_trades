@@ -14,7 +14,7 @@ import { BadyTradesMarkLogo } from '@/components/icons/badytrades-mark-logo';
 export default function TradeViewPage() {
     const { tradeData, isLoading } = useTradeData();
     const [currentPage, setCurrentPage] = useState(1);
-    const tradesPerPage = 15;
+    const tradesPerPage = 50;
 
     const { sortedTrades, stats } = useMemo(() => {
         if (!tradeData || tradeData.length === 0) return { sortedTrades: [], stats: null };
@@ -86,18 +86,21 @@ export default function TradeViewPage() {
     }
 
     return (
-        <div className="container mx-auto max-w-[1400px] pt-4 pb-20 px-6">
+        <div className="container mx-auto max-w-[1500px] pt-4 pb-20 px-6 font-sans">
             {/* Header Area */}
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-white">Trade View</h1>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" className="bg-zinc-900 border-white/5 hover:bg-zinc-800 hidden md:flex items-center gap-2 h-9">
-                        <Filter className="h-4 w-4 text-white/50" /> Filters
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hidden md:flex"><ChevronLeft className="h-4 w-4" /></Button>
+                    <h1 className="text-xl font-bold text-white tracking-tight">Trade View</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" className="bg-[#121212] border-white/5 hover:bg-[#1a1a1a] text-white/80 hidden md:flex items-center gap-2 h-9 text-xs">
+                        <Filter className="h-3 w-3 text-white/50" /> Filters
                     </Button>
-                    <Button variant="outline" className="bg-zinc-900 border-white/5 hover:bg-zinc-800 hidden md:flex items-center gap-2 h-9">
-                        <CalendarIcon className="h-4 w-4 text-white/50" /> Date range
+                    <Button variant="outline" className="bg-[#121212] border-white/5 hover:bg-[#1a1a1a] text-white/80 hidden md:flex items-center gap-2 h-9 text-xs">
+                        <CalendarIcon className="h-3 w-3 text-white/50" /> Date range
                     </Button>
-                    <Button variant="outline" className="bg-zinc-900 border-white/5 hover:bg-zinc-800 hidden md:flex items-center gap-2 h-9">
+                    <Button variant="outline" className="bg-[#121212] border-white/5 hover:bg-[#1a1a1a] text-white/80 hidden md:flex items-center gap-2 h-9 text-xs">
                        All accounts
                     </Button>
                 </div>
@@ -106,79 +109,75 @@ export default function TradeViewPage() {
             {/* Top 4 Metrics Widgets */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {/* 1. Net Cumulative P&L */}
-                <Card className="bg-zinc-950/60 border-white/5 shadow-md flex flex-col justify-between p-4 h-32">
-                    <div className="flex items-center justify-between">
-                        <p className="text-[11px] font-medium text-white/50">Net cumulative P&L <Info className="inline h-3 w-3 ml-1 opacity-50" /></p>
-                    </div>
-                    <div className="flex items-end justify-between gap-4">
-                        <h2 className={cn("text-2xl font-bold tracking-tight", stats?.totalPnl && stats.totalPnl >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                            {stats?.totalPnl && stats.totalPnl >= 0 ? '+' : ''}${Math.abs(stats?.totalPnl || 0).toFixed(2)}
+                <div className="bg-[#121212] rounded-xl flex flex-col justify-between p-5 h-32">
+                    <p className="text-[11px] font-medium text-white/50 mb-2">Net cumulative P&L <Info className="inline h-3 w-3 ml-1 opacity-40" /></p>
+                    <div className="flex items-end justify-between gap-4 h-full">
+                        <h2 className={cn("text-2xl font-bold tracking-tight mb-1", stats?.totalPnl && stats.totalPnl >= 0 ? "text-white" : "text-white")}>
+                            ${Math.abs(stats?.totalPnl || 0).toFixed(2)}
                         </h2>
                         <div className="flex-1 max-w-[120px] -mb-2">
                              <RunningPnLChart trades={sortedTrades} className="h-12 mt-0 mx-0 opacity-80" />
                         </div>
                     </div>
-                </Card>
+                </div>
 
                 {/* 2. Profit Factor */}
-                <Card className="bg-zinc-950/60 border-white/5 shadow-md flex flex-col justify-between p-4 h-32">
-                     <p className="text-[11px] font-medium text-white/50">Profit factor <Info className="inline h-3 w-3 ml-1 opacity-50" /></p>
-                     <div className="flex items-center justify-between">
-                         <h2 className="text-3xl font-bold text-white">{stats?.profitFactor.toFixed(2) || '0.00'}</h2>
-                         {/* Fake Donut Gauge */}
-                         <div className="h-12 w-12 rounded-full border-[4px] border-emerald-500/80 border-l-rose-500/80 border-b-emerald-500/80 border-r-rose-500/80 rotate-45"></div>
+                <div className="bg-[#121212] rounded-xl flex flex-col justify-between p-5 h-32">
+                     <p className="text-[11px] font-medium text-white/50 mb-2">Profit factor <Info className="inline h-3 w-3 ml-1 opacity-40" /></p>
+                     <div className="flex items-center justify-between h-full">
+                         <h2 className="text-3xl font-bold text-white tracking-tight mb-1">{stats?.profitFactor.toFixed(2) || '0.00'}</h2>
+                         <div className="h-10 w-10 mr-2 rounded-full border-[3px] border-[#0F8A5D] border-l-[#D73A49] border-b-[#0F8A5D] border-r-[#D73A49] rotate-45 opacity-80"></div>
                      </div>
-                </Card>
+                </div>
 
                 {/* 3. Trade Win % */}
-                <Card className="bg-zinc-950/60 border-white/5 shadow-md flex flex-col justify-between p-4 h-32">
-                     <div className="flex items-center justify-between">
-                         <p className="text-[11px] font-medium text-white/50">Trade win % <Info className="inline h-3 w-3 ml-1 opacity-50" /></p>
-                         <div className="flex items-center gap-2 text-[10px]">
-                              <span className="text-emerald-400 font-black">{stats?.winCount || 0}</span>
-                              <span className="text-white/30 font-black">|</span>
-                              <span className="text-rose-400 font-black">{stats?.lossCount || 0}</span>
-                         </div>
+                <div className="bg-[#121212] rounded-xl flex flex-col justify-between p-5 h-32">
+                     <div className="flex items-center justify-between mb-2">
+                         <p className="text-[11px] font-medium text-white/50">Trade win % <Info className="inline h-3 w-3 ml-1 opacity-40" /></p>
                      </div>
-                     <div className="flex items-end justify-between relative mt-2">
-                         <h2 className="text-3xl font-bold text-white">{stats?.winRate.toFixed(2) || '0.00'}%</h2>
+                     <div className="flex items-end justify-between relative mt-2 h-full">
+                         <h2 className="text-3xl font-bold text-white tracking-tight mb-1">{stats?.winRate.toFixed(2) || '0.00'}%</h2>
                          
-                         {/* Fake Half Circle Gauge */}
-                         <div className="absolute right-0 bottom-1 w-16 h-8 overflow-hidden">
-                             <div className="w-16 h-16 rounded-full border-[6px] border-emerald-500/80 border-b-transparent border-r-transparent -rotate-45" style={{
-                                 clipPath: 'polygon(0 0, 100% 0, 100% 50%, 0 50%)'
-                             }}></div>
+                         <div className="absolute right-0 bottom-0 w-16 flex flex-col items-center">
+                             <div className="w-14 h-7 overflow-hidden relative">
+                                 <div className="absolute top-0 left-0 w-14 h-14 rounded-full border-[4px] border-[#0F8A5D]"></div>
+                             </div>
+                             <div className="flex gap-2 text-[9px] font-bold mt-1">
+                                <span className="text-[#0F8A5D]">{stats?.winCount || 0}</span>
+                                <span className="text-[#0F8A5D]/20">|</span>
+                                <span className="text-[#D73A49]">{stats?.lossCount || 0}</span>
+                             </div>
                          </div>
                      </div>
-                </Card>
+                </div>
 
                 {/* 4. Avg Win/Loss Trade */}
-                <Card className="bg-zinc-950/60 border-white/5 shadow-md flex flex-col justify-between p-4 h-32">
-                     <p className="text-[11px] font-medium text-white/50">Avg win/loss trade <Info className="inline h-3 w-3 ml-1 opacity-50" /></p>
-                     <div className="mt-auto">
+                <div className="bg-[#121212] rounded-xl flex flex-col justify-between p-5 h-32">
+                     <p className="text-[11px] font-medium text-white/50">Avg win/loss trade <Info className="inline h-3 w-3 ml-1 opacity-40" /></p>
+                     <div className="mt-auto w-full">
                         <div className="flex items-center justify-between mb-2">
                             <h2 className="text-2xl font-bold text-white tracking-tight">{stats?.rewardToRisk.toFixed(2) || '0.00'}</h2>
-                            <div className="flex gap-4 text-[10px] font-bold">
-                                <span className="text-emerald-400">${stats?.avgWin.toFixed(1) || '0.0'}</span>
-                                <span className="text-rose-400">-${stats?.avgLoss.toFixed(1) || '0.0'}</span>
+                            <div className="flex gap-3 text-[11px] font-bold">
+                                <span className="text-[#0F8A5D]">${stats?.avgWin.toFixed(1) || '0.0'}</span>
+                                <span className="text-[#D73A49]">-${stats?.avgLoss.toFixed(1) || '0.0'}</span>
                             </div>
                         </div>
-                        {/* Bi-directional Bar */}
-                        <div className="w-full h-1.5 flex rounded-full overflow-hidden bg-black/20">
-                            <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, Math.max(10, (stats?.avgWin || 0) / (stats?.avgWin || 1 + (stats?.avgLoss || 1)) * 100))}%` }}></div>
-                            <div className="h-full bg-rose-500" style={{ width: `${Math.min(100, Math.max(10, (stats?.avgLoss || 0) / (stats?.avgLoss || 1 + (stats?.avgWin || 1)) * 100))}%` }}></div>
+                        {/* Thin Bi-directional Bar */}
+                        <div className="w-full h-1 flex rounded-full overflow-hidden bg-white/5">
+                            <div className="h-full bg-[#0F8A5D]" style={{ width: `${Math.min(100, Math.max(10, (stats?.avgWin || 0) / (stats?.avgWin || 1 + (stats?.avgLoss || 1)) * 100))}%` }}></div>
+                            <div className="h-full bg-[#D73A49]" style={{ width: `${Math.min(100, Math.max(10, (stats?.avgLoss || 0) / (stats?.avgLoss || 1 + (stats?.avgWin || 1)) * 100))}%` }}></div>
                         </div>
                      </div>
-                </Card>
+                </div>
             </div>
 
             {/* Main Trades Table Card */}
-            <Card className="bg-zinc-950/60 border-white/5 shadow-xl flex flex-col">
-                <div className="flex items-center justify-between p-4 border-b border-white/5">
+            <div className="bg-[#121212] rounded-xl flex flex-col overflow-hidden pb-4">
+                <div className="flex items-center justify-between p-5 border-b border-white/[0.04]">
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-white"><Settings className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white rounded-full bg-white/5"><Settings className="h-3 w-3" /></Button>
                     </div>
-                    <Button className="bg-zinc-900 border border-white/5 hover:bg-zinc-800 text-white h-8 text-xs font-bold px-4">
+                    <Button className="bg-[#1a1a1a] hover:bg-[#222] text-white/80 h-7 text-[11px] font-medium px-4 rounded-md">
                         Bulk actions <ChevronDown className="h-3 w-3 opacity-50 ml-2" />
                     </Button>
                 </div>
@@ -186,18 +185,18 @@ export default function TradeViewPage() {
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow className="border-b border-white/5 hover:bg-transparent">
-                                <TableHead className="w-12 text-center border-r border-transparent"><input type="checkbox" className="rounded bg-black/20 border-white/10" /></TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-white/40 tracking-widest min-w-[100px]">Open date</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-white/40 tracking-widest min-w-[80px]">Symbol</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-white/40 tracking-widest text-center min-w-[80px]">Status</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-white/40 tracking-widest min-w-[100px]">Close date</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-white/40 tracking-widest text-right min-w-[80px]">Entry price</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-white/40 tracking-widest text-right min-w-[80px]">Exit price</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-white/40 tracking-widest text-right min-w-[80px]">Net P&L</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-white/40 tracking-widest text-right min-w-[80px]">Net ROI</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-white/40 tracking-widest text-center min-w-[100px]">Bady Insights</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-white/40 tracking-widest text-center min-w-[100px]">Bady Scale</TableHead>
+                            <TableRow className="border-b border-white/[0.04] hover:bg-transparent">
+                                <TableHead className="w-12 text-center pl-4"><input type="checkbox" className="rounded-sm bg-white/5 border-white/10" /></TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-white/40 tracking-wider">Open date</TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-white/40 tracking-wider">Symbol</TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-white/40 tracking-wider text-center">Status</TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-white/40 tracking-wider">Close date</TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-white/40 tracking-wider text-center">Entry price</TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-white/40 tracking-wider text-center">Exit price</TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-white/40 tracking-wider text-right">Net P&L</TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-white/40 tracking-wider text-right">Net ROI</TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-white/40 tracking-wider text-center">Zella Insights</TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-white/40 tracking-wider text-center">Zella Scale</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -207,41 +206,33 @@ export default function TradeViewPage() {
                                 const status = isWin ? 'WIN' : (isLoss ? 'LOSS' : 'BE');
                                 
                                 return (
-                                    <TableRow key={trade.id || i} className="border-b border-white/[0.02] hover:bg-white/[0.02] cursor-pointer">
-                                        <TableCell className="text-center"><input type="checkbox" className="rounded bg-black/20 border-white/10" /></TableCell>
-                                        <TableCell className="text-xs font-mono text-white/70">{format(trade.parsedDate, 'MM/dd/yyyy')}</TableCell>
-                                        <TableCell className="text-xs font-bold text-white/90">{trade.Symbol || 'N/A'}</TableCell>
-                                        <TableCell className="text-center">
+                                    <TableRow key={trade.id || i} className="border-b border-white/[0.02] hover:bg-white/[0.02] transition-colors border-transparent cursor-pointer">
+                                        <TableCell className="text-center pl-4"><input type="checkbox" className="rounded-sm bg-white/5 border-white/10" /></TableCell>
+                                        <TableCell className="text-[11px] font-mono text-white/60 pt-4 pb-4">
+                                            {format(trade.parsedDate, 'MM/dd/yyyy')}
+                                        </TableCell>
+                                        <TableCell className="text-[11px] font-bold text-white pt-4 pb-4">{trade.Symbol || 'N/A'}</TableCell>
+                                        <TableCell className="text-center pt-4 pb-4">
                                             <span className={cn(
-                                                "text-[9px] font-black uppercase px-2 py-0.5 rounded-sm inline-block min-w-[40px]",
-                                                isWin ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : 
-                                                isLoss ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" : 
-                                                "bg-white/5 text-white/50 border border-white/10"
+                                                "text-[9px] font-bold uppercase px-2 py-0.5 rounded-[4px] inline-block min-w-[45px]",
+                                                isWin ? "bg-[#0F8A5D]/10 text-[#0F8A5D]" : 
+                                                isLoss ? "bg-[#D73A49]/10 text-[#D73A49]" : 
+                                                "bg-white/5 text-white/50"
                                             )}>{status}</span>
                                         </TableCell>
-                                        <TableCell className="text-xs font-mono text-white/70">{format(trade.parsedDate, 'MM/dd/yyyy')}</TableCell>
-                                        <TableCell className="text-xs font-medium text-white/70 text-right">{trade.Price ? `$${trade.Price}` : 'N/A'}</TableCell>
-                                        <TableCell className="text-xs font-medium text-white/70 text-right">{trade.Price ? `$${(parseFloat(trade.Price) + Math.random() * 2).toFixed(2)}` : 'N/A'}</TableCell>
-                                        <TableCell className={cn("text-xs font-black text-right", isWin ? "text-emerald-400" : "text-rose-400")}>
-                                            {isWin ? '+' : ''}{trade.net_pnl.toFixed(2)}
+                                        <TableCell className="text-[11px] font-mono text-white/60 pt-4 pb-4">
+                                            {format(trade.parsedDate, 'MM/dd/yyyy')}
                                         </TableCell>
-                                        <TableCell className={cn("text-xs font-medium text-right", isWin ? "text-emerald-400/70" : "text-rose-400/70")}>
-                                            {trade.ROI ? `${parseFloat(trade.ROI) > 0 ? '+' : ''}${parseFloat(trade.ROI).toFixed(2)}%` : '—'}
+                                        <TableCell className="text-[11px] font-medium text-white/60 text-center pt-4 pb-4">{trade.Price ? `$${parseFloat(trade.Price).toString()}` : '-'}</TableCell>
+                                        <TableCell className="text-[11px] font-medium text-white/60 text-center pt-4 pb-4">{trade.ClosePrice ? `$${parseFloat(trade.ClosePrice).toString()}` : '-'}</TableCell>
+                                        <TableCell className={cn("text-[11px] font-bold text-right pt-4 pb-4", isWin ? "text-[#0F8A5D]" : "text-[#D73A49]")}>
+                                            {isWin ? '+' : ''}${Math.abs(trade.net_pnl).toFixed(2)}
                                         </TableCell>
-                                        <TableCell className="text-center">
-                                            {trade.BadyScore ? (
-                                                <span className="text-xs font-black text-white/60">{trade.BadyScore}-</span>
-                                            ) : (
-                                                <span className="text-xs text-white/20">—</span>
-                                            )}
+                                        <TableCell className={cn("text-[11px] font-medium text-right pt-4 pb-4", isWin ? "text-[#0F8A5D]/80" : "text-[#D73A49]/80")}>
+                                            {trade.ROI ? `${parseFloat(trade.ROI) > 0 ? '+' : ''}${parseFloat(trade.ROI).toFixed(2)}%` : '-'}
                                         </TableCell>
-                                        <TableCell className="text-center">
-                                            <div className="w-full flex justify-center items-center h-2 gap-0.5">
-                                                 <div className="w-4 h-1 bg-white/10 rounded-full"></div>
-                                                 <div className="w-4 h-1 bg-white/10 rounded-full"></div>
-                                                 <div className="w-2 h-2 rounded-full bg-white/20"></div>
-                                            </div>
-                                        </TableCell>
+                                        <TableCell className="text-center pt-4 pb-4 text-[11px] text-white/20">-</TableCell>
+                                        <TableCell className="text-center pt-4 pb-4 text-[11px] text-white/20">-</TableCell>
                                     </TableRow>
                                 )
                             })}
@@ -257,30 +248,30 @@ export default function TradeViewPage() {
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="flex items-center justify-between p-4 border-t border-white/5 bg-black/20">
-                    <div className="flex items-center gap-4 text-xs font-medium text-white/50">
+                <div className="flex items-center justify-between px-6 pt-6 pb-2 text-[11px] font-medium text-white/40">
+                    <div className="flex items-center gap-3">
                         <span>Trades per page</span>
-                        <div className="bg-zinc-900 border border-white/5 py-1 px-3 rounded flex items-center gap-2 text-white cursor-pointer">
+                        <div className="bg-[#1a1a1a] py-1 px-2 rounded-md flex items-center gap-1.5 text-white/80 cursor-pointer">
                             {tradesPerPage} <ChevronDown className="h-3 w-3 opacity-50" />
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-xs font-medium text-white/50">
+                    <div className="flex items-center gap-4">
                         <span>1 - {Math.min(tradesPerPage, sortedTrades.length)} of {sortedTrades.length} trades</span>
                         <div className="flex items-center gap-1">
                             <span className="px-2">1 of {totalPages} pages</span>
-                            <div className="flex gap-1 ml-2">
-                                <Button variant="ghost" size="icon" className="h-7 w-7 bg-zinc-900/50 text-white/50 border border-white/5" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                            <div className="flex gap-0.5 ml-2">
+                                <Button variant="ghost" size="icon" className="h-6 w-6 bg-white/5 text-white/50 rounded-sm hover:text-white" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                     <ChevronLeft className="h-3 w-3" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 bg-indigo-600 hover:bg-indigo-500 text-white" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
                                     <ChevronRight className="h-3 w-3" />
                                 </Button>
                             </div>
                         </div>
                     </div>
                 </div>
-            </Card>
+            </div>
         </div>
     );
 }
