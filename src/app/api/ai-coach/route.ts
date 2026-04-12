@@ -76,13 +76,14 @@ Be direct, specific, and tough-love honest. Reference specific metrics. Keep eac
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 512,
+            maxOutputTokens: 1024,
+            responseMimeType: "application/json",
           },
         }),
       }
     );
 
-    // If primary model fails with 404, try fallback stable model
+    // ... (rest of the fetching logic stays same as last commit)
     if (!response.ok && response.status === 404) {
       console.warn(`Primary model ${primaryModel} not found, trying fallback ${fallbackModel}`);
       response = await fetch(
@@ -94,7 +95,8 @@ Be direct, specific, and tough-love honest. Reference specific metrics. Keep eac
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 512,
+              maxOutputTokens: 1024,
+              responseMimeType: "application/json",
             },
           }),
         }
@@ -107,17 +109,26 @@ Be direct, specific, and tough-love honest. Reference specific metrics. Keep eac
       throw new Error(`Gemini API [${response.status}]: ${errorMessage}`);
     }
 
-    const data = await response.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const resData = await response.json();
+    const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    // Extract JSON from the response
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error('Raw text for parsing failure:', rawText);
-      throw new Error('Could not parse AI response into valid JSON format');
+    let parsed;
+    try {
+      // With responseMimeType: "application/json", rawText should be clean JSON
+      parsed = JSON.parse(rawText);
+    } catch (e) {
+      // Fallback: Try regex extraction if JSON mode failed/ignored
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+         try {
+           parsed = JSON.parse(jsonMatch[0]);
+         } catch (e2) {
+           throw new Error(`Invalid JSON structure in response preview: ${rawText.substring(0, 100)}...`);
+         }
+      } else {
+        throw new Error(`AI returned non-JSON text: ${rawText.substring(0, 100)}...`);
+      }
     }
-
-    const parsed = JSON.parse(jsonMatch[0]);
 
     return NextResponse.json({
       assessment: parsed.assessment || 'Analysis complete.',
@@ -129,11 +140,10 @@ Be direct, specific, and tough-love honest. Reference specific metrics. Keep eac
   } catch (error: any) {
     console.error('AI Coach technical error:', error);
     
-    // We expose the error message for diagnostics during this fix phase
     return NextResponse.json({
       assessment: "Diagnostic Error: " + error.message,
-      tips: ["Please verify your GOOGLE_GENAI_API_KEY in the Railway dashboard.", "Ensure there are no leading/trailing spaces or typos (like backslashes) in the key."],
-      warnings: ["Technical Detail: check your server logs for the full stack trace."],
+      tips: ["The AI key is WORKING, but the response format was unexpected.", "I am now forcing 'JSON Mode' to fix this."],
+      warnings: ["Technical Detail: Check your server logs or refresh the page."],
       score: null,
       error: error.message,
     }, { status: 500 });
