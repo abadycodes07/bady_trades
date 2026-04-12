@@ -91,7 +91,7 @@ export default function DayViewPage() {
     }, [tradeData]);
 
     if (isLoading) {
-        return <div className="container mx-auto p-6 text-center text-white/50">Loading day view...</div>;
+        return <div className="container mx-auto p-6 text-center text-muted-foreground">Loading day view...</div>;
     }
 
     return (
@@ -100,8 +100,8 @@ export default function DayViewPage() {
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
                     <h1 className="text-xl font-bold text-[var(--foreground)] tracking-tight">Day View</h1>
-                    <div className="flex bg-[var(--stats-card)] rounded-md p-1 border border-[var(--stats-card-border)]">
-                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-[4px] h-6 px-3 text-[11px] font-medium transition-none">Day</Button>
+                    <div className="flex bg-[var(--stats-card-hover)]/50 rounded-md p-1 border border-[var(--stats-card-border)]">
+                        <Button size="sm" className="bg-primary text-primary-foreground rounded-[4px] h-6 px-3 text-[11px] font-medium transition-none">Day</Button>
                         <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-[var(--foreground)] rounded-[4px] h-6 px-3 text-[11px] font-medium transition-none">Week</Button>
                     </div>
                 </div>

@@ -151,10 +151,7 @@ export function CumulativePnLChart({ selectedCurrency, data, commissionData, sho
     return { chartData: cumulativeDataPoints, dataMinPnl: minPnl, dataMaxPnl: maxPnl, fillType: determinedFillType, offsetForZero: calculatedOffset };
   }, [data, commissionData, showFeesInPnl]);
 
-  const areaStrokeColor = 
-    fillType === 'allPositive' ? 'hsl(var(--chart-positive-stroke))' :
-    fillType === 'allNegative' ? 'hsl(var(--chart-negative-stroke))' :
-    'hsl(var(--primary))'; 
+  const areaStrokeColor = `url(#pnlLineGradient)`; 
 
   return (
     <Card className="h-full flex flex-col bg-card border-border shadow-2xl relative overflow-hidden group">
@@ -174,32 +171,18 @@ export function CumulativePnLChart({ selectedCurrency, data, commissionData, sho
             animationEasing="ease-out"
           >
             <defs>
-              {fillType === 'allPositive' && (
-                <linearGradient id="pnlAreaFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-positive))" stopOpacity={0.6}/>
-                  <stop offset="95%" stopColor="hsl(var(--chart-positive))" stopOpacity={0.1}/>
-                </linearGradient>
-              )}
-              {fillType === 'allNegative' && (
-                <linearGradient id="pnlAreaFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-negative))" stopOpacity={0.6}/>
-                  <stop offset="95%" stopColor="hsl(var(--chart-negative))" stopOpacity={0.1}/>
-                </linearGradient>
-              )}
-              {fillType === 'mixed' && (
-                <linearGradient id="pnlAreaFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--chart-positive))" stopOpacity={0.6} /> 
-                  <stop offset={`${offsetForZero}%`} stopColor="hsl(var(--chart-positive))" stopOpacity={0.1} />
-                  <stop offset={`${offsetForZero}%`} stopColor="hsl(var(--chart-negative))" stopOpacity={0.1} />
-                  <stop offset="100%" stopColor="hsl(var(--chart-negative))" stopOpacity={0.6} />
-                </linearGradient>
-              )}
-              {(fillType === 'neutral' || chartData.length <=1 ) && (
-                 <linearGradient id="pnlAreaFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--muted))" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="hsl(var(--muted))" stopOpacity={0.1}/>
-                 </linearGradient>
-              )}
+              <linearGradient id="pnlAreaFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#22c55e" stopOpacity={0.5} />
+                <stop offset={`${offsetForZero}%`} stopColor="#22c55e" stopOpacity={0.05} />
+                <stop offset={`${offsetForZero}%`} stopColor="#ef4444" stopOpacity={0.05} />
+                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.5} />
+              </linearGradient>
+              <linearGradient id="pnlLineGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#22c55e" stopOpacity={1} />
+                <stop offset={`${offsetForZero}%`} stopColor="#22c55e" stopOpacity={1} />
+                <stop offset={`${offsetForZero}%`} stopColor="#ef4444" stopOpacity={1} />
+                <stop offset="100%" stopColor="#ef4444" stopOpacity={1} />
+              </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.5)" vertical={false} />
             <XAxis
@@ -232,7 +215,7 @@ export function CumulativePnLChart({ selectedCurrency, data, commissionData, sho
                 stroke={areaStrokeColor}
                 fillOpacity={1}
                 fill="url(#pnlAreaFill)"
-                strokeWidth={2}
+                strokeWidth={3}
                 dot={false}
                 isAnimationActive={true}
                 animationDuration={800}

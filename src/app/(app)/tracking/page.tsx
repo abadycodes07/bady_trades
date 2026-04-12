@@ -115,7 +115,7 @@ export default function TradeViewPage() {
     const arcEndDegrees = (winRateVal / 100) * 180;
 
     if (isLoading) {
-        return <div className="container mx-auto p-6 text-center text-white/50">Loading trade view...</div>;
+        return <div className="container mx-auto p-6 text-center text-muted-foreground">Loading trade view...</div>;
     }
 
     return (
@@ -318,7 +318,7 @@ export default function TradeViewPage() {
                             })}
                             {paginatedTrades.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={11} className="text-center py-24 text-white/30 text-sm border-b-0">
+                                    <TableCell colSpan={11} className="text-center py-24 text-muted-foreground/30 text-sm border-b-0">
                                         No trades matching the criteria.
                                     </TableCell>
                                 </TableRow>
@@ -344,7 +344,7 @@ export default function TradeViewPage() {
                                 <Button variant="ghost" size="icon" className="h-6 w-6 bg-[var(--stats-card-hover)] hover:brightness-110 text-muted-foreground rounded-sm hover:text-[var(--foreground)]" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                     <ChevronLeft className="h-3 w-3" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm shadow-sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 bg-primary text-primary-foreground rounded-sm shadow-sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
                                     <ChevronRight className="h-3 w-3" />
                                 </Button>
                             </div>

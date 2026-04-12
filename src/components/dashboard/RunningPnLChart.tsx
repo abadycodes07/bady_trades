@@ -28,7 +28,10 @@ interface RunningPnLChartProps {
 }
 
 export function RunningPnLChart({ trades, className, chartId }: RunningPnLChartProps) {
-  const containerId = useMemo(() => chartId || `chart-${Math.random().toString(36).substr(2, 9)}`, [chartId]);
+  const containerId = useMemo(() => {
+    const baseId = chartId || `chart-${Math.random().toString(36).substr(2, 9)}`;
+    return baseId.replace(/[^a-zA-Z0-9]/g, '');
+  }, [chartId]);
   
   const chartData = useMemo(() => {
     if (!trades || trades.length === 0) return [];
@@ -121,11 +124,11 @@ export function RunningPnLChart({ trades, className, chartId }: RunningPnLChartP
 
   if (chartData.length === 0) return null;
 
-  // Use semantic colors
-  const winColor = 'var(--win-green)';
-  const lossColor = 'var(--loss-red)';
-  const winOpacity = '0.4';
-  const lossOpacity = '0.4';
+  // Use hex colors for SVG gradients (CSS vars can fail inside SVG defs)
+  const winColor = '#22c55e';
+  const lossColor = '#ef4444';
+  const winOpacity = '0.5';
+  const lossOpacity = '0.5';
 
   return (
     <div className={cn("w-full h-[200px] mt-4", className)}>
@@ -179,16 +182,16 @@ export function RunningPnLChart({ trades, className, chartId }: RunningPnLChartP
             labelClassName="text-muted-foreground text-[9px] uppercase font-black mb-1"
             formatter={(value: number) => [`$${value.toLocaleString()}`, 'P&L']}
           />
-          <ReferenceLine y={0} stroke="currentColor" className="text-border/30" strokeWidth={1} />
+          <ReferenceLine y={0} stroke="rgba(156, 163, 175, 0.5)" strokeWidth={1.5} strokeDasharray="none" />
           <Area
             type="monotone"
             dataKey="pnl"
-            stroke={isPositiveDay ? winColor : lossColor} // Make main line reflect overall status
-            strokeWidth={2.5}
+            stroke={`url(#${containerId}-lineColor)`}
+            strokeWidth={3}
             fill={`url(#${containerId}-splitColor)`}
             animationDuration={1500}
             baseValue={0}
-            activeDot={{ r: 4, stroke: 'var(--background)', strokeWidth: 2 }}
+            activeDot={{ r: 5, stroke: 'var(--background)', strokeWidth: 2, fill: 'currentColor' }}
           />
         </AreaChart>
       </ResponsiveContainer>

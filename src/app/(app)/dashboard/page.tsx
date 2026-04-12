@@ -193,6 +193,7 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [layouts, setLayouts] = useState<ResponsiveLayout | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(currencies[0]);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -584,6 +585,42 @@ export default function DashboardPage() {
     const currentAccount = accounts.find(a => a.id === selectedAccountId);
     const initialBalance = currentAccount?.initial_balance || undefined;
 
+    const handleDashboardAiCoach = async () => {
+        if (isAnalyzing || tradeData.length === 0) return;
+        setIsAnalyzing(true);
+        toast({ title: t('Bady AI is thinking...'), description: t('Analyzing your recent performance across all accounts.') });
+        
+        try {
+            const response = await fetch('/api/ai-coach', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: format(new Date(), 'yyyy-MM-dd'),
+                    trades: tradeData.slice(0, 20).map(t => ({
+                        symbol: t.Symbol,
+                        side: t.Side,
+                        netPnl: t.NetPnL,
+                        rMultiple: t.RMultiple,
+                        strategy: t.Strategy,
+                    })),
+                }),
+            });
+            const data = await response.json();
+            if (data.assessment) {
+               toast({ 
+                   title: t('Bady AI Analysis'), 
+                   description: data.assessment, 
+                   duration: 10000 
+               });
+            }
+        } catch (error) {
+            console.error('Dashboard AI Coach failed:', error);
+            toast({ title: t('AI Analysis Failed'), description: t('Could not connect to the Bady AI engine.'), variant: 'destructive' });
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
     const renderWidget = useCallback((key: string) => {
       let netPnlCardValue = 0;
       const totalUploadedCommissions = commissionData.reduce((sum, comm) => sum + parseFloat(comm.Commission || '0'), 0);
@@ -685,8 +722,8 @@ export default function DashboardPage() {
       const badyScore = (badyScoreComponents.reduce((a, b) => a + b, 0) / badyScoreComponents.length) * 100;
 
       switch (key) {
-        case 'balance-card': return <MetricCard title={t("Current Balance")} value={convertCurrency(actualBalance)} iconType="info" className="h-full border-indigo-500/20 shadow-[0_0_20px_rgba(79,70,229,0.1)]"/>;
-        case 'net-pnl': return <MetricCard title={t("Total Net P&L")} value={<span className={netPnlCardValue >= 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"}>{convertCurrency(netPnlCardValue)}</span>} metric={<span>{/* % change */}</span>} iconType="info" className="h-full"/>;
+        case 'balance-card': return <MetricCard title={t("Current Balance")} value={convertCurrency(actualBalance)} iconType="info" className="h-full border-border/20 shadow-xl"/>;
+        case 'net-pnl': return <MetricCard title={t("Total Net P&L")} value={convertCurrency(netPnlCardValue)} color={netPnlCardValue >= 0 ? 'green' : 'red'} iconType="info" className="h-full"/>;
         case 'profit-factor': return <MetricCard title={t("Profit Factor")} value={isFinite(Number(profitFactor)) ? Number(profitFactor).toFixed(2) : '∞'} iconType="progressCircle" progressValue={Math.min(100, (isFinite(Number(profitFactor)) ? Number(profitFactor) : 0) / 3 * 100)} color={Number(profitFactor) >= 1.5 ? 'green' : 'red'} className="h-full"/>;
         case 'trade-win': return <MetricCard title={t("Trade Win %")} value={`${winRate.toFixed(1)}%`} iconType="gauge" gaugeData={{ wins: tradeData.filter(t => parseFloat(t.NetPnL || '0') > 0).length, losses: tradeData.filter(t => parseFloat(t.NetPnL || '0') < 0).length, breakeven: tradeData.filter(t => parseFloat(t.NetPnL || '0') === 0).length }} color={winRate >= 50 ? 'green' : 'red'} className="h-full"/>;
         case 'avg-win-loss': return <MetricCard title={t("Avg win/loss trade")} value={avgWinLossData.ratio} iconType="bar" barData={avgWinLossData} color="neutral" selectedCurrency={selectedCurrency} className="h-full"/>;
@@ -700,7 +737,7 @@ export default function DashboardPage() {
               else formattedDrawdownDate = maxDrawdownData.date;
             } catch { formattedDrawdownDate = maxDrawdownData.date; }
           }
-          return <MetricCard title={t("Max Drawdown")} value={<span className="text-red-600 dark:text-red-500">{convertCurrency(maxDrawdownData.value)}</span>} metric={formattedDrawdownDate} color="red" className="h-full"/>;
+          return <MetricCard title={t("Max Drawdown")} value={convertCurrency(maxDrawdownData.value)} metric={formattedDrawdownDate} color="red" className="h-full"/>;
         case 'cumulative-pnl': return <CumulativePnLChart selectedCurrency={selectedCurrency} data={tradeData} commissionData={commissionData} showFeesInPnl={showFeesInPnl}/>;
         case 'bady-score': return <BadyScoreChart data={tradeData} overallScore={badyScore} />;
         case 'daily-pnl-chart': return <NetDailyPnLChart data={tradeData} selectedCurrency={selectedCurrency} />;
@@ -881,8 +918,13 @@ export default function DashboardPage() {
                 onChange={handleCommissionFileUpload}
                 id="commission-csv-upload"
             />
-            <Button size="sm" className="hover-effect bg-accent text-accent-foreground hover:bg-accent/90 h-9">
-                <Sparkles className="mr-2 h-4 w-4" /> {t("Ask Bady AI")}
+            <Button 
+                size="sm" 
+                className="hover-effect bg-[var(--win-green)]/10 text-[var(--win-green)] hover:bg-[var(--win-green)]/20 h-9 font-black uppercase tracking-widest text-[10px] border border-[var(--win-green)]/20"
+                onClick={handleDashboardAiCoach}
+                disabled={isAnalyzing}
+            >
+                <Sparkles className="mr-2 h-4 w-4" /> {isAnalyzing ? t("Thinking...") : t("Ask Bady AI")}
             </Button>
             <Button variant="outline" onClick={toggleEditLayout} size="sm" className="h-9 hover-effect">
                 <Edit className="mr-2 h-4 w-4" />
