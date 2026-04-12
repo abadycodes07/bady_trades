@@ -223,12 +223,13 @@ function AiCoachPanel({ trades, date, onClose }: {
 }) {
   const [loading, setLoading] = React.useState(false);
   const [result, setResult] = React.useState<{
+    insights: { icon: string; title: string; description: string }[];
     assessment: string;
-    tips: string[];
-    warnings: string[];
     score: number | null;
   } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+
+  const totalPnl = trades.reduce((s, t) => s + t.netPnl, 0);
 
   const analyze = React.useCallback(async () => {
     setLoading(true);
@@ -238,22 +239,22 @@ function AiCoachPanel({ trades, date, onClose }: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          mode: 'day',
           date: format(date, 'MMMM d, yyyy'),
           trades: trades.map(t => ({
             symbol: t.symbol,
             side: t.side,
-            netPnl: t.netPnl,
-            grossPnl: t.grossPnl,
-            execTime: t.execTime,
+            netPnl: t.netPnl.toString(),
             rMultiple: t.rMultiple,
             strategy: t.strategy,
+            entryTime: t.execTime,
           })),
         }),
       });
       const data = await response.json();
       setResult(data);
     } catch (err: any) {
-      setError('Failed to connect to AI coach.');
+      setError('Failed to connect to Bady AI.');
     } finally {
       setLoading(false);
     }
@@ -266,15 +267,13 @@ function AiCoachPanel({ trades, date, onClose }: {
   return (
     <div className="absolute inset-0 bg-zinc-950/95 backdrop-blur-md z-10 flex flex-col rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-            <BadyTradesMarkLogo className="h-5 w-5 text-indigo-400" />
-          </div>
-          <div>
-            <p className="text-xs font-black text-white uppercase tracking-[0.15em]">AI Coach</p>
-            <p className="text-[9px] text-indigo-400/70 font-bold uppercase tracking-widest">{format(date, 'MMM d, yyyy')} Analysis</p>
-          </div>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <div>
+          <p className="text-xs font-black text-white uppercase tracking-[0.15em]">Daily Bady Insights</p>
+          <p className="text-[10px] text-indigo-400/70 font-bold uppercase tracking-widest mt-0.5">
+            {format(date, 'EEE, MMM d, yyyy')} &nbsp;·&nbsp;
+            Net P&L <span className={totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}</span> &nbsp;·&nbsp; {trades.length} Trades
+          </p>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white" onClick={onClose}>
           <X className="h-4 w-4" />
@@ -282,11 +281,11 @@ function AiCoachPanel({ trades, date, onClose }: {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {loading && (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <div className="h-12 w-12 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400/60 animate-pulse">Analyzing your trades...</p>
+            <div className="h-10 w-10 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400/60 animate-pulse">Analyzing your session...</p>
           </div>
         )}
         {error && (
@@ -297,57 +296,57 @@ function AiCoachPanel({ trades, date, onClose }: {
         )}
         {result && !loading && (
           <>
-            {/* Score */}
+            {/* Score bar */}
             {result.score !== null && (
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Discipline Score</p>
-                <div className="flex items-center justify-center gap-2">
-                  <span className={cn(
-                    "text-4xl font-black",
-                    result.score >= 70 ? "text-emerald-400" : result.score >= 50 ? "text-amber-400" : "text-rose-400"
-                  )}>{result.score}</span>
-                  <span className="text-lg font-black text-white/30">/100</span>
+              <div className="flex items-center gap-4 px-1 pb-1">
+                <span className={cn(
+                  "text-4xl font-black tabular-nums",
+                  result.score >= 70 ? "text-emerald-400" : result.score >= 40 ? "text-amber-400" : "text-rose-400"
+                )}>{result.score}</span>
+                <div className="flex-1">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30 mb-1">Discipline Score</p>
+                  <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all",
+                      result.score >= 70 ? 'bg-emerald-500' : result.score >= 40 ? 'bg-amber-400' : 'bg-rose-500'
+                    )} style={{ width: `${result.score}%` }} />
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Assessment */}
-            <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-4">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400/60 mb-2">Assessment</p>
-              <p className="text-sm font-semibold text-white/90 leading-relaxed">{result.assessment}</p>
-            </div>
-
-            {/* Warnings */}
-            {result.warnings.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-rose-400/60 px-1">⚠ Alerts</p>
-                {result.warnings.map((w, i) => (
-                  <div key={i} className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-3 flex items-start gap-2">
-                    <span className="text-rose-400 text-sm mt-0.5">!</span>
-                    <p className="text-xs font-medium text-rose-300/80">{w}</p>
-                  </div>
-                ))}
+            {/* Insight Cards — TradeZilla style */}
+            {result.insights.map((insight, i) => (
+              <div key={i} className={cn(
+                "rounded-xl p-4 border flex gap-3 items-start",
+                insight.icon === 'alert' && 'bg-rose-500/5 border-rose-500/15',
+                insight.icon === 'success' && 'bg-emerald-500/5 border-emerald-500/15',
+                insight.icon === 'info' && 'bg-blue-500/5 border-blue-500/15',
+              )}>
+                <div className={cn(
+                  "shrink-0 h-5 w-5 rounded-full flex items-center justify-center mt-0.5",
+                  insight.icon === 'alert' && 'bg-rose-500/15',
+                  insight.icon === 'success' && 'bg-emerald-500/15',
+                  insight.icon === 'info' && 'bg-blue-500/15',
+                )}>
+                  {insight.icon === 'alert' && <span className="text-rose-400 text-[8px] font-black">●</span>}
+                  {insight.icon === 'success' && <span className="text-emerald-400 text-[8px] font-black">●</span>}
+                  {insight.icon === 'info' && <span className="text-blue-400 text-[8px] font-black">●</span>}
+                </div>
+                <div>
+                  <p className={cn("text-[11px] font-black",
+                    insight.icon === 'alert' ? 'text-rose-300' : insight.icon === 'success' ? 'text-emerald-300' : 'text-blue-300'
+                  )}>{insight.title}</p>
+                  <p className="text-[11px] text-white/60 mt-0.5 leading-relaxed">{insight.description}</p>
+                </div>
               </div>
-            )}
-
-            {/* Tips */}
-            {result.tips.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400/60 px-1">Coaching Tips</p>
-                {result.tips.map((tip, i) => (
-                  <div key={i} className="bg-white/3 border border-white/5 rounded-xl p-3 flex items-start gap-3">
-                    <span className="h-5 w-5 rounded-full bg-indigo-600/30 text-indigo-400 text-[9px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
-                    <p className="text-xs font-medium text-white/70">{tip}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+            ))}
           </>
         )}
       </div>
     </div>
   );
 }
+
 
 // High-Fidelity Day Detail Popup — Tradezilla Style
 function DayDetailPopup({

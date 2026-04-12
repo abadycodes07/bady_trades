@@ -1,10 +1,54 @@
 // src/app/api/ai-coach/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
+async function callGemini(prompt: string, apiKey: string): Promise<any> {
+  const primaryModel = "gemini-3-flash-preview";
+  const fallbackModel = "gemini-1.5-flash";
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 1024,
+      responseMimeType: "application/json",
+    },
+  };
+
+  let response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
+
+  if (!response.ok && response.status === 404) {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${fallbackModel}:generateContent?key=${apiKey}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    );
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.error?.message || response.statusText;
+    throw new Error(`Gemini API [${response.status}]: ${errorMessage}`);
+  }
+
+  const resData = await response.json();
+  const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  try {
+    return JSON.parse(rawText);
+  } catch (e) {
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    throw new Error(`AI returned non-JSON text: ${rawText.substring(0, 100)}...`);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { trades, date } = body;
+    const { trades, date, mode } = body;
 
     if (!trades || !Array.isArray(trades)) {
       return NextResponse.json({ error: 'Invalid trades data' }, { status: 400 });
@@ -13,17 +57,70 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.GOOGLE_GENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({
-        assessment: "AI Coach is not configured. please add GOOGLE_GENAI_API_KEY to your Railway environment variables.",
-        tips: ["Go to Railway Dashboard > Variables > New Variable", "Add GOOGLE_GENAI_API_KEY with your key from Google AI Studio."],
-        warnings: ["AI features are currently disabled."],
+        insights: [
+          { icon: "warning", title: "AI Not Configured", description: "Please add GOOGLE_GENAI_API_KEY to your Railway environment variables." }
+        ],
+        assessment: "AI Coach is not configured.",
         score: null,
       });
     }
 
-    // Build a trade summary for the prompt
+    let prompt: string;
+    let parsed: any;
+
+    // --- MODE: Single Trade Insight (from Trade View page) ---
+    if (mode === 'trade' && trades.length === 1) {
+      const t = trades[0];
+      const pnl = parseFloat(t.netPnl || '0');
+      const roi = t.roi ? parseFloat(t.roi) : null;
+      const rMultiple = t.rMultiple ? parseFloat(t.rMultiple) : null;
+
+      prompt = `You are an elite trading performance coach (like TradeZella's AI) analyzing a single trade.
+
+TRADE DATA:
+- Symbol: ${t.symbol || 'N/A'}
+- Side: ${t.side || 'N/A'}
+- Net P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}
+- Net ROI: ${roi !== null ? roi.toFixed(2) + '%' : 'N/A'}
+- R-Multiple: ${rMultiple !== null ? rMultiple.toFixed(2) + 'R' : 'N/A'}
+- Strategy: ${t.strategy || 'No strategy tagged'}
+- Entry Time: ${t.entryTime || 'N/A'}
+- Exit Time: ${t.exitTime || 'N/A'}
+- Hold Time: ${t.holdTime || 'N/A'}
+
+Analyze this SPECIFIC trade and produce 2-3 pinpoint insights. These insights should be behavioral, psychological, or technical. Look for patterns like: "Time in Drawdown", "Leaving money on the table", "Good R-Multiple discipline", "Quick exit (panic sell)", "Revenge entry pattern", etc.
+
+Return valid JSON with this EXACT structure:
+{
+  "insights": [
+    {
+      "icon": "alert" or "info" or "success",
+      "title": "Short Insight Title (3-5 words max)",
+      "description": "One specific, actionable sentence explaining this insight with reference to the exact trade data."
+    }
+  ],
+  "score": <number 0-100 representing this trade's quality/discipline score>
+}
+
+Rules:
+- Maximum 3 insights
+- Each description must be under 25 words and reference actual trade data
+- Be specific and actionable, not generic
+- Use "alert" icon for risks/warnings, "success" for positives, "info" for neutral observations`;
+
+      parsed = await callGemini(prompt, apiKey);
+
+      return NextResponse.json({
+        insights: Array.isArray(parsed.insights) ? parsed.insights.slice(0, 3) : [],
+        score: typeof parsed.score === 'number' ? Math.min(100, Math.max(0, parsed.score)) : null,
+      });
+    }
+
+    // --- MODE: Daily Session Analysis (from Day View / Dashboard) ---
     const totalTrades = trades.length;
     const wins = trades.filter((t: any) => parseFloat(t.netPnl || '0') > 0).length;
     const losses = trades.filter((t: any) => parseFloat(t.netPnl || '0') < 0).length;
+    const breakEvens = totalTrades - wins - losses;
     const totalPnl = trades.reduce((sum: number, t: any) => sum + parseFloat(t.netPnl || '0'), 0);
     const avgPnl = totalTrades > 0 ? totalPnl / totalTrades : 0;
     const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
@@ -32,118 +129,87 @@ export async function POST(request: NextRequest) {
     const rMultiples = trades.filter((t: any) => t.rMultiple && !isNaN(parseFloat(t.rMultiple))).map((t: any) => parseFloat(t.rMultiple));
     const avgRMultiple = rMultiples.length > 0 ? rMultiples.reduce((a: number, b: number) => a + b, 0) / rMultiples.length : null;
 
-    // Build trade list summary
-    const tradeDetails = trades.map((t: any, i: number) => {
+    // Check for behavioral red flags
+    const hasRevengeTrading = (() => {
+      // Check if there are consecutive losses followed by more trades
+      let consecutiveLosses = 0;
+      let maxConsecutiveLosses = 0;
+      for (const t of trades) {
+        if (parseFloat(t.netPnl || '0') < 0) { consecutiveLosses++; maxConsecutiveLosses = Math.max(maxConsecutiveLosses, consecutiveLosses); }
+        else { consecutiveLosses = 0; }
+      }
+      return maxConsecutiveLosses >= 3;
+    })();
+
+    const profitFactor = (() => {
+      const grossProfit = trades.reduce((s: number, t: any) => s + Math.max(0, parseFloat(t.netPnl || '0')), 0);
+      const grossLoss = Math.abs(trades.reduce((s: number, t: any) => s + Math.min(0, parseFloat(t.netPnl || '0')), 0));
+      return grossLoss === 0 ? 0 : grossProfit / grossLoss;
+    })();
+
+    const tradeDetails = trades.slice(0, 30).map((t: any, i: number) => {
       const pnl = parseFloat(t.netPnl || '0');
-      const time = t.execTime || `Trade ${i + 1}`;
-      return `  ${i + 1}. ${t.symbol || 'N/A'} ${t.side || ''} — P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}${t.rMultiple ? ` | R: ${t.rMultiple}` : ''}${t.strategy ? ` | Strategy: ${t.strategy}` : ''}`;
+      return `  ${i + 1}. ${t.symbol || 'N/A'} ${t.side || ''} P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}${t.rMultiple ? ` R:${t.rMultiple}` : ''}${t.strategy ? ` [${t.strategy}]` : ''}`;
     }).join('\n');
 
-    const prompt = `You are a professional trading coach reviewing a trader's performance for ${date}.
+    prompt = `You are an elite trading performance coach (like TradeZella's AI) analyzing a trader's full daily session for ${date}.
 
-TRADING SESSION SUMMARY:
-- Total Trades: ${totalTrades}
-- Wins: ${wins} | Losses: ${losses} | Win Rate: ${winRate.toFixed(1)}%
-- Total P&L: $${totalPnl.toFixed(2)}
-- Average P&L per trade: $${avgPnl.toFixed(2)}
+SESSION OVERVIEW:
+- Total Trades: ${totalTrades} | Wins: ${wins} | Losses: ${losses} | Break-Even: ${breakEvens}
+- Win Rate: ${winRate.toFixed(1)}%
+- Total P&L: ${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}
+- Profit Factor: ${profitFactor.toFixed(2)}
 - Best trade: +$${bestTrade.toFixed(2)} | Worst trade: $${worstTrade.toFixed(2)}
+- Avg P&L/trade: $${avgPnl.toFixed(2)}
 ${avgRMultiple !== null ? `- Average R-Multiple: ${avgRMultiple.toFixed(2)}R` : ''}
+- Revenge trading signals: ${hasRevengeTrading ? 'YES (3+ consecutive losses detected)' : 'No'}
 
-TRADE-BY-TRADE BREAKDOWN:
+TRADE-BY-TRADE LOG:
 ${tradeDetails}
 
-Based on this data, provide a brief trading coach analysis. Your response must be valid JSON with this exact structure:
+Produce 3-5 behavioral insights for this session. Common insight types to look for:
+- "Overtrading" (too many trades vs usual 3-5)
+- "Revenge Trading" (trading after consecutive losses)
+- "Tilt Session" (many losses, short intervals, emotional pattern)
+- "Deep in Drawdown" (majority of session in negative territory)
+- "Left Money on the Table" (exits too early based on best vs actual)
+- "Giving Away Profits" (was up, then gave back - look at P&L sequence)
+- "Discipline Maintained" (positive insights if they kept good risk management)
+
+Return valid JSON with this EXACT structure:
 {
-  "assessment": "One sentence overall assessment of this trading day (positive or constructive)",
-  "tips": ["Tip 1 (specific, actionable)", "Tip 2", "Tip 3"],
-  "warnings": ["Warning 1 if applicable (e.g. overtrading, revenge trading, etc.)"],
-  "score": <number between 0-100 representing this day's discipline score>
+  "insights": [
+    {
+      "icon": "alert" or "info" or "success",
+      "title": "Insight Title (3-5 words)",
+      "description": "One specific sentence with concrete numbers from the session data."
+    }
+  ],
+  "assessment": "One overall sentence about this trading day.",
+  "score": <number 0-100 for this day's discipline quality>
 }
 
-Be direct, specific, and tough-love honest. Reference specific metrics. Keep each tip under 20 words.`;
+Rules:
+- 3-5 insights maximum
+- Each description under 25 words, referencing actual session metrics
+- Brutal honesty: if they lost $489 revenge trading 48 times, say it clearly
+- Use "alert" for red-flag behaviors, "success" for positives, "info" for neutral`;
 
-    // Call Google Gemini API directly
-    // Using v1beta and gemini-3-flash-preview (series 3 series requested by user)
-    const primaryModel = "gemini-3-flash-preview";
-    const fallbackModel = "gemini-1.5-flash";
-    
-    let response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-            responseMimeType: "application/json",
-          },
-        }),
-      }
-    );
-
-    // ... (rest of the fetching logic stays same as last commit)
-    if (!response.ok && response.status === 404) {
-      console.warn(`Primary model ${primaryModel} not found, trying fallback ${fallbackModel}`);
-      response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${fallbackModel}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 1024,
-              responseMimeType: "application/json",
-            },
-          }),
-        }
-      );
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.error?.message || response.statusText;
-      throw new Error(`Gemini API [${response.status}]: ${errorMessage}`);
-    }
-
-    const resData = await response.json();
-    const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    let parsed;
-    try {
-      // With responseMimeType: "application/json", rawText should be clean JSON
-      parsed = JSON.parse(rawText);
-    } catch (e) {
-      // Fallback: Try regex extraction if JSON mode failed/ignored
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-         try {
-           parsed = JSON.parse(jsonMatch[0]);
-         } catch (e2) {
-           throw new Error(`Invalid JSON structure in response preview: ${rawText.substring(0, 100)}...`);
-         }
-      } else {
-        throw new Error(`AI returned non-JSON text: ${rawText.substring(0, 100)}...`);
-      }
-    }
+    parsed = await callGemini(prompt, apiKey);
 
     return NextResponse.json({
-      assessment: parsed.assessment || 'Analysis complete.',
-      tips: Array.isArray(parsed.tips) ? parsed.tips.slice(0, 5) : [],
-      warnings: Array.isArray(parsed.warnings) ? parsed.warnings.slice(0, 3) : [],
+      insights: Array.isArray(parsed.insights) ? parsed.insights.slice(0, 5) : [],
+      assessment: parsed.assessment || 'Session analysis complete.',
       score: typeof parsed.score === 'number' ? Math.min(100, Math.max(0, parsed.score)) : null,
     });
 
   } catch (error: any) {
     console.error('AI Coach technical error:', error);
-    
     return NextResponse.json({
+      insights: [
+        { icon: "alert", title: "Analysis Failed", description: error.message }
+      ],
       assessment: "Diagnostic Error: " + error.message,
-      tips: ["The AI key is WORKING, but the response format was unexpected.", "I am now forcing 'JSON Mode' to fix this."],
-      warnings: ["Technical Detail: Check your server logs or refresh the page."],
       score: null,
       error: error.message,
     }, { status: 500 });

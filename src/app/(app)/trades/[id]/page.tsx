@@ -1,18 +1,17 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   ChevronLeft, 
   CheckCircle, 
-  PlayCircle, 
   Share, 
   Settings, 
-  MoreHorizontal, 
-  ChevronDown,
   Star,
   Info,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -43,9 +42,7 @@ export default function SingleTradeView() {
     const [showAiResults, setShowAiResults] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [aiAnalysis, setAiAnalysis] = useState<{
-        assessment: string;
-        tips: string[];
-        warnings: string[];
+        insights: { icon: string; title: string; description: string }[];
         score: number | null;
     } | null>(null);
 
@@ -57,20 +54,25 @@ export default function SingleTradeView() {
         if (!trade || isAnalyzing) return;
         setIsAnalyzing(true);
         setShowAiResults(true);
+        setAiAnalysis(null);
         try {
             const response = await fetch('/api/ai-coach', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    mode: 'trade',
                     date: trade.Date || 'N/A',
-                    trades: [trade].map(t => ({
-                        symbol: t.Symbol,
-                        side: t.Side,
-                        netPnl: t.NetPnL,
-                        execTime: t['Exec Time'],
-                        rMultiple: t.RMultiple,
-                        strategy: t.Strategy,
-                    })),
+                    trades: [{
+                        symbol: trade.Symbol,
+                        side: trade.Side,
+                        netPnl: trade.NetPnL,
+                        roi: trade.ROI,
+                        rMultiple: trade.RMultiple,
+                        strategy: trade.Strategy,
+                        entryTime: trade['Exec Time'] || trade.Date,
+                        exitTime: trade.CloseTime,
+                        holdTime: trade.HoldTime,
+                    }],
                 }),
             });
             const data = await response.json();
@@ -104,55 +106,78 @@ export default function SingleTradeView() {
 
     return (
         <div className="flex flex-col h-[calc(100vh-60px)] bg-background font-sans text-foreground overflow-hidden p-0 m-0 relative">
-            {/* --- AI Analysis Overlay (Preserved Logic) --- */}
+            {/* --- AI Trade Insight Overlay (TradeZilla Style) --- */}
             {showAiResults && (
-                <div className="absolute inset-0 z-[100] flex items-center justify-center p-6 sm:p-20">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setShowAiResults(false)} />
-                    <div className="bg-card border border-border shadow-2xl rounded-[32px] w-full max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col relative z-10 animate-in zoom-in-95 duration-300">
-                        <div className="flex items-center justify-between p-8 border-b border-border/50">
-                            <div className="flex items-center gap-4">
-                                <BadyTradesMarkLogo className="h-8 w-8 text-primary" />
+                <div className="absolute inset-0 z-[100] flex items-center justify-center p-6">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setShowAiResults(false)} />
+                    <div className="bg-card border border-border/80 shadow-2xl rounded-2xl w-full max-w-[460px] overflow-hidden flex flex-col relative z-10 animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+                            <div className="flex items-center gap-3">
+                                <BadyTradesMarkLogo className="h-6 w-6 text-primary" />
                                 <div>
-                                    <h2 className="text-sm font-black tracking-widest uppercase">AI Baadi Coach</h2>
-                                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Deep Analysis</p>
+                                    <h2 className="text-xs font-black tracking-widest uppercase">Bady AI Insights</h2>
+                                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                                        {trade.Symbol} · {trade.Date ? format(new Date(trade.Date), 'MMM d, yyyy') : ''} · Net P&L <span className={cn(parseFloat(trade.NetPnL || '0') >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]')}>{parseFloat(trade.NetPnL || '0') >= 0 ? '+' : ''}${parseFloat(trade.NetPnL || '0').toFixed(2)}</span>
+                                    </p>
                                 </div>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={() => setShowAiResults(false)}><MoreHorizontal className="h-4 w-4" /></Button>
+                            <button onClick={() => setShowAiResults(false)} className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-accent transition-colors">
+                                <X className="h-3.5 w-3.5" />
+                            </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-10 space-y-8">
+
+                        {/* Body */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
                             {isAnalyzing ? (
-                                <div className="flex flex-col items-center justify-center py-20 gap-6">
-                                    <div className="h-12 w-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-                                    <p className="text-[11px] font-black uppercase tracking-widest text-primary">Analyzing Execution...</p>
+                                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                                    <div className="h-8 w-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Analyzing Execution...</p>
                                 </div>
                             ) : aiAnalysis && (
                                 <>
-                                    <div className="flex flex-col items-center justify-center bg-accent/10 border border-border rounded-3xl p-8 gap-1">
-                                        <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Trade Quality Score</p>
-                                        <div className="flex items-center gap-2">
-                                            <span className={cn(
-                                                "text-6xl font-black tracking-tighter",
-                                                (aiAnalysis.score || 0) >= 70 ? "text-win-green" : "text-loss-red"
-                                            )}>{aiAnalysis.score || '—'}</span>
-                                            <span className="text-xl font-black opacity-10">/100</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6">
-                                        <p className="text-sm font-bold leading-relaxed italic">"{aiAnalysis.assessment}"</p>
-                                    </div>
-                                    {aiAnalysis.warnings.length > 0 && (
-                                        <div className="space-y-3">
-                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-loss-red/60 px-1">Alerts & Mistakes</h4>
-                                            {aiAnalysis.warnings.map((w, i) => (
-                                                <div key={i} className="bg-destructive/5 border border-destructive/10 rounded-xl p-4 flex gap-4 text-[11px] font-bold opacity-70">{w}</div>
-                                            ))}
+                                    {/* Score badge */}
+                                    {aiAnalysis.score !== null && (
+                                        <div className="flex items-center gap-3 px-1 pb-2">
+                                            <div className={cn(
+                                                "text-3xl font-black tabular-nums",
+                                                (aiAnalysis.score) >= 70 ? "text-[#22c55e]" : (aiAnalysis.score) >= 40 ? "text-amber-400" : "text-[#ef4444]"
+                                            )}>{aiAnalysis.score}</div>
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Trade Quality</p>
+                                                <div className="h-1.5 w-24 rounded-full bg-border mt-1 overflow-hidden">
+                                                    <div className={cn("h-full rounded-full", (aiAnalysis.score) >= 70 ? 'bg-[#22c55e]' : (aiAnalysis.score) >= 40 ? 'bg-amber-400' : 'bg-[#ef4444]')} style={{ width: `${aiAnalysis.score}%` }} />
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
+
+                                    {/* Insight Cards */}
+                                    {aiAnalysis.insights.map((insight, i) => (
+                                        <div key={i} className={cn(
+                                            "rounded-xl p-4 border flex gap-3 items-start",
+                                            insight.icon === 'alert' && 'bg-red-500/5 border-red-500/15',
+                                            insight.icon === 'success' && 'bg-green-500/5 border-green-500/15',
+                                            insight.icon === 'info' && 'bg-blue-500/5 border-blue-500/15',
+                                        )}>
+                                            <div className={cn(
+                                                "shrink-0 h-5 w-5 rounded-full flex items-center justify-center mt-0.5",
+                                                insight.icon === 'alert' && 'bg-red-500/10',
+                                                insight.icon === 'success' && 'bg-green-500/10',
+                                                insight.icon === 'info' && 'bg-blue-500/10',
+                                            )}>
+                                                {insight.icon === 'alert' && <AlertCircle className="h-3 w-3 text-red-400" />}
+                                                {insight.icon === 'success' && <CheckCircle2 className="h-3 w-3 text-green-400" />}
+                                                {insight.icon === 'info' && <Info className="h-3 w-3 text-blue-400" />}
+                                            </div>
+                                            <div>
+                                                <p className="text-[11px] font-black text-foreground/90">{insight.title}</p>
+                                                <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{insight.description}</p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </>
                             )}
-                        </div>
-                        <div className="p-8 border-t border-border/50">
-                             <Button onClick={() => setShowAiResults(false)} className="w-full h-12 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] rounded-xl">Close Baadi Analysis</Button>
                         </div>
                     </div>
                 </div>
