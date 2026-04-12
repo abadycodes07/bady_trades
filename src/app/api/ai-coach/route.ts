@@ -63,10 +63,10 @@ Based on this data, provide a brief trading coach analysis. Your response must b
 Be direct, specific, and tough-love honest. Reference specific metrics. Keep each tip under 20 words.`;
 
     // Call Google Gemini API directly
-    // Using v1 endpoint and gemini-1.5-flash for maximum production stability
-    const modelId = "gemini-1.5-flash";
+    // Using v1beta and gemini-3-flash as per diagnostic feedback
+    const modelId = "gemini-3-flash";
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
