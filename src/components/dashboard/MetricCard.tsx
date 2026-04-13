@@ -63,7 +63,7 @@ const renderVisual = (
                       cy="20"
                     />
                     <circle
-                      className="stroke-current text-[var(--win-green)]" // Use appropriate color
+                      className="stroke-current text-[#22c55e]" // Use appropriate color
                       strokeWidth="4"
                       fill="transparent"
                       r="18"
@@ -108,9 +108,9 @@ const renderVisual = (
                     <div className="relative h-14 w-full">
                          <svg viewBox="0 0 100 50" className="absolute inset-0 h-full w-full overflow-visible drop-shadow-[0_0_8px_var(--win-green-glow)]">
                              <path d={describeArc(centerX, centerY, radius, 0, Math.PI)} fill="none" stroke="currentColor" className="text-muted-foreground/10" strokeWidth={strokeWidth} strokeLinecap="round" />
-                             {wins > 0 && <path d={describeArc(centerX, centerY, radius, 0, winEnd)} fill="none" stroke="var(--win-green)" strokeWidth={strokeWidth} strokeLinecap="round" />}
+                             {wins > 0 && <path d={describeArc(centerX, centerY, radius, 0, winEnd)} fill="none" stroke="#22c55e" strokeWidth={strokeWidth} strokeLinecap="round" />}
                              {breakeven > 0 && <path d={describeArc(centerX, centerY, radius, winEnd, beEnd)} fill="none" stroke="#94a3b8" strokeWidth={strokeWidth} strokeLinecap="round" />}
-                             {losses > 0 && <path d={describeArc(centerX, centerY, radius, beEnd, lossEnd)} fill="none" stroke="var(--loss-red)" strokeWidth={strokeWidth} strokeLinecap="round" />}
+                             {losses > 0 && <path d={describeArc(centerX, centerY, radius, beEnd, lossEnd)} fill="none" stroke="#ef4444" strokeWidth={strokeWidth} strokeLinecap="round" />}
                          </svg>
                          <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
                              <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{wins + losses + breakeven} {t ? t('Trades') : 'Trades'}</span>
@@ -119,7 +119,7 @@ const renderVisual = (
                     <div className="flex justify-between w-full mt-2 px-1">
                          <div className="flex flex-col items-center">
                              <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-widest">{t ? t('Wins') : 'Wins'}</span>
-                             <span className="text-[11px] font-black text-[var(--win-green)]">{wins}</span>
+                             <span className="text-[11px] font-black text-[#22c55e]">{wins}</span>
                          </div>
                          <div className="flex flex-col items-center border-l border-r border-border px-4">
                              <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-widest">{t ? t('BE') : 'BE'}</span>
@@ -127,7 +127,7 @@ const renderVisual = (
                          </div>
                          <div className="flex flex-col items-center">
                              <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-widest">{t ? t('Losses') : 'Losses'}</span>
-                             <span className="text-[11px] font-black text-[var(--loss-red)]">{losses}</span>
+                             <span className="text-[11px] font-black text-[#ef4444]">{losses}</span>
                          </div>
                     </div>
                 </div>
@@ -144,8 +144,8 @@ const renderVisual = (
              return (
                  <div className="flex flex-col w-full gap-2 px-1">
                     <div className="flex items-center w-full h-2.5 rounded-full overflow-hidden bg-muted/10 border border-border">
-                        <div className="h-full bg-gradient-to-r from-[var(--win-green)]/80 to-[var(--win-green)] transition-all duration-700" style={{ width: `${winPercent}%` }} />
-                        <div className="h-full bg-gradient-to-r from-[var(--loss-red)]/80 to-[var(--loss-red)] transition-all duration-700" style={{ width: `${100 - winPercent}%` }} />
+                        <div className="h-full transition-all duration-700" style={{ width: `${winPercent}%`, backgroundColor: '#22c55e' }} />
+                        <div className="h-full transition-all duration-700" style={{ width: `${100 - winPercent}%`, backgroundColor: '#ef4444' }} />
                     </div>
                  </div>
              );
@@ -238,10 +238,10 @@ export function MetricCard({
                   )}>
                      {iconType === 'bar' && barData && selectedCurrency ? (
                           <div className="flex justify-between px-2 bg-muted/20 py-1 rounded-full border border-border">
-                             <span className="text-[var(--win-green)] font-bold">
+                             <span className="text-[#22c55e] font-bold">
                                  {formatCurrencyValue(barData.win, selectedCurrency)}
                              </span>
-                              <span className="text-[var(--loss-red)] font-bold">
+                              <span className="text-[#ef4444] font-bold">
                                   {formatCurrencyValue(barData.loss, selectedCurrency)}
                              </span>
                           </div>

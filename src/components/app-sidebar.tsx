@@ -335,7 +335,7 @@ export function AppSidebar() {
         <Button
           variant="ghost"
           size="icon"
-          className={cn("fixed top-4 z-50 md:hidden hover-effect", isArabic ? "right-4" : "left-4")}
+          className={cn("fixed top-4 left-4 z-50 md:hidden hover-effect")}
           onClick={() => setOpenMobile(true)}
         >
           <Menu />
@@ -345,8 +345,7 @@ export function AppSidebar() {
 
       <div 
         className={cn(
-          "fixed top-0 z-40 flex flex-col border-r border-border bg-sidebar transition-all duration-300 h-screen",
-          isArabic ? "right-0" : "left-0"
+          "fixed top-0 left-0 z-40 flex flex-col border-r border-border bg-sidebar transition-all duration-300 h-screen"
         )}
         style={{ width: '16rem' }}
       >
