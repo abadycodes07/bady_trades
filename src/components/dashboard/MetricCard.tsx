@@ -187,10 +187,12 @@ export function MetricCard({
     className,
 }: MetricCardProps) {
     const { t } = useLanguage();
+    const WIN = '#22c55e';
+    const LOSS = '#ef4444';
     const valueColor =
-        color === 'green' ? 'text-[var(--win-green)]' :
-        color === 'red' ? 'text-[var(--loss-red)]' :
-        'text-[var(--foreground)]';
+        color === 'green' ? WIN :
+        color === 'red' ? LOSS :
+        undefined; // inherit foreground
 
     const visualElement = renderVisual(iconType, progressValue, gaugeData, barData, t);
 
@@ -198,9 +200,9 @@ export function MetricCard({
         <Card className={cn(
             "relative overflow-hidden transition-all duration-300 group",
             "bg-card border-border shadow-2xl",
-            "hover:bg-muted/10 hover:border-border/80 hover:shadow-primary/5",
-            color === 'green' && "border-[var(--win-green)]/30 shadow-[0_0_15px_rgba(34,197,94,0.1)]",
-            color === 'red' && "border-[var(--loss-red)]/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]",
+            "hover:bg-muted/10",
+            color === 'green' && "border-[#22c55e]/25 shadow-[0_0_20px_rgba(34,197,94,0.12)]",
+            color === 'red' && "border-[#ef4444]/25 shadow-[0_0_20px_rgba(239,68,68,0.12)]",
             "flex flex-col justify-center items-center text-center p-4 h-full",
             className
         )}>
@@ -213,7 +215,10 @@ export function MetricCard({
                  {iconType === 'info' && <Info className="h-3 w-3 opacity-30 hover:opacity-100 transition-opacity cursor-pointer" />}
             </CardTitle>
             
-            <div className={cn("text-3xl font-black tracking-tighter mb-1 drop-shadow-md", valueColor)}>
+            <div
+                className={cn("text-3xl font-black tracking-tighter mb-1 drop-shadow-md")}
+                style={valueColor ? { color: valueColor } : undefined}
+            >
                 {value}
             </div>
 

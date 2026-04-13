@@ -11,7 +11,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Dot
 } from 'recharts';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -32,169 +31,135 @@ export function RunningPnLChart({ trades, className, chartId }: RunningPnLChartP
     const baseId = chartId || `chart-${Math.random().toString(36).substr(2, 9)}`;
     return baseId.replace(/[^a-zA-Z0-9]/g, '');
   }, [chartId]);
-  
+
   const chartData = useMemo(() => {
     if (!trades || trades.length === 0) return [];
 
-    // Sort trades by open time
     const sortedTrades = [...trades].sort((a, b) => {
-      const timeA = new Date(a.open_time || a.openTime || 0).getTime();
-      const timeB = new Date(b.open_time || b.openTime || 0).getTime();
+      const timeA = new Date(a.open_time || a.openTime || a.execTime || 0).getTime();
+      const timeB = new Date(b.open_time || b.openTime || b.execTime || 0).getTime();
       return timeA - timeB;
     });
 
     const points: TradePoint[] = [];
-    let currentCumulativePnL = 0;
+    let cumPnL = 0;
 
-    // Start at 0 before the first trade
-    if (sortedTrades.length > 0) {
-        const firstTime = new Date(sortedTrades[0].open_time || sortedTrades[0].openTime || Date.now());
-        const startTime = new Date(firstTime.getTime() - 1000 * 60 * 5); // 5 mins before
-        points.push({
-            time: format(startTime, 'HH:mm:ss'),
-            pnl: 0
-        });
-    }
+    // Start at 0
+    const firstTrade = sortedTrades[0];
+    const firstTime = new Date(firstTrade.open_time || firstTrade.openTime || firstTrade.execTime || Date.now());
+    const startTime = new Date(firstTime.getTime() - 1000 * 60 * 5);
+    points.push({ time: format(startTime, 'HH:mm'), pnl: 0 });
 
     sortedTrades.forEach((trade) => {
       const pnl = parseFloat(trade.net_pnl || trade.netPnl || '0');
-      const openTime = new Date(trade.open_time || trade.openTime || Date.now());
+      const openTime = new Date(trade.open_time || trade.openTime || trade.execTime || Date.now());
       const closeTime = new Date(trade.close_time || trade.closeTime || Date.now());
 
-      // Add point for trade open (at current cumulative)
-      points.push({
-        time: format(openTime, 'HH:mm:ss'),
-        pnl: currentCumulativePnL
-      });
-
-      // Add some intermediate "movement" points if the trade lasted longer than a minute
-      const durationMs = closeTime.getTime() - openTime.getTime();
-      if (durationMs > 60000) {
-          const midTime = new Date(openTime.getTime() + durationMs / 2);
-          const volatility = pnl > 0 ? pnl * 1.2 : pnl * 0.8; 
-          points.push({
-              time: format(midTime, 'HH:mm:ss'),
-              pnl: currentCumulativePnL + volatility
-          });
-      }
-
-      currentCumulativePnL += pnl;
-
-      // Add point for trade close (at new cumulative)
-      points.push({
-        time: format(closeTime, 'HH:mm:ss'),
-        pnl: currentCumulativePnL
-      });
+      points.push({ time: format(openTime, 'HH:mm'), pnl: cumPnL });
+      cumPnL += pnl;
+      points.push({ time: format(closeTime, 'HH:mm'), pnl: cumPnL });
     });
 
-    // End point
+    // Final trailing point
     if (sortedTrades.length > 0) {
-        const lastTime = new Date(sortedTrades[sortedTrades.length - 1].close_time || sortedTrades[sortedTrades.length - 1].closeTime || Date.now());
-        const endTime = new Date(lastTime.getTime() + 1000 * 60 * 5); // 5 mins after
-        points.push({
-            time: format(endTime, 'HH:mm:ss'),
-            pnl: currentCumulativePnL
-        });
+      const lastTrade = sortedTrades[sortedTrades.length - 1];
+      const lastTime = new Date(lastTrade.close_time || lastTrade.closeTime || Date.now());
+      const endTime = new Date(lastTime.getTime() + 1000 * 60 * 5);
+      points.push({ time: format(endTime, 'HH:mm'), pnl: cumPnL });
     }
 
     return points;
   }, [trades]);
 
-  const minPnLValue = chartData.length > 0 ? Math.min(...chartData.map(d => d.pnl)) : 0;
-  const maxPnLValue = chartData.length > 0 ? Math.max(...chartData.map(d => d.pnl)) : 0;
-  
-  // Adjusted baseline for the zero line
-  const adjustedMin = Math.min(minPnLValue, 0);
-  const adjustedMax = Math.max(maxPnLValue, 0);
-  
-  // Domain with padding
-  const vMargin = Math.max((adjustedMax - adjustedMin) * 0.1, 10);
+  const allPnL = chartData.map(d => d.pnl);
+  const minPnL = chartData.length > 0 ? Math.min(...allPnL) : 0;
+  const maxPnL = chartData.length > 0 ? Math.max(...allPnL) : 0;
+
+  const adjustedMin = Math.min(minPnL, 0);
+  const adjustedMax = Math.max(maxPnL, 0);
+  const vMargin = Math.max((adjustedMax - adjustedMin) * 0.12, 10);
   const domainMin = adjustedMin - vMargin;
   const domainMax = adjustedMax + vMargin;
 
-  // offset for the zero line (inverse for SVG coordinates)
+  // `off` = percentage from top (0%) where the zero line sits in the chart.
+  // y=0 in chart space → rendered at (domainMax / totalRange) from the TOP.
   const off = useMemo(() => {
     const totalRange = domainMax - domainMin;
     if (totalRange <= 0) return 0.5;
-    return (domainMax / totalRange) * 100;
+    // From the TOP: 0 = very top, 1 = very bottom.
+    return (domainMax / totalRange);
   }, [domainMax, domainMin]);
 
   const lastValue = chartData.length > 0 ? chartData[chartData.length - 1].pnl : 0;
-  const isPositiveDay = lastValue >= 0;
 
   if (chartData.length === 0) return null;
 
-  // Use hex colors for SVG gradients (CSS vars can fail inside SVG defs)
-  const winColor = '#22c55e';
-  const lossColor = '#ef4444';
-  const winOpacity = '0.5';
-  const lossOpacity = '0.5';
+  const WIN = '#22c55e';
+  const LOSS = '#ef4444';
+  const offPct = `${(off * 100).toFixed(2)}%`;
 
   return (
-    <div className={cn("w-full h-[200px] mt-4", className)}>
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-2">Running P&L</p>
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-          <defs>
-            {/* Split Gradient based on the zero line offset */}
-            <linearGradient id={`${containerId}-splitColor`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset={0} stopColor={winColor} stopOpacity={winOpacity} />
-              <stop offset={`${off}%`} stopColor={winColor} stopOpacity={0.05} />
-              <stop offset={`${off}%`} stopColor={lossColor} stopOpacity={0.05} />
-              <stop offset={1} stopColor={lossColor} stopOpacity={lossOpacity} />
-            </linearGradient>
-            
-            <linearGradient id={`${containerId}-lineColor`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset={0} stopColor={winColor} stopOpacity={1} />
-              <stop offset={`${off}%`} stopColor={winColor} stopOpacity={1} />
-              <stop offset={`${off}%`} stopColor={lossColor} stopOpacity={1} />
-              <stop offset={1} stopColor={lossColor} stopOpacity={1} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="currentColor" className="text-border/20" />
-          <XAxis 
-            dataKey="time" 
-            axisLine={false} 
-            tickLine={false} 
-            tick={{ fontSize: 9, fontWeight: 700, fill: 'currentColor' }}
-            className="text-muted-foreground/40"
-            minTickGap={30}
-          />
-          <YAxis 
-            hide={false}
-            axisLine={false} 
-            tickLine={false} 
-            tick={{ fontSize: 9, fontWeight: 700, fill: 'currentColor' }} 
-            className="text-muted-foreground/40"
-            tickFormatter={(value) => `$${value}`}
-            domain={[domainMin, domainMax]}
-          />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'var(--stats-card)', 
-              borderRadius: '8px', 
-              border: '1px solid var(--stats-card-border)', 
-              fontSize: '11px', 
-              fontWeight: 'bold',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}
-            itemStyle={{ color: 'var(--foreground)' }}
-            labelClassName="text-muted-foreground text-[9px] uppercase font-black mb-1"
-            formatter={(value: number) => [`$${value.toLocaleString()}`, 'P&L']}
-          />
-          <ReferenceLine y={0} stroke="rgba(156, 163, 175, 0.8)" strokeWidth={2} strokeDasharray="none" />
-          <Area
-            type="monotone"
-            dataKey="pnl"
-            stroke={`url(#${containerId}-lineColor)`}
-            strokeWidth={3}
-            fill={`url(#${containerId}-splitColor)`}
-            animationDuration={1500}
-            baseValue={0}
-            activeDot={{ r: 5, stroke: 'var(--background)', strokeWidth: 2, fill: 'currentColor' }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div className={cn('w-full mt-2', className)}>
+      <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">Running P&L</p>
+      <div className="h-[160px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+            <defs>
+              {/* Fill gradient: green above zero line, red below */}
+              <linearGradient id={`${containerId}-fill`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={WIN} stopOpacity={0.35} />
+                <stop offset={offPct} stopColor={WIN} stopOpacity={0.04} />
+                <stop offset={offPct} stopColor={LOSS} stopOpacity={0.04} />
+                <stop offset="100%" stopColor={LOSS} stopOpacity={0.35} />
+              </linearGradient>
+              {/* Stroke gradient: green above, red below */}
+              <linearGradient id={`${containerId}-stroke`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={WIN} stopOpacity={1} />
+                <stop offset={offPct} stopColor={WIN} stopOpacity={1} />
+                <stop offset={offPct} stopColor={LOSS} stopOpacity={1} />
+                <stop offset="100%" stopColor={LOSS} stopOpacity={1} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+            <XAxis
+              dataKey="time"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 8, fill: 'rgba(255,255,255,0.25)' }}
+              minTickGap={40}
+            />
+            <YAxis
+              hide
+              domain={[domainMin, domainMax]}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#18181b',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.08)',
+                fontSize: '11px',
+                fontWeight: 700,
+              }}
+              itemStyle={{ color: lastValue >= 0 ? WIN : LOSS }}
+              labelStyle={{ color: 'rgba(255,255,255,0.4)', fontSize: '9px' }}
+              formatter={(value: number) => [`${value >= 0 ? '+' : ''}$${value.toFixed(2)}`, 'P&L']}
+            />
+            {/* Zero reference line — solid neutral gray */}
+            <ReferenceLine y={0} stroke="rgba(156,163,175,0.6)" strokeWidth={1.5} />
+            <Area
+              type="monotone"
+              dataKey="pnl"
+              stroke={`url(#${containerId}-stroke)`}
+              strokeWidth={2}
+              fill={`url(#${containerId}-fill)`}
+              baseValue={0}
+              animationDuration={1200}
+              dot={false}
+              activeDot={{ r: 4, fill: lastValue >= 0 ? WIN : LOSS, stroke: '#000', strokeWidth: 2 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

@@ -460,40 +460,28 @@ function DayDetailPopup({
                         </div>
                     </div>
 
-                    {/* Date + P&L */}
-                    <div className="relative z-10 mb-6">
-                        <p className="text-xs font-black uppercase tracking-wider text-white/80 mb-1">{format(date, 'EEEE, MMMM d, yyyy')}</p>
-                        <h2 className="text-4xl font-extrabold text-white tracking-tight">
-                            {pnlForDay >= 0 ? '+' : ''}{formatTotalCurrency(pnlForDay, currency)}
+                    {/* Date + P&L — single sign fix */}
+                    <div className="relative z-10 mb-5">
+                        <p className="text-[11px] font-black uppercase tracking-wider text-white/60 mb-1.5">{format(date, 'EEEE, MMMM d, yyyy')}</p>
+                        <h2 className="text-4xl font-extrabold tracking-tight" style={{ color: pnlForDay >= 0 ? '#22c55e' : '#ef4444' }}>
+                            {formatTotalCurrency(pnlForDay, currency)}
                         </h2>
                     </div>
 
-                    {/* Stats pills */}
-                    <div className="flex flex-col gap-2 relative z-10 max-w-lg">
-                        <div className="flex items-center gap-2">
-                            {[
-                                { label: 'Total Trades', value: data.trades.toString() },
-                                { label: 'Gross P&L', value: `${grossPnlTotal >= 0 ? '+' : ''}$${grossPnlTotal.toFixed(2)}` },
-                                { label: 'Winners / Losers', value: `${data.winningTrades} / ${data.losingTrades}` },
-                                { label: 'Commission', value: `$${data.commission.toFixed(2)}` },
-                            ].map((s) => (
-                                <div key={s.label} className="flex-1 bg-black/20 rounded-2xl py-2 px-3 text-center flex flex-col justify-center min-w-[90px]">
-                                    <p className="text-[8px] font-black uppercase tracking-widest text-white/50 mb-0.5">{s.label}</p>
-                                    <p className="text-xs font-black text-white">{s.value}</p>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex items-center gap-2 max-w-[200px]">
-                            {[
-                                { label: 'Win Rate', value: `${winRate.toFixed(1)}%` },
-                                { label: 'Profit Factor', value: profitFactor.toString() },
-                            ].map((s) => (
-                                <div key={s.label} className="flex-1 bg-black/20 rounded-2xl py-2 px-3 text-center flex flex-col justify-center">
-                                    <p className="text-[8px] font-black uppercase tracking-widest text-white/50 mb-0.5">{s.label}</p>
-                                    <p className="text-xs font-black text-white">{s.value}</p>
-                                </div>
-                            ))}
-                        </div>
+                    {/* Stats row */}
+                    <div className="flex items-center gap-2 relative z-10 flex-wrap">
+                        {[
+                            { label: 'Total Trades', value: data.trades.toString() },
+                            { label: 'Gross P&L', value: `${grossPnlTotal >= 0 ? '+' : ''}$${grossPnlTotal.toFixed(2)}` },
+                            { label: 'W / L', value: `${data.winningTrades} / ${data.losingTrades}` },
+                            { label: 'Win Rate', value: `${winRate.toFixed(1)}%` },
+                            { label: 'Profit Factor', value: profitFactor.toString() },
+                        ].map((s) => (
+                            <div key={s.label} className="bg-black/25 rounded-xl py-2 px-3 flex flex-col justify-center">
+                                <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mb-0.5">{s.label}</p>
+                                <p className="text-xs font-black text-white">{s.value}</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
@@ -573,17 +561,16 @@ function DayDetailPopup({
                                         <span className="text-[10px] text-white/50 truncate">{instrument}</span>
                                         
                                         {/* Net P&L */}
-                                        <span className={cn("text-[11px] font-black", isWin ? "text-emerald-400" : "text-rose-400")}>
-                                            {isWin ? '+' : ''}{formatTotalCurrency(trade.netPnl, currency)}
+                                        <span style={{ color: isWin ? '#22c55e' : '#ef4444' }} className="text-[11px] font-black">
+                                            {formatTotalCurrency(trade.netPnl, currency)}
                                         </span>
                                         
                                         {/* Net ROI */}
-                                        <span className={cn("text-[10px] font-bold", isWin ? "text-emerald-400/70" : "text-rose-400/70")}>{roi}</span>
+                                        <span style={{ color: isWin ? '#22c55e99' : '#ef444499' }} className="text-[10px] font-bold">{roi}</span>
                                         
                                         {/* R-Multiple */}
-                                        <span className={cn("text-[10px] font-bold", 
-                                            rMultiple === '—' ? "text-white/30" :
-                                            rMultiple.startsWith('+') ? "text-emerald-400/70" : "text-rose-400/70"
+                                        <span className={cn("text-[10px] font-bold",
+                                            rMultiple === '—' ? "text-white/25" : rMultiple.startsWith('+') ? "text-emerald-400/70" : "text-rose-400/70"
                                         )}>{rMultiple}</span>
                                         
                                         {/* Strategy */}
