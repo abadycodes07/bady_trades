@@ -21,13 +21,13 @@ interface BadyScoreChartProps {
 }
 
 // Default data if no CSV is loaded or calculations fail
-const defaultBadyScoreData = [
-  { metric: 'Win %', score: 0, fullMark: 100 },
-  { metric: 'Profit factor', score: 0, fullMark: 100 },
-  { metric: 'Avg win/loss', score: 0, fullMark: 100 },
-  { metric: 'Recovery factor', score: 0, fullMark: 100 }, // Placeholder
-  { metric: 'Max drawdown', score: 0, fullMark: 100 }, // Placeholder
-  { metric: 'Consistency', score: 0, fullMark: 100 },   // Placeholder
+const defaultBadyScoreData = (t: (key: string) => string) => [
+  { metric: t('Win %'), score: 0, fullMark: 100 },
+  { metric: t('Profit Factor'), score: 0, fullMark: 100 },
+  { metric: t('Average Win/Loss'), score: 0, fullMark: 100 },
+  { metric: t('Recovery Factor'), score: 0, fullMark: 100 },
+  { metric: t('Max Drawdown'), score: 0, fullMark: 100 },
+  { metric: t('Consistency'), score: 0, fullMark: 100 },
 ];
 
 
@@ -46,7 +46,7 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
   const { t } = useLanguage();
 
   const badyScoreChartData = React.useMemo(() => {
-    if (!data || data.length === 0) return defaultBadyScoreData;
+    if (!data || data.length === 0) return defaultBadyScoreData(t);
 
     const netPnLValues = data.map(t => parseFloat(t.NetPnL || '0')).filter(pnl => !isNaN(pnl));
     const grossPnLValues = data.map(t => parseFloat(t.GrossPnl || '0')).filter(pnl => !isNaN(pnl));
@@ -83,14 +83,14 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
     const maxDrawdownScore = maxDdValue === 0 ? 100 : Math.max(0, 100 - (maxDdValue / 5000) * 100); // 100 if DD < 5k
 
     return [
-      { metric: 'Win %', score: winRate, fullMark: 100 },
-      { metric: 'Profit factor', score: profitFactorScore, fullMark: 100 },
-      { metric: 'Avg win/loss', score: avgWinLossScore, fullMark: 100 },
-      { metric: 'Recovery factor', score: 65, fullMark: 100 }, 
-      { metric: 'Max drawdown', score: maxDrawdownScore, fullMark: 100 },
-      { metric: 'Consistency', score: 72, fullMark: 100 }, 
+      { metric: t('Win %'), score: winRate, fullMark: 100 },
+      { metric: t('Profit Factor'), score: profitFactorScore, fullMark: 100 },
+      { metric: t('Average Win/Loss'), score: avgWinLossScore, fullMark: 100 },
+      { metric: t('Recovery Factor'), score: 65, fullMark: 100 }, 
+      { metric: t('Max Drawdown'), score: maxDrawdownScore, fullMark: 100 },
+      { metric: t('Consistency'), score: 72, fullMark: 100 }, 
     ];
-  }, [data]);
+  }, [data, t]);
 
 
   return (
@@ -99,7 +99,7 @@ export function BadyScoreChart({ data, overallScore }: BadyScoreChartProps) {
       
       <CardHeader className="pb-1">
         <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-center gap-1.5">
-          Overall Bady-score
+          {t('Overall Bady Score')}
           <Info className="h-3 w-3 opacity-30 cursor-pointer" />
         </CardTitle>
       </CardHeader>

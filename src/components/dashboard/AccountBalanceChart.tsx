@@ -6,6 +6,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { format, parse, isValid, compareAsc } from 'date-fns';
 import { Info } from 'lucide-react';
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 interface CsvTradeData {
   Date?: string;
   NetPnL?: string;
@@ -18,9 +20,10 @@ interface AccountBalanceChartProps {
 }
 
 export function AccountBalanceChart({ data, initialBalance, selectedCurrency }: AccountBalanceChartProps) {
+  const { t } = useLanguage();
   const chartData = React.useMemo(() => {
     if (!data || data.length === 0) {
-      return [{ date: 'Initial', balance: initialBalance }];
+      return [{ date: t('Initial'), balance: initialBalance }];
     }
 
     const dailyPnL: Record<string, number> = {};
@@ -43,8 +46,8 @@ export function AccountBalanceChart({ data, initialBalance, selectedCurrency }: 
       };
     });
 
-    return [{ date: 'Start', balance: initialBalance * (selectedCurrency?.rate || 1), displayDate: 'Initial' }, ...points];
-  }, [data, initialBalance, selectedCurrency]);
+    return [{ date: t('Start'), balance: initialBalance * (selectedCurrency?.rate || 1), displayDate: t('Initial') }, ...points];
+  }, [data, initialBalance, selectedCurrency, t]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -68,7 +71,7 @@ export function AccountBalanceChart({ data, initialBalance, selectedCurrency }: 
       
       <CardHeader className="pb-2">
         <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-between">
-          Account Balance
+          {t('Account Balance')}
           <Info className="h-3 w-3 opacity-30 cursor-pointer" />
         </CardTitle>
       </CardHeader>

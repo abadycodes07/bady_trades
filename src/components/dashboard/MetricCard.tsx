@@ -209,7 +209,7 @@ export function MetricCard({
             <div className="absolute -bottom-12 -left-12 w-24 h-24 bg-white/[0.02] blur-2xl rounded-full group-hover:bg-white/[0.04] transition-all duration-700" />
             
             <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-center gap-1.5 mb-3">
-                 {title}
+                 {t(title)}
                  {iconType === 'info' && <Info className="h-3 w-3 opacity-30 hover:opacity-100 transition-opacity cursor-pointer" />}
             </CardTitle>
             
@@ -247,7 +247,7 @@ export function MetricCard({
                           </div>
                       ) : (
                          <span className="bg-muted/10 px-2 py-0.5 rounded-full border border-border">
-                            {metric}
+                            {typeof metric === 'string' ? t(metric) : metric}
                          </span>
                       )}
                   </div>

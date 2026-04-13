@@ -12,11 +12,12 @@ const resources = [
 ];
 
 export default function ResourceCenterPage() {
+  const { t } = useLanguage();
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Resource Center</h1>
+      <h1 className="text-3xl font-bold mb-6">{t('Resource Center')}</h1>
       <p className="text-muted-foreground mb-8">
-        Access educational content, bootcamps, webinars, and community resources to enhance your trading skills.
+        {t('Access educational content, bootcamps, webinars, and community resources to enhance your trading skills.')}
       </p>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -27,13 +28,13 @@ export default function ResourceCenterPage() {
                    <CardHeader>
                      <div className="flex items-center gap-3 mb-2">
                          <resource.icon className="h-6 w-6 text-primary" />
-                        <CardTitle>{resource.title}</CardTitle>
+                        <CardTitle>{t(resource.title)}</CardTitle>
                      </div>
-                     <CardDescription>{resource.description}</CardDescription>
+                     <CardDescription>{t(resource.description)}</CardDescription>
                    </CardHeader>
                    <CardContent className="flex-grow"></CardContent> {/* To push footer down */}
                     <div className="px-6 pb-4 text-xs text-muted-foreground">
-                       Type: {resource.type}
+                       {t('Type')}: {t(resource.type)}
                     </div>
                  </Card>
              </a>

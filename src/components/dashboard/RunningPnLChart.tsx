@@ -131,30 +131,31 @@ export function RunningPnLChart({ trades, className, chartId }: RunningPnLChartP
               </linearGradient>
             </defs>
 
-            <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="rgba(255,255,255,0.04)" />
+            <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="currentColor" className="text-muted-foreground/10" />
             <XAxis
               dataKey="time"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 8, fill: 'rgba(255,255,255,0.22)' }}
+              tick={{ fontSize: 8, fill: 'currentColor', className: 'text-muted-foreground/40 font-bold' }}
               minTickGap={40}
             />
             <YAxis hide domain={[domMin, domMax]} />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#18181b',
+                backgroundColor: 'hsl(var(--popover))',
                 borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid hsl(var(--border))',
                 fontSize: '11px',
                 fontWeight: 700,
                 padding: '6px 10px',
+                backdropFilter: 'blur(10px)',
               }}
               itemStyle={{ color: lastVal >= 0 ? WIN : LOSS }}
-              labelStyle={{ color: 'rgba(255,255,255,0.35)', fontSize: '9px', marginBottom: 2 }}
+              labelStyle={{ color: 'hsl(var(--muted-foreground))', opacity: 0.6, fontSize: '9px', marginBottom: 2 }}
               formatter={(value: number) => [`${value >= 0 ? '+' : ''}$${value.toFixed(2)}`, 'P&L']}
             />
             {/* Zero reference line */}
-            <ReferenceLine y={0} stroke="rgba(160,160,180,0.5)" strokeWidth={1.5} />
+            <ReferenceLine y={0} stroke="currentColor" className="text-muted-foreground/30" strokeWidth={1.5} />
 
             {/* GREEN area — positive zone */}
             <Area

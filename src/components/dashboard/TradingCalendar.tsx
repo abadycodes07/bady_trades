@@ -271,8 +271,8 @@ function AiCoachPanel({ trades, date, onClose }: {
         <div>
           <p className="text-xs font-black text-white uppercase tracking-[0.15em]">Daily Bady Insights</p>
           <p className="text-[10px] text-indigo-400/70 font-bold uppercase tracking-widest mt-0.5">
-            {format(date, 'EEE, MMM d, yyyy')} &nbsp;·&nbsp;
-            Net P&L <span className={totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}</span> &nbsp;·&nbsp; {trades.length} Trades
+            {t(format(date, 'EEE'))}, {t(format(date, 'MMM'))} {format(date, 'd, yyyy')} &nbsp;·&nbsp;
+            {t('Net P&L')} <span className={totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}</span> &nbsp;·&nbsp; {trades.length} {t('Trades')}
           </p>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white" onClick={onClose}>
@@ -430,12 +430,12 @@ function DayDetailPopup({
                             {/* Replay button */}
                             <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-all">
                                 <PlayCircle className="h-3 w-3" />
-                                Replay
+                                {t('Replay')}
                             </button>
                             {/* Add Note button */}
                             <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-all">
                                 <FileText className="h-3 w-3" />
-                                Add Note
+                                {t('Add Note')}
                             </button>
                             {/* AI Coach button */}
                             <button
@@ -462,7 +462,7 @@ function DayDetailPopup({
 
                     {/* Date + P&L — single sign fix */}
                     <div className="relative z-10 mb-5">
-                        <p className="text-[11px] font-black uppercase tracking-wider text-white/60 mb-1.5">{format(date, 'EEEE, MMMM d, yyyy')}</p>
+                        <p className="text-[11px] font-black uppercase tracking-wider text-white/60 mb-1.5">{t(format(date, 'EEEE'))}, {t(format(date, 'MMMM'))} {format(date, 'd, yyyy')}</p>
                         <h2 className="text-4xl font-extrabold tracking-tight" style={{ color: pnlForDay >= 0 ? '#22c55e' : '#ef4444' }}>
                             {formatTotalCurrency(pnlForDay, currency)}
                         </h2>
@@ -471,11 +471,11 @@ function DayDetailPopup({
                     {/* Stats row */}
                     <div className="flex items-center gap-2 relative z-10 flex-wrap">
                         {[
-                            { label: 'Total Trades', value: data.trades.toString() },
-                            { label: 'Gross P&L', value: `${grossPnlTotal >= 0 ? '+' : ''}$${grossPnlTotal.toFixed(2)}` },
-                            { label: 'W / L', value: `${data.winningTrades} / ${data.losingTrades}` },
-                            { label: 'Win Rate', value: `${winRate.toFixed(1)}%` },
-                            { label: 'Profit Factor', value: profitFactor.toString() },
+                            { label: t('Total Trades'), value: data.trades.toString() },
+                            { label: t('Gross P&L'), value: `${grossPnlTotal >= 0 ? '+' : ''}$${grossPnlTotal.toFixed(2)}` },
+                            { label: t('W / L'), value: `${data.winningTrades} / ${data.losingTrades}` },
+                            { label: t('Win Rate'), value: `${winRate.toFixed(1)}%` },
+                            { label: t('Profit Factor'), value: profitFactor.toString() },
                         ].map((s) => (
                             <div key={s.label} className="bg-black/25 rounded-xl py-2 px-3 flex flex-col justify-center">
                                 <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mb-0.5">{s.label}</p>
@@ -508,15 +508,15 @@ function DayDetailPopup({
                         {/* Table Header */}
                         <div className="grid text-[8px] font-black uppercase tracking-widest text-white/30 pb-2 border-b border-white/5 mb-1" 
                              style={{ gridTemplateColumns: '80px 90px 55px 75px 75px 60px 90px 80px 40px' }}>
-                            <span>Open Time</span>
-                            <span>Ticker</span>
-                            <span>Side</span>
-                            <span>Instrument</span>
-                            <span>Net P&L</span>
-                            <span>Net ROI</span>
-                            <span>R-Multiple</span>
-                            <span>Strategy</span>
-                            <span>Replay</span>
+                            <span>{t('OPEN TIME')}</span>
+                            <span>{t('TICKER')}</span>
+                            <span>{t('SIDE')}</span>
+                            <span>{t('INSTRUMENT')}</span>
+                            <span>{t('NET P&L')}</span>
+                            <span>{t('NET ROI')}</span>
+                            <span>{t('R-MULTIPLE')}</span>
+                            <span>{t('STRATEGY')}</span>
+                            <span>{t('REPLAY')}</span>
                         </div>
 
                         {/* Trade Rows */}
@@ -552,8 +552,8 @@ function DayDetailPopup({
                                         
                                         {/* Side */}
                                         <span className={cn("text-[10px] font-black uppercase", isWin ? "text-white/70" : "text-white/70")}>
-                                            {trade.side?.toUpperCase() === 'BUY' ? 'LONG' : 
-                                             trade.side?.toUpperCase() === 'SELL' ? 'SHORT' : 
+                                            {trade.side?.toUpperCase() === 'BUY' ? t('LONG') : 
+                                             trade.side?.toUpperCase() === 'SELL' ? t('SHORT') : 
                                              trade.side?.toUpperCase() || '—'}
                                         </span>
                                         
@@ -593,13 +593,13 @@ function DayDetailPopup({
                     {/* Footer buttons */}
                     <div className="flex items-center justify-between px-4 pb-4 pt-2 border-t border-white/5">
                         <Button variant="ghost" onClick={onClose} className="text-white/50 hover:text-white font-bold text-sm">
-                            Cancel
+                            {t('Cancel')}
                         </Button>
                         <Button 
                             className="bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest px-6 rounded-xl"
                             onClick={() => window.location.href = `/trades?date=${format(date, 'yyyy-MM-dd')}`}
                         >
-                            View Day Details
+                            {t('View Day Details')}
                         </Button>
                     </div>
                 </div>
@@ -707,7 +707,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                  <div className="flex items-center gap-12">
                      <div className="flex items-center gap-3">
                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-muted/10 border-border hover:bg-muted/20" onClick={handlePrevMonth}><ChevronLeft className="h-5 w-5 text-muted-foreground/50"/></Button>
-                        <span className="text-lg font-black w-48 text-center uppercase tracking-[0.2em] text-foreground">{format(currentMonthDate, 'MMMM yyyy')}</span>
+                        <span className="text-lg font-black w-48 text-center uppercase tracking-[0.2em] text-foreground">{t(format(currentMonthDate, 'MMMM'))} {format(currentMonthDate, 'yyyy')}</span>
                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-muted/10 border-border hover:bg-muted/20" onClick={handleNextMonth}><ChevronRight className="h-5 w-5 text-muted-foreground/50"/></Button>
                      </div>
 
@@ -715,7 +715,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                          <div className="flex items-center gap-2">
                              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
                              <div>
-                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-0.5">MONTHLY P&L</p>
+                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-0.5">{t('MONTHLY P&L')}</p>
                                  <p className={cn("text-xl font-black tabular-nums leading-none", monthlyStats.net >= 0 ? "text-emerald-400" : "text-rose-500")}>
                                      {formatTotalCurrency(monthlyStats.net, selectedCurrency)}
                                  </p>
@@ -724,7 +724,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                          <div className="flex items-center gap-2">
                              <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
                              <div>
-                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-0.5">TRADED DAYS</p>
+                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-0.5">{t('TRADED DAYS')}</p>
                                  <p className="text-xl font-black text-foreground tabular-nums leading-none">{monthlyStats.days}</p>
                              </div>
                          </div>
@@ -754,14 +754,14 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                  <PopoverContent className="w-64 p-4 bg-popover border-border rounded-2xl shadow-2xl" align="end">
 
                                      <div className="space-y-4">
-                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">DISPLAY STATS</h4>
+                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{t('DISPLAY STATS')}</h4>
                                          <div className="space-y-1">
                                              {[
-                                                 { id: 'r-multiple', label: 'R Multiple' },
-                                                 { id: 'daily-pnl', label: 'Daily P/L', checked: true },
-                                                 { id: 'ticks', label: 'Ticks' },
-                                                 { id: 'pips', label: 'Pips' },
-                                                 { id: 'winrate', label: 'Day winrate', checked: true }
+                                                 { id: 'r-multiple', label: t('R Multiple') },
+                                                 { id: 'daily-pnl', label: t('Daily P/L'), checked: true },
+                                                 { id: 'ticks', label: t('Ticks') },
+                                                 { id: 'pips', label: t('Pips') },
+                                                 { id: 'winrate', label: t('Day winrate'), checked: true }
                                              ].map((stat) => (
                                                  <div key={stat.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/10 transition-colors cursor-pointer group">
                                                      <span className="text-xs font-bold text-muted-foreground group-hover:text-white">{stat.label}</span>
@@ -773,25 +773,25 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                          </div>
 
                                          <div className="pt-4 border-t border-border">
-                                             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">ECONOMIC EVENTS</h4>
+                                             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">{t('ECONOMIC EVENTS')}</h4>
                                              <div className="flex items-center justify-between p-2 rounded-lg bg-muted/5 border border-border mb-3">
-                                                 <span className="text-xs font-bold text-white">Display events</span>
+                                                 <span className="text-xs font-bold text-white">{t('Display events')}</span>
                                                  <Switch className="scale-75 data-[state=checked]:bg-indigo-500" defaultChecked />
                                              </div>
                                              
                                              <div className="space-y-3 px-1">
                                                  <div className="flex items-center justify-between">
-                                                     <span className="text-[10px] font-black text-muted-foreground/60">COUNTRY</span>
+                                                     <span className="text-[10px] font-black text-muted-foreground/60">{t('COUNTRY')}</span>
                                                      <Badge variant="outline" className="bg-muted/10 border-indigo-500/30 text-indigo-400 text-[9px] font-black">
-                                                         UNITED STATES <X className="h-2 w-2 ml-1 opacity-50" />
+                                                         {t('UNITED STATES')} <X className="h-2 w-2 ml-1 opacity-50" />
                                                      </Badge>
                                                  </div>
                                                  <div className="space-y-2">
-                                                     <p className="text-[10px] font-black text-muted-foreground/60 uppercase">IMPACT</p>
+                                                     <p className="text-[10px] font-black text-muted-foreground/60 uppercase">{t('IMPACT')}</p>
                                                      {[
-                                                         { label: 'High', color: 'bg-rose-500' },
-                                                         { label: 'Medium', color: 'bg-amber-500' },
-                                                         { label: 'Low', color: 'bg-emerald-500' }
+                                                         { label: t('High'), color: 'bg-rose-500' },
+                                                         { label: t('Medium'), color: 'bg-amber-500' },
+                                                         { label: t('Low'), color: 'bg-emerald-500' }
                                                      ].map((impact, i) => (
                                                          <div key={impact.label} className="flex items-center gap-3">
                                                              <div className={cn("w-3.5 h-3.5 rounded-md border border-border flex items-center justify-center", i === 0 ? "bg-indigo-500 border-indigo-500" : "bg-muted/10")}>
@@ -870,7 +870,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                                             {formatTotalCurrency(pnlForCellDisplay, selectedCurrency)}
                                                         </span>
                                                         <div className="flex items-center gap-2 mt-1 px-2 py-0.5 bg-muted/10 rounded-full border border-border">
-                                                            <span className="text-[8px] font-black uppercase text-muted-foreground/60">{data?.trades} TRADES</span>
+                                                            <span className="text-[8px] font-black uppercase text-muted-foreground/60">{data?.trades} {t('TRADES')}</span>
                                                             <span className={cn("text-[8px] font-black", winRate >= 50 ? "text-emerald-500/60" : "text-rose-500/60")}>{winRate.toFixed(0)}%</span>
                                                         </div>
                                                     </div>
@@ -898,7 +898,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                 </div>
 
                 <div className="w-[120px] flex flex-col border-l border-border bg-muted/5">
-                      <div className="py-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 border-b border-border bg-card">WEEKLY</div>
+                      <div className="py-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 border-b border-border bg-card">{t('WEEKLY')}</div>
                       {Array.from({ length: 5 }).map((_, weekIndex) => {
                            const weekStartDate = addDays(startDate, weekIndex * 7);
                            const weekKey = getWeekKey(weekStartDate);
@@ -909,7 +909,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                                     <span className={cn("text-sm font-black tracking-tighter tabular-nums", pnl >= 0 ? "text-emerald-400" : "text-rose-500")}>
                                         {formatTotalCurrency(pnl, selectedCurrency)}
                                     </span>
-                                    <span className="text-[8px] font-black text-muted-foreground/30 mt-1">W{format(weekStartDate, 'w')}</span>
+                                    <span className="text-[8px] font-black text-muted-foreground/30 mt-1">{t('W')}{format(weekStartDate, 'w')}</span>
                                </div>
                            );
                       })}
@@ -926,7 +926,7 @@ export function TradingCalendar({selectedCurrency, tradeData, commissionData, ba
                     </DialogHeader>
                     <div className="py-4">
                          <div className="space-y-2">
-                             <Label htmlFor="balance" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Amount</Label>
+                             <Label htmlFor="balance" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('Amount')}</Label>
                              <Input
                                  id="balance"
                                  type="number"

@@ -804,7 +804,7 @@ export default function DashboardPage() {
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
                     )}
                     <span className="truncate text-sm">
-                      {currentAccount?.name || t('Select Account')}
+                      {currentAccount?.name ? t(currentAccount.name) : t('Select Account')}
                     </span>
                     <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   </DropdownMenuTrigger>
@@ -832,7 +832,7 @@ export default function DashboardPage() {
                     "w-1.5 h-1.5 rounded-full flex-shrink-0",
                     account.id === 'demo-account' ? "bg-amber-500" : "bg-green-500"
                   )} />
-                  <span className="truncate flex-1">{account.name}</span>
+                  <span className="truncate flex-1">{t(account.name)}</span>
                   {account.id === 'demo-account' && (
                     <span className="text-[9px] px-1 py-0.5 bg-amber-500/20 text-amber-500 rounded font-bold">DEMO</span>
                   )}
@@ -997,7 +997,7 @@ export default function DashboardPage() {
                       )}
                     >
                       <span className="w-2 h-2 rounded-full bg-green-500" />
-                      <span className="flex-1 text-left font-medium">{acc.name}</span>
+                      <span className="flex-1 text-left font-medium">{t(acc.name)}</span>
                       {selectedTargetAccountId === acc.id && <Check className="h-4 w-4" />}
                     </button>
                   ))}

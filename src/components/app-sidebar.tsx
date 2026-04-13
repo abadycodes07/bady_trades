@@ -143,11 +143,11 @@ export function AppSidebar() {
   const handleLogout = async () => {
     try {
       await supabaseSignOut();
-      toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+      toast({ title: t('Logged Out'), description: t('You have been successfully logged out.') });
       if (isMobile) setOpenMobile(false);
       router.push('/login');
     } catch (error: any) {
-      toast({ title: 'Logout Failed', description: error.message, variant: 'destructive' });
+      toast({ title: t('Logout Failed'), description: error.message, variant: 'destructive' });
     }
   };
 
@@ -155,7 +155,7 @@ export function AppSidebar() {
     if (selectedAccountId === accountId) return;
     setSelectedAccountId(accountId);
     const targetAccount = accounts.find(a => a.id === accountId);
-    toast({ title: 'Account Switched', description: `Now viewing ${targetAccount?.name || 'portfolio'}.` });
+    toast({ title: t('Account Switched'), description: `${t('Now viewing')} ${targetAccount?.name || t('portfolio')}.` });
     if (isMobile) setOpenMobile(false);
   };
 
@@ -203,7 +203,7 @@ export function AppSidebar() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="bg-zinc-900 text-white border-zinc-700 text-xs font-bold">
-                Add Trade
+                {t('Add Trade')}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -250,7 +250,7 @@ export function AppSidebar() {
                 </Link>
               </TooltipTrigger>
               <TooltipContent side="right" className="bg-zinc-900 text-white border-zinc-700 text-xs font-bold">
-                Settings
+                {t('Settings')}
               </TooltipContent>
             </Tooltip>
 
@@ -265,12 +265,12 @@ export function AppSidebar() {
                   </PopoverTrigger>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="bg-zinc-900 text-white border-zinc-700 text-xs font-bold">
-                  Notifications
+                  {t('Notifications')}
                 </TooltipContent>
               </Tooltip>
               <PopoverContent side="right" className="w-72 bg-zinc-900 border-zinc-700 rounded-2xl p-4 shadow-2xl">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-3">Notifications</p>
-                <p className="text-xs text-muted-foreground/50 text-center py-4">No new notifications</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-3">{t('Notifications')}</p>
+                <p className="text-xs text-muted-foreground/50 text-center py-4">{t('No new notifications')}</p>
               </PopoverContent>
             </Popover>
 
@@ -289,11 +289,11 @@ export function AppSidebar() {
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="bg-zinc-900 text-white border-zinc-700 text-xs font-bold">
-                  Profile
+                  {t('Profile')}
                 </TooltipContent>
               </Tooltip>
               <DropdownMenuContent className="w-56 mb-2 ml-2" side="right" align="end">
-                <DropdownMenuLabel>My Portfolios</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('My Portfolios')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {accounts.map((account) => (
                   <DropdownMenuItem
@@ -308,13 +308,13 @@ export function AppSidebar() {
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/profile')}><UserCircle className="mr-2 h-4 w-4" /><span>Profile</span></DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/settings')}><Settings className="mr-2 h-4 w-4" /><span>Settings</span></DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/profile')}><UserCircle className="mr-2 h-4 w-4" /><span>{t('Profile')}</span></DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/settings')}><Settings className="mr-2 h-4 w-4" /><span>{t('Settings')}</span></DropdownMenuItem>
                 {user && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
-                      <LogOut className="mr-2 h-4 w-4" /><span>Sign out</span>
+                      <LogOut className="mr-2 h-4 w-4" /><span>{t('Sign out')}</span>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -438,7 +438,7 @@ export function AppSidebar() {
           <Link href="/settings" onClick={() => isMobile && setOpenMobile(false)}>
             <div className="flex items-center gap-3 px-3 py-2 rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-muted/10 transition-all cursor-pointer text-sm font-semibold mb-1">
               <Settings className="h-4 w-4" />
-              <span>Settings</span>
+              <span>{t('Settings')}</span>
             </div>
           </Link>
 
@@ -446,13 +446,13 @@ export function AppSidebar() {
             <PopoverTrigger asChild>
               <button className="relative flex items-center gap-3 px-3 py-2 rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-muted/10 transition-all w-full text-sm font-semibold mb-1">
                 <Bell className="h-4 w-4" />
-                <span>Notifications</span>
+                <span>{t('Notifications')}</span>
                 <span className="ml-auto h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
               </button>
             </PopoverTrigger>
             <PopoverContent side="right" className="w-72 bg-zinc-900 border-zinc-700 rounded-2xl p-4 shadow-2xl">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-3">Notifications</p>
-              <p className="text-xs text-muted-foreground/50 text-center py-4">No new notifications</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-3">{t('Notifications')}</p>
+              <p className="text-xs text-muted-foreground/50 text-center py-4">{t('No new notifications')}</p>
             </PopoverContent>
           </Popover>
 
@@ -469,7 +469,7 @@ export function AppSidebar() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="text-xs truncate flex-1 flex flex-col items-start">
-                      <p className="font-bold text-foreground truncate">{activeAccount?.name || 'My Portfolio'}</p>
+                      <p className="font-bold text-foreground truncate">{activeAccount?.name ? t(activeAccount.name) : t('My Portfolio')}</p>
                       <p className="text-muted-foreground/60 text-[10px] truncate">{user.user_metadata?.name || user.email}</p>
                     </div>
                     <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
@@ -482,13 +482,13 @@ export function AppSidebar() {
                 ) : (
                   <>
                     <Avatar className="h-8 w-8 flex-shrink-0"><AvatarFallback>?</AvatarFallback></Avatar>
-                    <div className="text-xs truncate flex-1"><p className="font-medium">Not Logged In</p></div>
+                    <div className="text-xs truncate flex-1"><p className="font-medium">{t('Not Logged In')}</p></div>
                   </>
                 )}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 mb-2 ml-2" side="top" align="start">
-              <DropdownMenuLabel>My Portfolios</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('My Portfolios')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {accounts.map((account) => (
                 <DropdownMenuItem
@@ -497,25 +497,25 @@ export function AppSidebar() {
                   disabled={selectedAccountId === account.id}
                   className="cursor-pointer flex items-center gap-2"
                 >
-                  <span className="truncate flex-1">{account.name}</span>
+                  <span className="truncate flex-1">{t(account.name)}</span>
                   {selectedAccountId === account.id && <Check className="ml-auto h-4 w-4 text-indigo-400" />}
                 </DropdownMenuItem>
               ))}
               {accounts.length === 0 && !loading && (
-                <DropdownMenuItem disabled>No portfolios found</DropdownMenuItem>
+                <DropdownMenuItem disabled>{t('No portfolios found')}</DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">
-                <UserCircle className="mr-2 h-4 w-4" /><span>Profile</span>
+                <UserCircle className="mr-2 h-4 w-4" /><span>{t('Profile')}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" /><span>Settings</span>
+                <Settings className="mr-2 h-4 w-4" /><span>{t('Settings')}</span>
               </DropdownMenuItem>
               {user && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
-                    <LogOut className="mr-2 h-4 w-4" /><span>Sign out session</span>
+                    <LogOut className="mr-2 h-4 w-4" /><span>{t('Sign out session')}</span>
                   </DropdownMenuItem>
                 </>
               )}

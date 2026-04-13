@@ -7,6 +7,8 @@ import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parse, format, getDay, startOfMonth, addDays, getDaysInMonth } from 'date-fns';
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 // Match CsvTradeData from dashboard
 interface CsvTradeData {
   Date?: string; // Expect 'yyyy-MM-dd' from dashboard processing
@@ -27,6 +29,7 @@ const getColorClass = (pnl: number | undefined) => {
 };
 
 export function ProgressTrackerHeatmap({ data }: ProgressTrackerHeatmapProps) {
+    const { t } = useLanguage();
     const [currentDisplayDate] = React.useState(new Date());
 
     const dailyPnlMap: Record<string, number> = React.useMemo(() => {
@@ -70,7 +73,7 @@ export function ProgressTrackerHeatmap({ data }: ProgressTrackerHeatmapProps) {
                     colorClass,
                     "hover:scale-125 hover:z-10 cursor-help"
                 )}
-                title={pnl !== undefined ? `${format(date, 'MMM dd')}: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}` : `${format(date, 'MMM dd')}: No trades`}
+                title={pnl !== undefined ? `${t(format(date, 'MMM'))} ${day}: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}` : `${t(format(date, 'MMM'))} ${day}: ${t('No trades')}`}
             />
         );
     }
@@ -81,28 +84,28 @@ export function ProgressTrackerHeatmap({ data }: ProgressTrackerHeatmapProps) {
             
             <CardHeader className="pb-1 text-center">
                 <CardTitle className="text-[9px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-center gap-1.5">
-                    Activity Heatmap
+                    {t('Activity Heatmap')}
                     <Info className="h-2.5 w-2.5 opacity-30 cursor-pointer" />
                 </CardTitle>
             </CardHeader>
             
             <CardContent className="flex-grow flex flex-col justify-center pt-0 pb-4 px-4">
                  <div className="grid grid-cols-7 gap-1.5 my-2 justify-center content-center mx-auto">
-                     {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayChar, index) => (
-                         <div key={`${dayChar}-${index}`} className="text-[8px] text-muted-foreground/30 text-center font-black uppercase tracking-tighter">{dayChar}</div>
+                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayKey) => (
+                         <div key={dayKey} className="text-[8px] text-muted-foreground/30 text-center font-black uppercase tracking-tighter">{t(dayKey)}</div>
                      ))}
                      {cells}
                  </div>
                  
                  <div className="mt-4 flex items-center justify-center gap-6">
                     <div className="text-center">
-                       <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-widest block mb-0.5">Today</span>
+                       <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-widest block mb-0.5">{t('Today')}</span>
                        <span className="text-sm font-black text-foreground drop-shadow-sm">4/5</span>
                     </div>
                     <div className="h-8 w-[1px] bg-white/5" />
                     <div className="text-center">
-                       <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-widest block mb-0.5">Streak</span>
-                       <span className="text-sm font-black text-emerald-500 drop-shadow-sm">12 Days</span>
+                       <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-widest block mb-0.5">{t('Streak')}</span>
+                       <span className="text-sm font-black text-emerald-500 drop-shadow-sm">12 {t('Days')}</span>
                     </div>
                  </div>
             </CardContent>

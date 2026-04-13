@@ -8,6 +8,7 @@ import { format, parse, isValid, compareDesc } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useTradeData } from '@/contexts/TradeDataContext';
 import { RunningPnLChart } from '@/components/dashboard/RunningPnLChart';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Helper for drawing arcs in the half-circle "Rainbow" Win % Gauge
 function polarToCartesian(centerX: number, centerY: number, radius: number, angleInDegrees: number) {
@@ -30,6 +31,7 @@ function describeArc(x: number, y: number, radius: number, startAngle: number, e
 }
 
 export default function TradeViewPage() {
+    const { t } = useLanguage();
     const { tradeData, isLoading } = useTradeData();
     const [currentPage, setCurrentPage] = useState(1);
     const tradesPerPage = 50;
@@ -117,7 +119,7 @@ export default function TradeViewPage() {
     const arcEndDegrees = (winRateVal / 100) * 180;
 
     if (isLoading) {
-        return <div className="container mx-auto p-6 text-center text-muted-foreground transition-all">Loading Bady trades...</div>;
+        return <div className="container mx-auto p-6 text-center text-muted-foreground transition-all">{t('Loading Portfolio...')}</div>;
     }
 
     return (
@@ -126,17 +128,17 @@ export default function TradeViewPage() {
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-[var(--stats-card-hover)]"><ChevronLeft className="h-4 w-4" /></Button>
-                    <h1 className="text-xl font-bold text-[var(--foreground)] tracking-tight">Trade View</h1>
+                    <h1 className="text-xl font-bold text-[var(--foreground)] tracking-tight">{t('Trade View')}</h1>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" className="bg-[var(--stats-card)] border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)] text-[var(--foreground)]/80 flex items-center gap-2 h-9 text-xs">
-                        <Filter className="h-3 w-3 text-muted-foreground" /> Filters
+                        <Filter className="h-3 w-3 text-muted-foreground" /> {t('Filters')}
                     </Button>
                     <Button variant="outline" className="bg-[var(--stats-card)] border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)] text-[var(--foreground)]/80 flex items-center gap-2 h-9 text-xs">
-                        <CalendarIcon className="h-3 w-3 text-muted-foreground" /> Date range
+                        <CalendarIcon className="h-3 w-3 text-muted-foreground" /> {t('Date range')}
                     </Button>
                     <Button variant="outline" className="bg-[var(--stats-card)] border-[var(--stats-card-border)] hover:bg-[var(--stats-card-hover)] text-[var(--foreground)]/80 flex items-center gap-2 h-9 text-xs">
-                       All accounts
+                       {t('All accounts')}
                     </Button>
                 </div>
             </div>
@@ -146,24 +148,24 @@ export default function TradeViewPage() {
                 {/* 1. Net Cumulative P&L */}
                 <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between p-5 h-[130px] shadow-sm group hover:border-[var(--win-green)]/30 transition-all overflow-hidden relative">
                     <div className="flex items-center text-muted-foreground relative z-10">
-                        <p className="text-[11px] font-bold tracking-wide">Net cumulative P&L</p>
+                        <p className="text-[11px] font-bold tracking-wide">{t('Net cumulative P&L')}</p>
                         <Info className="h-3 w-3 ml-2 opacity-50" />
                     </div>
                     <div className="flex items-center justify-between gap-4 h-full relative z-10">
-                        <h2 className={cn("text-[26px] font-bold tracking-tight mb-1", (stats?.totalPnl || 0) >= 0 ? "text-[var(--win-green)]" : "text-[var(--loss-red)]")}>
+                        <h2 className={cn("text-[26px] font-bold tracking-tight mb-1", (stats?.totalPnl || 0) >= 0 ? "text-win-green" : "text-loss-red")}>
                             {(stats?.totalPnl || 0) < 0 ? '-' : ''}${Math.abs(stats?.totalPnl || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </h2>
                         <div className="flex-1 max-w-[140px] h-12">
                              <RunningPnLChart trades={sortedTrades} className="h-full w-full opacity-60" />
                         </div>
                     </div>
-                    <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[var(--win-green)]/10 to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-win-green/10 to-transparent"></div>
                 </div>
 
                 {/* 2. Profit Factor */}
                 <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between p-5 h-[130px] shadow-sm hover:border-[var(--win-green)]/30 transition-all">
                      <div className="flex items-center text-muted-foreground">
-                         <p className="text-[11px] font-bold tracking-wide">Profit factor</p>
+                         <p className="text-[11px] font-bold tracking-wide">{t('Profit factor')}</p>
                          <Info className="h-3 w-3 ml-2 opacity-50" />
                      </div>
                      <div className="flex items-center justify-between h-full pt-1">
@@ -188,7 +190,7 @@ export default function TradeViewPage() {
                                  />
                              </svg>
                              <div className="absolute inset-0 flex items-center justify-center">
-                                 <div className="w-1.5 h-1.5 rounded-full bg-[var(--win-green)]/40 shadow-[0_0_8px_var(--win-green)]"></div>
+                                 <div className="w-1.5 h-1.5 rounded-full bg-win-green/40 shadow-[0_0_8px_hsl(var(--win-green))]"></div>
                              </div>
                          </div>
                      </div>
@@ -197,7 +199,7 @@ export default function TradeViewPage() {
                 {/* 3. Trade Win % */}
                 <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between p-5 h-[130px] shadow-sm hover:border-[var(--win-green)]/30 transition-all">
                      <div className="flex items-center text-muted-foreground mb-1">
-                          <p className="text-[11px] font-bold tracking-wide">Trade win %</p>
+                          <p className="text-[11px] font-bold tracking-wide">{t('Trade win %')}</p>
                          <Info className="h-3 w-3 ml-2 opacity-50" />
                      </div>
                      <div className="flex items-center justify-between relative mt-auto h-full">
@@ -209,9 +211,9 @@ export default function TradeViewPage() {
                                  <path d={describeArc(50, 45, 42, 0, arcEndDegrees)} fill="none" stroke="var(--win-green)" strokeWidth="8" strokeLinecap="round" className="transition-all duration-1000 ease-out" />
                              </svg>
                              <div className="flex w-full justify-between text-[8px] font-black mt-2 px-1">
-                                <span className="text-[var(--win-green)] font-black">{stats?.winCount || 0}</span>
+                                <span className="text-win-green font-black">{stats?.winCount || 0}</span>
                                 <span className="text-muted-foreground/30">{stats?.totalTrades || 0}</span>
-                                <span className="text-[var(--loss-red)] font-black">{stats?.lossCount || 0}</span>
+                                <span className="text-loss-red font-black">{stats?.lossCount || 0}</span>
                              </div>
                          </div>
                      </div>
@@ -220,7 +222,7 @@ export default function TradeViewPage() {
                 {/* 4. Avg Win/Loss Trade */}
                 <div className="bg-[var(--stats-card)] border border-[var(--stats-card-border)] rounded-[10px] flex flex-col justify-between pt-5 px-5 pb-5 h-[130px] shadow-sm hover:border-[var(--win-green)]/30 transition-all">
                      <div className="flex items-center text-muted-foreground">
-                          <p className="text-[11px] font-bold tracking-wide">Avg win/loss trade</p>
+                          <p className="text-[11px] font-bold tracking-wide">{t('Avg win/loss trade')}</p>
                          <Info className="h-3 w-3 ml-2 opacity-50" />
                      </div>
                      <div className="mt-auto w-full">
@@ -234,10 +236,10 @@ export default function TradeViewPage() {
                         <div className="w-full h-1.5 flex rounded-full overflow-hidden bg-muted/10 relative border border-border/10">
                             <div className="absolute left-[50%] top-0 bottom-0 w-[1px] bg-[var(--background)] z-10"></div>
                             <div className="h-full flex-1 flex justify-end">
-                                <div className="h-full bg-[var(--win-green)] transition-all duration-1000" style={{ width: `${Math.min(100, Math.max(0, (stats?.avgWin || 0) / ((stats?.avgWin || 1) + (stats?.avgLoss || 1)) * 100))}%` }}></div>
+                                <div className="h-full bg-win-green transition-all duration-1000" style={{ width: `${Math.min(100, Math.max(0, (stats?.avgWin || 0) / ((stats?.avgWin || 1) + (stats?.avgLoss || 1)) * 100))}%` }}></div>
                             </div>
                             <div className="h-full flex-1 flex justify-start">
-                                <div className="h-full bg-[var(--loss-red)] transition-all duration-1000" style={{ width: `${Math.min(100, Math.max(0, (stats?.avgLoss || 0) / ((stats?.avgLoss || 1) + (stats?.avgWin || 1)) * 100))}%` }}></div>
+                                <div className="h-full bg-loss-red transition-all duration-1000" style={{ width: `${Math.min(100, Math.max(0, (stats?.avgLoss || 0) / ((stats?.avgLoss || 1) + (stats?.avgWin || 1)) * 100))}%` }}></div>
                             </div>
                         </div>
                      </div>
@@ -250,10 +252,10 @@ export default function TradeViewPage() {
                     <div className="flex items-center gap-3">
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[var(--foreground)] rounded-md bg-[var(--stats-card-hover)]/40"><Settings className="h-4 w-4" /></Button>
                         <div className="h-4 w-[1px] bg-[var(--stats-card-border)] mx-1"></div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Trades Journal</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">{t('Trades Journal')}</p>
                     </div>
                     <Button variant="outline" className="bg-[var(--stats-card-hover)] hover:brightness-110 text-[var(--foreground)]/60 h-8 text-[11px] font-black uppercase tracking-widest px-4 rounded-md border-[var(--stats-card-border)] transition-all">
-                        Bulk actions <ChevronDown className="h-3 w-3 opacity-50 ml-2" />
+                        {t('Bulk actions')} <ChevronDown className="h-3 w-3 opacity-50 ml-2" />
                     </Button>
                 </div>
                 
@@ -262,16 +264,16 @@ export default function TradeViewPage() {
                         <TableHeader>
                             <TableRow className="border-b border-[var(--stats-card-border)] hover:bg-transparent bg-muted/10">
                                 <TableHead className="w-12 text-center pl-4"><input type="checkbox" className="rounded-sm bg-[var(--stats-card-hover)] border-[var(--stats-card-border)]" /></TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4">Open date</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4">Symbol</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">Status</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4">Close date</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">Entry price</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">Exit price</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-right">Net P&L</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-right">Net ROI</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">Bady Insights</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">Bady Scale</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4">{t('Open date')}</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4">{t('Symbol')}</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">{t('Status')}</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4">{t('Close date')}</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">{t('Entry price')}</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">{t('Exit price')}</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-right">{t('Net P&L')}</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-right">{t('Net ROI')}</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">{t('Bady Insights')}</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-4 text-center">{t('Bady Scale')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -297,10 +299,10 @@ export default function TradeViewPage() {
                                         <TableCell className="text-center py-4">
                                             <span className={cn(
                                                 "text-[9px] font-black uppercase px-2 py-1 rounded-[4px] border inline-block min-w-[50px] tracking-widest",
-                                                isWin ? "text-[var(--win-green)] border-[var(--win-green)]/20 bg-[var(--win-green)]/5" : 
-                                                isLoss ? "text-[var(--loss-red)] border-[var(--loss-red)]/20 bg-[var(--loss-red)]/5" : 
+                                                isWin ? "text-win-green border-win-green/20 bg-win-green/5" : 
+                                                isLoss ? "text-loss-red border-loss-red/20 bg-loss-red/5" : 
                                                 "text-muted-foreground border-border/20 bg-muted/10"
-                                            )}>{status}</span>
+                                            )}>{t(status)}</span>
                                         </TableCell>
                                         <TableCell className="text-[11px] font-mono text-[var(--foreground)]/60 py-4">
                                             {format(trade.parsedDate, 'MM/dd/yyyy')}
@@ -319,7 +321,7 @@ export default function TradeViewPage() {
                                         <TableCell className="text-center py-4 px-6 min-w-[120px]">
                                             <div className="w-full h-1 bg-muted/20 rounded-full overflow-hidden relative group-hover:bg-muted/40 transition-all">
                                                 <div 
-                                                    className={cn("h-full transition-all duration-700", isWin ? "bg-[var(--win-green)]" : "bg-[var(--loss-red)]")} 
+                                                    className={cn("h-full transition-all duration-700", isWin ? "bg-win-green" : "bg-loss-red")} 
                                                     style={{ width: `${pnlRatio}%` }}
                                                 />
                                                 <div className="absolute left-[50%] top-0 h-full w-[1px] bg-background"></div>
@@ -335,14 +337,14 @@ export default function TradeViewPage() {
                 {/* Pagination Footer */}
                 <div className="flex items-center justify-between px-6 pt-6 pb-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground/40">
                     <div className="flex items-center gap-4">
-                        <span>Trades per page:</span>
+                        <span>{t('Trades per page')}:</span>
                         <div className="bg-[var(--stats-card-hover)] border border-[var(--stats-card-border)] py-1.5 px-3 rounded-md flex items-center gap-3 text-[var(--foreground)]/80 cursor-pointer hover:bg-muted/20 transition-all">
-                            {tradesPerPage} <ChevronDown className="h-3 w-3 opacity-50" />
+                            {tradesPerPage} <ChevronDown className="h-3 w-3 opacity-50 ml-2" />
                         </div>
                     </div>
                     
                     <div className="flex items-center gap-6">
-                        <span>{Math.min(1 + (currentPage - 1) * tradesPerPage, sortedTrades.length)} – {Math.min(currentPage * tradesPerPage, sortedTrades.length)} of {sortedTrades.length}</span>
+                        <span>{Math.min(1 + (currentPage - 1) * tradesPerPage, sortedTrades.length)} – {Math.min(currentPage * tradesPerPage, sortedTrades.length)} {t('of')} {sortedTrades.length}</span>
                         <div className="flex items-center gap-4">
                             <div className="flex gap-2">
                                 <Button variant="ghost" size="icon" className="h-8 w-8 bg-muted/10 hover:bg-muted/20 text-muted-foreground rounded-md transition-all" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>

@@ -11,6 +11,8 @@ import { format, parse, isValid } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import type { CsvTradeData as DashboardCsvTradeData } from '@/app/(app)/dashboard/page'; // Import from dashboard
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 interface Currency {
     code: string;
     name: string;
@@ -33,6 +35,7 @@ interface RecentTradesTableProps {
 }
 
 export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableProps) {
+    const { t } = useLanguage();
     const router = useRouter();
     const processedTrades = React.useMemo(() => {
         return data
@@ -116,8 +119,8 @@ export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableP
             <Tabs defaultValue="recent" className="flex flex-col h-full z-10">
                 <CardHeader className="p-0 flex-shrink-0 bg-muted/10 border-b border-border">
                     <TabsList className="grid w-full grid-cols-2 h-12 bg-transparent rounded-none p-1">
-                        <TabsTrigger value="recent" className="text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-muted/20 data-[state=active]:text-primary transition-all duration-300">RECENT TRADES</TabsTrigger>
-                        <TabsTrigger value="open" className="text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-muted/20 data-[state=active]:text-primary transition-all duration-300">OPEN POSITIONS</TabsTrigger>
+                        <TabsTrigger value="recent" className="text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-muted/20 data-[state=active]:text-primary transition-all duration-300">{t('RECENT TRADES')}</TabsTrigger>
+                        <TabsTrigger value="open" className="text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-muted/20 data-[state=active]:text-primary transition-all duration-300">{t('OPEN POSITIONS')}</TabsTrigger>
                     </TabsList>
                 </CardHeader>
 
@@ -127,15 +130,15 @@ export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableP
                             <Table>
                                 <TableHeader className="bg-muted/20 backdrop-blur-md sticky top-0 z-20">
                                     <TableRow className="hover:bg-transparent border-border">
-                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Date</TableHead>
-                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Symbol</TableHead>
-                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">Net P&L</TableHead>
+                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{t('Date')}</TableHead>
+                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{t('Symbol')}</TableHead>
+                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">{t('Net P&L')}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {processedTrades.length === 0 && (
                                         <TableRow className="border-transparent">
-                                            <TableCell colSpan={3} className="text-center text-[10px] font-black text-muted-foreground/20 py-12 uppercase tracking-widest">No history found</TableCell>
+                                            <TableCell colSpan={3} className="text-center text-[10px] font-black text-muted-foreground/20 py-12 uppercase tracking-widest">{t('No history found')}</TableCell>
                                         </TableRow>
                                     )}
                                     {processedTrades.map((trade) => (
@@ -159,15 +162,15 @@ export function RecentTradesTable({ selectedCurrency, data }: RecentTradesTableP
                             <Table>
                                 <TableHeader className="bg-muted/20 backdrop-blur-md sticky top-0 z-20">
                                     <TableRow className="hover:bg-transparent border-border">
-                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Date</TableHead>
-                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Symbol</TableHead>
-                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">P/L</TableHead>
+                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{t('Date')}</TableHead>
+                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{t('Symbol')}</TableHead>
+                                        <TableHead className="h-10 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">{t('P/L')}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {processedOpenPositions.length === 0 && (
                                         <TableRow className="border-transparent">
-                                            <TableCell colSpan={3} className="text-center text-[10px] font-black text-muted-foreground/20 py-12 uppercase tracking-widest">No open positions</TableCell>
+                                            <TableCell colSpan={3} className="text-center text-[10px] font-black text-muted-foreground/20 py-12 uppercase tracking-widest">{t('No open positions')}</TableCell>
                                         </TableRow>
                                     )}
                                     {processedOpenPositions.map((pos) => (

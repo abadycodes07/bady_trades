@@ -92,7 +92,10 @@ const initialTags: Tag[] = [
   { id: 'futures', name: 'Futures', color: 'bg-purple-500' },
 ];
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 export default function NotebookPage() {
+  const { t } = useLanguage();
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
   const [tags, setTags] = useState<Tag[]>(initialTags);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -154,8 +157,8 @@ export default function NotebookPage() {
   const handleCreateEmptyNote = () => {
     const newNote: Note = {
       id: crypto.randomUUID(),
-      title: 'Untitled Note',
-      content: [{ type: 'paragraph', children: [{ text: 'Start writing...' }] }],
+      title: t('Untitled Note'),
+      content: [{ type: 'paragraph', children: [{ text: t('Start writing...') }] }],
       createdAt: new Date(),
       updatedAt: new Date(),
       folderId: selectedFolderId === 'all' || !folders.find(f => f.id === selectedFolderId) ? undefined : selectedFolderId,
@@ -228,7 +231,7 @@ export default function NotebookPage() {
         folderId: 'tradenotes' // Move to tradenotes folder
       };
       // Auto-set title if it's 'Untitled Note'
-      if (updatedNote.title === 'Untitled Note' || !updatedNote.title) {
+      if (updatedNote.title === t('Untitled Note') || !updatedNote.title) {
         updatedNote.title = `${trade.Symbol || 'Trade'} : ${trade.Date || new Date().toLocaleDateString()}`;
       }
       setNotes(notes.map(n => (n.id === updatedNote.id ? updatedNote : n)));
@@ -288,14 +291,14 @@ export default function NotebookPage() {
       <Card className="w-60 flex-shrink-0 flex flex-col border-r">
         <CardHeader className="p-3">
           <Button onClick={handleAddFolder} variant="outline" size="sm" className="w-full hover-effect">
-            <Plus className="mr-2 h-4 w-4" /> Add folder
+            <Plus className="mr-2 h-4 w-4" /> {t('Add folder')}
           </Button>
         </CardHeader>
         <ScrollArea className="flex-1">
           <CardContent className="p-3 space-y-3">
             <div>
               <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-xs font-semibold text-muted-foreground mb-1" onClick={() => setIsFoldersExpanded(!isFoldersExpanded)}>
-                FOLDERS {isFoldersExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                {t('FOLDERS')} {isFoldersExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </Button>
               {isFoldersExpanded && folders.map(folder => (
                 <Button
@@ -306,13 +309,13 @@ export default function NotebookPage() {
                   onClick={() => setSelectedFolderId(folder.id)}
                 >
                   <folder.icon className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="truncate flex-1">{folder.name}</span>
+                  <span className="truncate flex-1">{t(folder.name)}</span>
                 </Button>
               ))}
             </div>
             <div>
               <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-xs font-semibold text-muted-foreground mb-1" onClick={() => setIsTagsExpanded(!isTagsExpanded)}>
-                TAGS {isTagsExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                {t('TAGS')} {isTagsExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </Button>
               {isTagsExpanded && tags.map(tag => (
                 <Button
@@ -327,7 +330,7 @@ export default function NotebookPage() {
                   }}
                 >
                   <div className={cn("w-2 h-2 rounded-full mr-2 flex-shrink-0", tag.color)} />
-                  <span className="truncate flex-1">{tag.name}</span>
+                  <span className="truncate flex-1">{t(tag.name)}</span>
                   <Badge variant="secondary" className="ml-auto text-xs h-5">
                     {notes.filter(n => n.tagIds?.includes(tag.id)).length}
                   </Badge>
@@ -338,7 +341,7 @@ export default function NotebookPage() {
         </ScrollArea>
         <CardFooter className="p-3 border-t">
           <Button variant="ghost" size="sm" className="w-full justify-start h-8 pl-2 text-sm hover-effect">
-            <Trash2 className="mr-2 h-4 w-4" /> Recently Deleted
+            <Trash2 className="mr-2 h-4 w-4" /> {t('Recently Deleted')}
           </Button>
         </CardFooter>
       </Card>
@@ -349,32 +352,32 @@ export default function NotebookPage() {
           <Dialog open={isNewNoteDialogOpen} onOpenChange={setIsNewNoteDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="default" size="sm" className="h-8 hover-effect">
-                <FileText className="mr-2 h-4 w-4" /> New note
+                <FileText className="mr-2 h-4 w-4" /> {t('New note')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[625px]">
               <DialogHeader>
-                <DialogTitle>Create New Note</DialogTitle>
-                <DialogDescription>Choose how you want to start your new note.</DialogDescription>
+                <DialogTitle>{t('Create New Note')}</DialogTitle>
+                <DialogDescription>{t('Choose how you want to start your new note.')}</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <Button onClick={handleCreateEmptyNote} variant="outline" className="w-full justify-start hover-effect">
-                  <FileText className="mr-2 h-4 w-4" /> Create Empty Note
+                  <FileText className="mr-2 h-4 w-4" /> {t('Create Empty Note')}
                 </Button>
                 <Separator />
-                <h3 className="text-md font-semibold">Create from Trade History</h3>
+                <h3 className="text-md font-semibold">{t('Create from Trade History')}</h3>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search trades by symbol, date, P&L (e.g. win/loss)..."
+                    placeholder={t('Search trades by symbol, date, P&L (e.g. win/loss)...')}
                     value={tradeSearchTerm}
                     onChange={(e) => setTradeSearchTerm(e.target.value)}
                     className="pl-8 w-full hover-effect"
                   />
                 </div>
                 <ScrollArea className="h-[300px] w-full rounded-md border p-2">
-                  {filteredTradeDataForDialog.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No trades found or matching search.</p>}
+                  {filteredTradeDataForDialog.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">{t('No trades found or matching search.')}</p>}
                   {filteredTradeDataForDialog.map(trade => (
                     <div
                       key={trade.id}
@@ -394,7 +397,7 @@ export default function NotebookPage() {
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="secondary" className="hover-effect">Close</Button>
+                  <Button type="button" variant="secondary" className="hover-effect">{t('Cancel')}</Button>
                 </DialogClose>
               </DialogFooter>
             </DialogContent>
@@ -402,7 +405,7 @@ export default function NotebookPage() {
 
           <div className="flex items-center gap-1">
             <Checkbox id="select-all-notes" className="h-4 w-4" />
-            <Label htmlFor="select-all-notes" className="text-xs font-normal">Select All</Label>
+            <Label htmlFor="select-all-notes" className="text-xs font-normal">{t('Select All')}</Label>
             <Button variant="ghost" size="icon" className="h-7 w-7 hover-effect">
               <ListFilter className="h-4 w-4" />
             </Button>
@@ -410,10 +413,10 @@ export default function NotebookPage() {
         </CardHeader>
         <ScrollArea className="flex-1">
           <CardContent className="p-1 space-y-1">
-            {filteredNotes.length === 0 && <p className="text-muted-foreground text-sm text-center p-4">No notes found.</p>}
+            {filteredNotes.length === 0 && <p className="text-muted-foreground text-sm text-center p-4">{t('No notes found.')}</p>}
             {filteredNotes.map(note => {
               const linkedTrade = note.linkedTradeId ? tradeData.find(t => String(t.id) === String(note.linkedTradeId)) : null;
-              const displayTitle = note.title || (linkedTrade ? `${linkedTrade.Symbol || 'Trade'} : ${linkedTrade.Date || new Date(note.createdAt).toLocaleDateString()}` : 'Untitled Note');
+              const displayTitle = note.title || (linkedTrade ? `${linkedTrade.Symbol || 'Trade'} : ${linkedTrade.Date || new Date(note.createdAt).toLocaleDateString()}` : t('Untitled Note'));
               return (
                 <Button
                   key={note.id}
@@ -451,20 +454,20 @@ export default function NotebookPage() {
                   <Input
                     value={editingNote.title || ''}
                     onChange={(e) => setEditingNote(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Note Title"
+                    placeholder={t('Note Title')}
                     className="text-lg font-semibold flex-1 h-9 mr-2 border-0 shadow-none focus-visible:ring-0 pl-1"
                   />
                 ) : (
-                  <CardTitle className="text-lg flex-1 truncate pl-1">{selectedNote.title || 'Untitled Note'}</CardTitle>
+                  <CardTitle className="text-lg flex-1 truncate pl-1">{selectedNote.title || t('Untitled Note')}</CardTitle>
                 )}
                 <div className="flex items-center gap-1">
                    {editingNote ? (
                     <>
-                      <Button size="sm" onClick={handleSaveNote} title="Save" className="h-8 hover-effect"><Save className="h-4 w-4 mr-1" /> Save</Button>
-                      <Button size="sm" variant="outline" onClick={handleCancelEdit} title="Cancel" className="h-8 hover-effect"><X className="h-4 w-4 mr-1" /> Cancel</Button>
+                      <Button size="sm" onClick={handleSaveNote} title={t("Save")} className="h-8 hover-effect"><Save className="h-4 w-4 mr-1" /> {t('Save')}</Button>
+                      <Button size="sm" variant="outline" onClick={handleCancelEdit} title={t("Cancel")} className="h-8 hover-effect"><X className="h-4 w-4 mr-1" /> {t('Cancel')}</Button>
                     </>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={() => setEditingNote({...selectedNote})} title="Edit" className="h-8 hover-effect"><Edit className="h-4 w-4 mr-1" /> Edit</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingNote({...selectedNote})} title={t("Edit")} className="h-8 hover-effect"><Edit className="h-4 w-4 mr-1" /> {t('Edit')}</Button>
                   )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -472,26 +475,26 @@ export default function NotebookPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => setIsLinkingTrade(true)} className="hover-effect">
-                        <Link2 className="mr-2 h-4 w-4" /> {selectedNote.linkedTradeId ? 'Change Linked Trade' : 'Link Trade'}
+                        <Link2 className="mr-2 h-4 w-4" /> {selectedNote.linkedTradeId ? t('Change Linked Trade') : t('Link Trade')}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive hover-effect">
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete Note
+                            <Trash2 className="mr-2 h-4 w-4" /> {t('Delete Note')}
                           </DropdownMenuItem>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the note "{selectedNote.title || 'Untitled Note'}".
+                              {t('This action cannot be undone. This will permanently delete the note "')}{selectedNote.title || t('Untitled Note')}".
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel className="hover-effect">Cancel</AlertDialogCancel>
+                            <AlertDialogCancel className="hover-effect">{t('Cancel')}</AlertDialogCancel>
                             <AlertDialogAction onClick={() => handleDeleteNote(selectedNote.id)} className="bg-destructive hover:bg-destructive/90 hover-effect">
-                              Delete
+                              {t('Delete Permanently')}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -501,25 +504,25 @@ export default function NotebookPage() {
                 </div>
               </div>
               <div className="text-xs text-muted-foreground mt-1 pl-1">
-                Created: {new Date(selectedNote.createdAt).toLocaleString()} | Last updated: {new Date(selectedNote.updatedAt).toLocaleString()}
+                {t('Created')}: {new Date(selectedNote.createdAt).toLocaleString()} | {t('Updated')}: {new Date(selectedNote.updatedAt).toLocaleString()}
               </div>
 
               {selectedTradeDetails && (
                 <div className="mt-2 p-3 border rounded-md bg-muted/30">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="text-base font-semibold mb-0.5">Net P&amp;L: <span className={parseFloat(selectedTradeDetails.NetPnL!) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>{parseFloat(selectedTradeDetails.NetPnL!).toFixed(2)}</span></h4>
+                       <h4 className="text-base font-semibold mb-0.5">{t('Net P&L')}: <span className={parseFloat(selectedTradeDetails.NetPnL!) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>{parseFloat(selectedTradeDetails.NetPnL!).toFixed(2)}</span></h4>
                     </div>
                     <Link href={`/notebook/tracking/${selectedTradeDetails.id}`} passHref legacyBehavior>
-                      <Button asChild variant="default" size="sm" className="h-8 hover-effect"><a>View Trade Details</a></Button>
+                      <Button asChild variant="default" size="sm" className="h-8 hover-effect"><a>{t('View Trade Details')}</a></Button>
                     </Link>
                   </div>
                   <div className="grid grid-cols-3 md:grid-cols-5 gap-x-4 gap-y-1 text-xs mt-2">
-                    <div><span className="text-muted-foreground">Contracts Traded:</span> <span className="font-medium">{selectedTradeDetails.Qty || 'N/A'}</span></div>
-                    <div><span className="text-muted-foreground">Volume:</span> <span className="font-medium">N/A</span></div> {/* Volume might not be in CSV */}
-                    <div><span className="text-muted-foreground">Commissions:</span> <span className="font-medium">{selectedTradeDetails.Comm || '$0.00'}</span></div>
-                    <div><span className="text-muted-foreground">Net ROI:</span> <span className="font-medium">N/A</span></div> {/* ROI might not be in CSV */}
-                    <div><span className="text-muted-foreground">Gross P&amp;L:</span> <span className="font-medium">{selectedTradeDetails.GrossPnl || selectedTradeDetails.NetPnL || 'N/A'}</span></div>
+                    <div><span className="text-muted-foreground">{t('Contracts Traded')}:</span> <span className="font-medium">{selectedTradeDetails.Qty || 'N/A'}</span></div>
+                    <div><span className="text-muted-foreground">{t('Volume')}:</span> <span className="font-medium">N/A</span></div> {/* Volume might not be in CSV */}
+                    <div><span className="text-muted-foreground">{t('Commissions')}:</span> <span className="font-medium">{selectedTradeDetails.Comm || '$0.00'}</span></div>
+                    <div><span className="text-muted-foreground">{t('Net ROI')}:</span> <span className="font-medium">N/A</span></div> {/* ROI might not be in CSV */}
+                    <div><span className="text-muted-foreground">{t('Gross P&L')}:</span> <span className="font-medium">{selectedTradeDetails.GrossPnl || selectedTradeDetails.NetPnL || 'N/A'}</span></div>
                   </div>
                 </div>
               )}
@@ -530,7 +533,7 @@ export default function NotebookPage() {
                         <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm" className="h-8 text-xs hover-effect">
                             <TagIcon className="mr-2 h-3 w-3" />
-                            Add Tag ({editingNote.tagIds?.length || 0})
+                            {t('Add Tag')} ({editingNote.tagIds?.length || 0})
                             <ChevronDown className="ml-1 h-3 w-3" />
                         </Button>
                         </DropdownMenuTrigger>
@@ -538,7 +541,7 @@ export default function NotebookPage() {
                         {tags.map(tag => (
                             <DropdownMenuItem key={tag.id} onClick={() => toggleTagForNote(tag.id)} className="text-xs">
                             <div className={cn("w-2 h-2 rounded-full mr-2", tag.color)} />
-                            {tag.name}
+                            {t(tag.name)}
                             {editingNote.tagIds?.includes(tag.id) && <Check className="ml-auto h-3 w-3" />}
                             </DropdownMenuItem>
                         ))}
@@ -584,28 +587,32 @@ export default function NotebookPage() {
                  <Textarea
                    value={editingNote.content ? renderNoteContent(editingNote.content) : ''}
                    onChange={(e) => setEditingNote(prev => ({ ...prev, content: [{ type: 'paragraph', children: [{ text: e.target.value }] }] }))}
-                   placeholder="Jot down your notes..."
+                   placeholder={t('Jot down your notes...')}
                    className="h-full w-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-1 text-base"
                  />
                ) : (
                  <div className="prose dark:prose-invert max-w-none p-1">
-                   <ReactMarkdown>{selectedNote.content ? renderNoteContent(selectedNote.content) : ''}</ReactMarkdown>
+                   {selectedNote.content && selectedNote.content.length > 0 && selectedNote.content[0].children[0].text === t('Start writing...') ? (
+                      <p className="text-muted-foreground italic text-sm">{t('Start writing...')}</p>
+                   ) : (
+                      <ReactMarkdown>{selectedNote.content ? renderNoteContent(selectedNote.content) : ''}</ReactMarkdown>
+                   )}
                  </div>
                )}
             </CardContent>
 
             <CardFooter className="p-2 border-t flex items-center justify-between min-h-[57px]">
-                <div className="text-xs text-muted-foreground">Recently used template: Pre-Market &amp; Post-Session</div>
+                <div className="text-xs text-muted-foreground">{t('Recently used template: ')}{t('Pre-Market & Post-Session')}</div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="h-8 text-xs hover-effect"><Plus className="mr-1.5 h-4 w-4" /> Add Template</Button>
-                    <Button variant="default" size="sm" className="h-8 text-xs hover-effect">Use Template</Button>
+                    <Button variant="outline" size="sm" className="h-8 text-xs hover-effect"><Plus className="mr-1.5 h-4 w-4" /> {t('Add Template')}</Button>
+                    <Button variant="default" size="sm" className="h-8 text-xs hover-effect">{t('Use Template')}</Button>
                 </div>
             </CardFooter>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Select a note to view or add a new one.</p>
+            <p className="text-muted-foreground">{t('Select a note to view or add a new one.')}</p>
           </div>
         )}
       </Card>
@@ -615,12 +622,12 @@ export default function NotebookPage() {
         <AlertDialog open={isLinkingTrade} onOpenChange={setIsLinkingTrade}>
           <AlertDialogContent className="max-w-2xl">
             <AlertDialogHeader>
-              <AlertDialogTitle>Link Trade to "{selectedNote.title}"</AlertDialogTitle>
-              <AlertDialogDescription>Select a trade from your history to link to this note.</AlertDialogDescription>
+              <AlertDialogTitle>{t('Link Trade to "')}{selectedNote.title}"</AlertDialogTitle>
+              <AlertDialogDescription>{t('Select a trade from your history to link to this note.')}</AlertDialogDescription>
             </AlertDialogHeader>
             <ScrollArea className="max-h-[60vh] pr-4">
               <div className="space-y-2">
-                {tradeData.length === 0 && <p className="text-sm text-muted-foreground">No trades available to link. Upload trades in the Dashboard or Trades page.</p>}
+                {tradeData.length === 0 && <p className="text-sm text-muted-foreground">{t('No trades available to link. Upload trades in the Dashboard or Trades page.')}</p>}
                 {tradeData.map(trade => (
                   <div key={trade.id} className="p-2 border rounded-md hover:bg-accent flex justify-between items-center">
                     <div>
@@ -635,7 +642,7 @@ export default function NotebookPage() {
               </div>
             </ScrollArea>
             <AlertDialogFooter>
-              <AlertDialogCancel className="hover-effect">Cancel</AlertDialogCancel>
+              <AlertDialogCancel className="hover-effect">{t('Cancel')}</AlertDialogCancel>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

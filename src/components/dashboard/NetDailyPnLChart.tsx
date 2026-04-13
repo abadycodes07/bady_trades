@@ -6,6 +6,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { format, parse, isValid } from 'date-fns';
 import { Info } from 'lucide-react';
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 interface CsvTradeData {
   Date?: string;
   NetPnL?: string;
@@ -17,6 +19,7 @@ interface NetDailyPnLChartProps {
 }
 
 export function NetDailyPnLChart({ data, selectedCurrency }: NetDailyPnLChartProps) {
+  const { t } = useLanguage();
   const chartData = React.useMemo(() => {
     if (!data || data.length === 0) return [];
 
@@ -62,7 +65,7 @@ export function NetDailyPnLChart({ data, selectedCurrency }: NetDailyPnLChartPro
       
       <CardHeader className="pb-2">
         <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-between">
-          Net Daily P&L
+          {t('Net Daily P&L')}
           <Info className="h-3 w-3 opacity-30 cursor-pointer" />
         </CardTitle>
       </CardHeader>
@@ -86,7 +89,7 @@ export function NetDailyPnLChart({ data, selectedCurrency }: NetDailyPnLChartPro
               {chartData.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
-                  fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'} 
+                  fill={entry.pnl >= 0 ? 'hsl(var(--win-green))' : 'hsl(var(--loss-red))'} 
                   fillOpacity={0.8}
                 />
               ))}

@@ -60,13 +60,13 @@ async function translateText(text: string, to: string): Promise<string> {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function timeAgo(ts: number): string {
+function timeAgo(ts: number, t: (k: string) => string): string {
   const diff = Date.now() - ts;
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t('just now');
+  if (mins < 60) return `${mins}${t('min ago')}`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return `${hrs}${t('hrs ago')}`;
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
@@ -222,10 +222,10 @@ export default function NewsPage() {
             </span>
           </div>
           <div>
-            <h1 className="text-xl font-bold">{t('Live Gold News')} — {activeTabInfo.label}</h1>
+            <h1 className="text-xl font-bold">{t('Live Gold News')} — {t(activeTabInfo.label)}</h1>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Zap className="h-3 w-3 text-yellow-500"/>
-              {lastUpdated ? `Updated ${timeAgo(lastUpdated.getTime())}` : 'Loading...'}
+              {lastUpdated ? `${t('Updated')} ${timeAgo(lastUpdated.getTime(), t)}` : t('Loading...')}
               {fromCache && (
                 <span className="flex items-center gap-0.5 text-green-500">
                   <Server className="h-3 w-3"/> cached
@@ -251,7 +251,7 @@ export default function NewsPage() {
 
           <Button variant="outline" size="sm" onClick={() => fetchNews(activeTab, true)} disabled={refreshing} className="hover-effect">
             <RefreshCw className={cn('h-4 w-4 mr-2', refreshing && 'animate-spin')} />
-            {refreshing ? t('Refreshing...') : 'Refresh'}
+            {refreshing ? t('Refreshing...') : t('Refresh')}
           </Button>
         </div>
       </div>
@@ -270,7 +270,7 @@ export default function NewsPage() {
             )}
           >
             <span>{tab.emoji}</span>
-            <span>{tab.label}</span>
+            <span>{t(tab.label)}</span>
             {tab.fast && (
               <span className="flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"/>
@@ -279,16 +279,16 @@ export default function NewsPage() {
             )}
           </button>
         ))}
-        <span className="text-xs text-muted-foreground ml-1 whitespace-nowrap">{activeTabInfo.description}</span>
+        <span className="text-xs text-muted-foreground ml-1 whitespace-nowrap">{t(activeTabInfo.description)}</span>
       </div>
 
       {/* ── Stats bar ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-2">
         {[
-          { icon: <TrendingUp className="h-4 w-4 text-green-500"/>, label: 'Articles', value: news.length },
-          { icon: <TrendingUp className="h-3.5 w-3.5 text-green-500"/>, label: '↑ Bullish', value: news.filter(n => n.sentiment === 'up').length },
-          { icon: <TrendingDown className="h-3.5 w-3.5 text-red-500"/>, label: '↓ Bearish', value: news.filter(n => n.sentiment === 'down').length },
-          { icon: <Zap className="h-4 w-4 text-yellow-500"/>, label: 'Sources', value: new Set(news.map(n => n.source)).size },
+          { icon: <TrendingUp className="h-4 w-4 text-green-500"/>, label: t('Articles'), value: news.length },
+          { icon: <TrendingUp className="h-3.5 w-3.5 text-green-500"/>, label: t('↑ Bullish'), value: news.filter(n => n.sentiment === 'up').length },
+          { icon: <TrendingDown className="h-3.5 w-3.5 text-red-500"/>, label: t('↓ Bearish'), value: news.filter(n => n.sentiment === 'down').length },
+          { icon: <Zap className="h-4 w-4 text-yellow-500"/>, label: t('Sources'), value: new Set(news.map(n => n.source)).size },
         ].map(stat => (
           <div key={stat.label} className="bg-card border rounded-lg p-2.5 flex items-center gap-2">
             {stat.icon}
@@ -319,7 +319,7 @@ export default function NewsPage() {
             <div className="text-4xl mb-3">📰</div>
             <p className="font-medium">{t('No news available')}</p>
             <Button variant="outline" className="mt-4" onClick={() => fetchNews(activeTab, true)}>
-              Try again
+              {t('Try again')}
             </Button>
           </div>
         ) : (
@@ -355,7 +355,7 @@ export default function NewsPage() {
                       </Badge>
                     )}
                     {isTranslating && (
-                      <span className="text-[10px] text-muted-foreground animate-pulse">translating…</span>
+                      <span className="text-[10px] text-muted-foreground animate-pulse">{t('Translating...')}</span>
                     )}
                   </div>
 
@@ -376,7 +376,7 @@ export default function NewsPage() {
                 {/* Right side: time + sentiment + link */}
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                   <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                    {timeAgo(item.publishedAt)}
+                    {timeAgo(item.publishedAt, t)}
                   </span>
 
                   {/* Sentiment arrow */}

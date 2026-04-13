@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Info } from 'lucide-react';
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 interface CsvTradeData {
   Date?: string;
   NetPnL?: string;
@@ -16,6 +18,7 @@ interface DrawdownChartProps {
 }
 
 export function DrawdownChart({ data, initialBalance }: DrawdownChartProps) {
+  const { t } = useLanguage();
   const chartData = React.useMemo(() => {
     if (!data || data.length === 0) return [];
 
@@ -70,7 +73,7 @@ export function DrawdownChart({ data, initialBalance }: DrawdownChartProps) {
       
       <CardHeader className="pb-2">
         <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center justify-between">
-          Relative Drawdown
+          {t('Relative Drawdown')}
           <Info className="h-3 w-3 opacity-30 cursor-pointer" />
         </CardTitle>
       </CardHeader>

@@ -9,6 +9,8 @@ import { Info } from 'lucide-react';
 import { parse, compareAsc, format, isValid } from 'date-fns';
 import type { CsvTradeData, CsvCommissionData } from '@/app/(app)/dashboard/page';
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 interface Currency {
     code: string;
     name: string;
@@ -32,7 +34,7 @@ const formatYAxis = (tickItem: number, selectedCurrency: Currency) => {
   return `${symbolString}${displayValue.toFixed(0)}k`;
 };
 
-const CustomTooltip = ({ active, payload, label, selectedCurrency }: any) => {
+const CustomTooltip = ({ active, payload, label, selectedCurrency, t }: any) => {
   if (active && payload && payload.length && selectedCurrency) {
     const rate = selectedCurrency.rate || 1;
     const symbol = selectedCurrency.symbol || '$';
@@ -43,7 +45,7 @@ const CustomTooltip = ({ active, payload, label, selectedCurrency }: any) => {
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              Date
+              {t('Date')}
             </span>
             <span className="font-bold text-muted-foreground">
               {dateLabel}
@@ -51,7 +53,7 @@ const CustomTooltip = ({ active, payload, label, selectedCurrency }: any) => {
           </div>
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              Cumulative P&L
+              {t('Cumulative P&L')}
             </span>
             <span className="font-bold flex items-center">
                {typeof symbol === 'string' ? symbol : symbol}
@@ -74,6 +76,7 @@ interface CumulativePnLChartProps {
 }
 
 export function CumulativePnLChart({ selectedCurrency, data, commissionData, showFeesInPnl }: CumulativePnLChartProps) {
+  const { t } = useLanguage();
   const { chartData, dataMinPnl, dataMaxPnl, fillType, offsetForZero } = React.useMemo(() => {
     if (!data || data.length === 0) {
         return { chartData: [{ date: format(new Date(), 'MM/dd/yy'), pnl: 0, originalDate: new Date() }], dataMinPnl: 0, dataMaxPnl: 0, fillType: 'neutral', offsetForZero: 50 };
@@ -157,7 +160,7 @@ export function CumulativePnLChart({ selectedCurrency, data, commissionData, sho
     <Card className="h-full flex flex-col bg-card border-border shadow-2xl relative overflow-hidden group">
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative z-10">
         <CardTitle className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground/40 flex items-center gap-1">
-          Daily Net Cumulative P&L {showFeesInPnl ? "(Fees Included)" : "(Fees Excluded)"}
+          {t('Daily Net Cumulative P&L')} {showFeesInPnl ? t('(Fees Included)') : t('(Fees Excluded)')}
           <Info className="h-3 w-3 opacity-30 cursor-pointer" />
         </CardTitle>
       </CardHeader>
@@ -172,16 +175,16 @@ export function CumulativePnLChart({ selectedCurrency, data, commissionData, sho
           >
             <defs>
               <linearGradient id="pnlAreaFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity={0.5} />
-                <stop offset={`${offsetForZero}%`} stopColor="#22c55e" stopOpacity={0.05} />
-                <stop offset={`${offsetForZero}%`} stopColor="#ef4444" stopOpacity={0.05} />
-                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.5} />
+                <stop offset="0%" stopColor="hsl(var(--win-green))" stopOpacity={0.5} />
+                <stop offset={`${offsetForZero}%`} stopColor="hsl(var(--win-green))" stopOpacity={0.05} />
+                <stop offset={`${offsetForZero}%`} stopColor="hsl(var(--loss-red))" stopOpacity={0.05} />
+                <stop offset="100%" stopColor="hsl(var(--loss-red))" stopOpacity={0.5} />
               </linearGradient>
               <linearGradient id="pnlLineGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity={1} />
-                <stop offset={`${offsetForZero}%`} stopColor="#22c55e" stopOpacity={1} />
-                <stop offset={`${offsetForZero}%`} stopColor="#ef4444" stopOpacity={1} />
-                <stop offset="100%" stopColor="#ef4444" stopOpacity={1} />
+                <stop offset="0%" stopColor="hsl(var(--win-green))" stopOpacity={1} />
+                <stop offset={`${offsetForZero}%`} stopColor="hsl(var(--win-green))" stopOpacity={1} />
+                <stop offset={`${offsetForZero}%`} stopColor="hsl(var(--loss-red))" stopOpacity={1} />
+                <stop offset="100%" stopColor="hsl(var(--loss-red))" stopOpacity={1} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.5)" vertical={false} />
@@ -207,7 +210,7 @@ export function CumulativePnLChart({ selectedCurrency, data, commissionData, sho
             />
             <Tooltip
               cursor={{ fill: 'transparent' }}
-              content={<CustomTooltip selectedCurrency={selectedCurrency} />}
+              content={<CustomTooltip selectedCurrency={selectedCurrency} t={t} />}
             />
             <Area
                 type="monotone"

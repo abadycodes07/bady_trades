@@ -429,24 +429,22 @@ export default function SettingsPage() {
         <section>
           <div className="flex items-center gap-2 mb-4">
             <Link2 className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-semibold">Broker Connections</h2>
+            <h2 className="text-xl font-semibold">{t('Broker Connections')}</h2>
             <Badge variant="outline" className="text-xs border-green-500/50 text-green-500">Beta</Badge>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Connect your broker to automatically sync trades, deposits, and withdrawals — no manual CSV uploads needed.
-            All supported brokers use the <strong>MT4/MT5 EA Plugin</strong> method which runs on your PC inside MetaTrader.
+            {t('Connect your broker to automatically sync trades, deposits, and withdrawals — no manual CSV uploads needed.')}
           </p>
 
           {/* How it works banner */}
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-5 flex items-start gap-3">
             <span className="text-2xl flex-shrink-0">💡</span>
             <div className="text-sm">
-              <p className="font-semibold text-blue-400 mb-1">How auto-sync works</p>
+              <p className="font-semibold text-blue-400 mb-1">{t('How auto-sync works')}</p>
               <p className="text-muted-foreground">
-                A small Expert Advisor (EA) plugin runs inside your MetaTrader app on your PC.
-                It reads your account every 30 seconds and securely sends your trades, balance, deposits, and withdrawals to BadyTrades.
-                This is the same method used by professional journaling platforms. 
-                <strong> Your broker login credentials are NEVER shared with BadyTrades.</strong>
+                {t('A small Expert Advisor (EA) plugin runs inside your MetaTrader app on your PC. It reads your account every 30 seconds and securely sends your trades, balance, deposits, and withdrawals to BadyTrades.')}
+                <br />
+                <strong>{t('Your broker login credentials are NEVER shared with BadyTrades.')}</strong>
               </p>
             </div>
           </div>
@@ -475,8 +473,8 @@ export default function SettingsPage() {
 
                 <span className="text-2xl">{broker.emoji}</span>
                 <div>
-                  <p className="font-semibold text-sm">{broker.name}</p>
-                  <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{broker.description}</p>
+                  <p className="font-semibold text-sm">{t(broker.name)}</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{t(broker.description)}</p>
                 </div>
 
                 {broker.badge && (
@@ -488,7 +486,7 @@ export default function SettingsPage() {
                       broker.status === 'coming_soon' ? 'border-muted-foreground/30 text-muted-foreground' : 'border-green-500/40 text-green-500'
                     )}
                   >
-                    {broker.badge}
+                    {t(broker.badge || '')}
                   </Badge>
                 )}
               </button>
@@ -502,25 +500,25 @@ export default function SettingsPage() {
           {/* Appearance */}
           <Card className="hover-effect">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Palette className="h-4 w-4" /> Appearance</CardTitle>
-              <CardDescription>Customize the look and feel.</CardDescription>
+              <CardTitle className="flex items-center gap-2"><Palette className="h-4 w-4" /> {t('Appearance')}</CardTitle>
+              <CardDescription>{t('Customize the look and feel.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between rounded-lg border p-4">
-                <Label htmlFor="theme-mode" className="font-medium">Theme Mode</Label>
+                <Label htmlFor="theme-mode" className="font-medium">{t('Theme Mode')}</Label>
                 <ModeToggle />
               </div>
               <div>
-                <Label htmlFor="chart-type">Default Chart Type</Label>
+                <Label htmlFor="chart-type">{t('Default Chart Type')}</Label>
                 <Select value={defaultChartType} onValueChange={setDefaultChartType}>
                   <SelectTrigger id="chart-type" className="hover-effect mt-1">
-                    <SelectValue placeholder="Select chart type" />
+                    <SelectValue placeholder={t("Select chart type")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="candlestick">Candlestick</SelectItem>
-                    <SelectItem value="line">Line</SelectItem>
-                    <SelectItem value="area">Area</SelectItem>
-                    <SelectItem value="bar">Bar (OHLC)</SelectItem>
+                    <SelectItem value="candlestick">{t('Candlestick')}</SelectItem>
+                    <SelectItem value="line">{t('Line')}</SelectItem>
+                    <SelectItem value="area">{t('Area')}</SelectItem>
+                    <SelectItem value="bar">{t('Bar (OHLC)')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -530,21 +528,21 @@ export default function SettingsPage() {
           {/* Notifications */}
           <Card className="hover-effect">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Bell className="h-4 w-4" /> Notifications</CardTitle>
-              <CardDescription>Control alerts and updates.</CardDescription>
+              <CardTitle className="flex items-center gap-2"><Bell className="h-4 w-4" /> {t('Notifications')}</CardTitle>
+              <CardDescription>{t('Control alerts and updates.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
-                  <Label htmlFor="enable-notifications" className="font-medium">Enable Notifications</Label>
-                  <p className="text-xs text-muted-foreground">Receive important updates.</p>
+                  <Label htmlFor="enable-notifications" className="font-medium">{t('Enable Notifications')}</Label>
+                  <p className="text-xs text-muted-foreground">{t('Receive important updates.')}</p>
                 </div>
                 <Switch id="enable-notifications" checked={notificationsEnabled} onCheckedChange={setNotificationsEnabled} className="hover-effect" />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
-                  <Label htmlFor="auto-import" className="font-medium">Auto Trade Sync</Label>
-                  <p className="text-xs text-muted-foreground">Enable when EA is connected.</p>
+                  <Label htmlFor="auto-import" className="font-medium">{t('Auto Trade Sync')}</Label>
+                  <p className="text-xs text-muted-foreground">{t('Enable when EA is connected.')}</p>
                 </div>
                 <Switch id="auto-import" checked={autoImportEnabled} onCheckedChange={setAutoImportEnabled} className="hover-effect" disabled />
               </div>
@@ -554,35 +552,35 @@ export default function SettingsPage() {
           {/* Data */}
           <Card className="hover-effect">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><UploadCloud className="h-4 w-4" /> Data Management</CardTitle>
-              <CardDescription>Manage and reset your trade data.</CardDescription>
+              <CardTitle className="flex items-center gap-2"><UploadCloud className="h-4 w-4" /> {t('Data Management')}</CardTitle>
+              <CardDescription>{t('Manage and reset your trade data.')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button variant="outline" className="w-full hover-effect" disabled>Export Trade Data (CSV)</Button>
+              <Button variant="outline" className="w-full hover-effect" disabled>{t('Export Trade Data (CSV)')}</Button>
 
               <AlertDialog open={isResetTradesDialogOpen} onOpenChange={setIsResetTradesDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" className="w-full hover-effect" disabled={isTradeDataLoading}>
                     <RotateCcw className="mr-2 h-4 w-4" />
-                    {isTradeDataLoading ? 'Resetting...' : 'Reset All Trades'}
+                    {isTradeDataLoading ? t('Refreshing...') : t('Reset All Trades')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Reset all trades?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('Reset all trades?')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This cannot be undone. All trade data will be permanently deleted.
+                      {t('This cannot be undone. All trade data will be permanently deleted.')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={handleResetTrades} className="bg-destructive hover:bg-destructive/90" disabled={isTradeDataLoading}>
-                      {isTradeDataLoading ? 'Resetting...' : 'Yes, Reset'}
+                      {isTradeDataLoading ? t('Refreshing...') : t('Yes, Reset')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              <p className="text-xs text-muted-foreground text-center">Resetting clears all stored trade data.</p>
+              <p className="text-xs text-muted-foreground text-center">{t('Resetting clears all stored trade data.')}</p>
             </CardContent>
           </Card>
         </div>
@@ -599,10 +597,10 @@ export default function SettingsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <span className="text-2xl">{selectedBroker?.emoji}</span>
-              Connect {selectedBroker?.name}
+              {t('Connect')} {t(selectedBroker?.name || '')}
             </DialogTitle>
             <DialogDescription>
-              Choose your preferred sync method below.
+              {t('Choose your preferred sync method below.')}
             </DialogDescription>
           </DialogHeader>
 
@@ -614,7 +612,7 @@ export default function SettingsPage() {
               onClick={() => setDialogTab('ea')}
               className="flex-1"
             >
-              🤖 EA Auto-Sync (Recommended)
+              🤖 {t('EA Auto-Sync (Recommended)')}
             </Button>
             <Button
               variant={dialogTab === 'csv' ? 'default' : 'outline'}
@@ -622,7 +620,7 @@ export default function SettingsPage() {
               onClick={() => setDialogTab('csv')}
               className="flex-1"
             >
-              📄 Guided CSV Import
+              📄 {t('Guided CSV Import')}
             </Button>
           </div>
 
@@ -630,16 +628,15 @@ export default function SettingsPage() {
           {dialogTab === 'ea' && (
             <div className="space-y-4 mt-2">
               <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm">
-                <p className="font-semibold text-green-400 mb-1">🤖 Fully Automatic — Recommended</p>
+                <p className="font-semibold text-green-400 mb-1">🤖 {t('Fully Automatic — Recommended')}</p>
                 <p className="text-muted-foreground text-xs">
-                  The EA plugin runs inside MetaTrader on your PC and syncs trades every 30 seconds.
-                  Works with <strong>any MT4/MT5 broker</strong> including Exness. Your broker password is never shared.
+                  {t('The EA plugin runs inside MetaTrader on your PC and syncs trades every 30 seconds.')}
                 </p>
               </div>
 
               {/* Your API Key */}
               <div>
-                <Label className="text-sm font-medium">Your BadyTrades API Key</Label>
+                <Label className="text-sm font-medium">{t('Your BadyTrades API Key')}</Label>
                 <div className="flex items-center gap-2 mt-1.5">
                   <code className="flex-1 bg-muted text-xs p-2.5 rounded-lg font-mono truncate">
                     {DEMO_API_KEY}
@@ -648,7 +645,7 @@ export default function SettingsPage() {
                     {apiKeyCopied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1">Paste this key into the EA settings in MetaTrader.</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{t('Paste this key into the EA settings in MetaTrader.')}</p>
               </div>
 
               {/* Steps */}
@@ -660,9 +657,9 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="font-medium text-sm flex items-center gap-1.5">
-                        <span>{s.icon}</span> {s.title}
+                        <span>{s.icon}</span> {t(s.title)}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{s.detail}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t(s.detail)}</p>
                     </div>
                   </div>
                 ))}
@@ -671,16 +668,14 @@ export default function SettingsPage() {
               <Button className="w-full" variant="outline" asChild>
                 <a href="https://github.com/abadycodes07/bady_trades/blob/main/ea/BadyTrades_Sync.mq4" target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Download EA Plugin (.mq4 file)
+                  {t('Download EA Plugin (.mq4 file)')}
                 </a>
               </Button>
 
               <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
                 <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-yellow-500" />
                 <p>
-                  In MetaTrader, you must enable <strong>Allow WebRequests for listed URLs</strong> and add
-                  <code className="mx-1 bg-muted px-1 rounded">badytrades-production.up.railway.app</code>
-                  to the list. This is in MetaTrader → Tools → Options → Expert Advisors.
+                  {t('In MetaTrader, you must enable Allow WebRequests for listed URLs and add badytrades-production.up.railway.app to the list. This is in MetaTrader → Tools → Options → Expert Advisors.')}
                 </p>
               </div>
             </div>
@@ -716,9 +711,7 @@ export default function SettingsPage() {
               <div className="flex items-start gap-2 text-xs text-muted-foreground bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
                 <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-yellow-500" />
                 <p>
-                  <strong>Critical:</strong> You MUST use <strong>"Save as Detailed Report"</strong>, not "Save as Report". 
-                  Only the Detailed Report includes balance rows (your deposits/withdrawals and initial capital).
-                  Without those rows, BadyTrades cannot calculate your account balance.
+                  {t('Critical: You MUST use "Save as Detailed Report", not "Save as Report". Only the Detailed Report includes balance rows (your deposits/withdrawals and initial capital). Without those rows, BadyTrades cannot calculate your account balance.')}
                 </p>
               </div>
             </div>
