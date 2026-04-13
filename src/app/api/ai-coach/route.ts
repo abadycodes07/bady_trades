@@ -1,48 +1,73 @@
 // src/app/api/ai-coach/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
+const GEMINI_MODELS = [
+  'gemini-2.0-flash-exp',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro-latest',
+];
+
+async function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function callGemini(prompt: string, apiKey: string): Promise<any> {
-  const primaryModel = "gemini-3-flash-preview";
-  const fallbackModel = "gemini-1.5-flash";
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 1024,
-      responseMimeType: "application/json",
+      responseMimeType: 'application/json',
     },
   };
 
-  let response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-  );
+  let lastError = '';
 
-  if (!response.ok && response.status === 404) {
-    response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${fallbackModel}:generateContent?key=${apiKey}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-    );
-  }
+  for (let modelIdx = 0; modelIdx < GEMINI_MODELS.length; modelIdx++) {
+    const model = GEMINI_MODELS[modelIdx];
+    
+    // Try each model up to 2 times (for 503 retries)
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) await sleep(1500); // wait 1.5s before retry
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.error?.message || response.statusText;
-    throw new Error(`Gemini API [${response.status}]: ${errorMessage}`);
-  }
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+        );
 
-  const resData = await response.json();
-  const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (response.ok) {
+          const resData = await response.json();
+          const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          try {
+            return JSON.parse(rawText);
+          } catch {
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) return JSON.parse(jsonMatch[0]);
+            throw new Error(`Non-JSON response: ${rawText.substring(0, 80)}`);
+          }
+        }
 
-  try {
-    return JSON.parse(rawText);
-  } catch (e) {
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+        const status = response.status;
+        const errData = await response.json().catch(() => ({}));
+        lastError = errData.error?.message || response.statusText;
+
+        // 503 = overloaded, retry with same or next model
+        // 404 = model not found, go to next model immediately
+        // 429 = rate limit, go to next model
+        if (status === 404 || status === 429) break; // try next model
+        if (status === 400) throw new Error(`Bad request: ${lastError}`);
+        // 503 or other: retry this model once, then try next
+        
+      } catch (fetchErr: any) {
+        lastError = fetchErr.message;
+        break; // network error, try next model
+      }
     }
-    throw new Error(`AI returned non-JSON text: ${rawText.substring(0, 100)}...`);
   }
+
+  throw new Error(`All models failed. Last error: ${lastError}`);
 }
 
 export async function POST(request: NextRequest) {
@@ -58,9 +83,9 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json({
         insights: [
-          { icon: "warning", title: "AI Not Configured", description: "Please add GOOGLE_GENAI_API_KEY to your Railway environment variables." }
+          { icon: 'alert', title: 'AI Not Configured', description: 'Please add GOOGLE_GENAI_API_KEY to your Railway environment variables.' }
         ],
-        assessment: "AI Coach is not configured.",
+        assessment: 'AI Coach is not configured.',
         score: null,
       });
     }
@@ -68,7 +93,7 @@ export async function POST(request: NextRequest) {
     let prompt: string;
     let parsed: any;
 
-    // --- MODE: Single Trade Insight (from Trade View page) ---
+    // --- MODE: Single Trade Insight ---
     if (mode === 'trade' && trades.length === 1) {
       const t = trades[0];
       const pnl = parseFloat(t.netPnl || '0');
@@ -85,28 +110,21 @@ TRADE DATA:
 - R-Multiple: ${rMultiple !== null ? rMultiple.toFixed(2) + 'R' : 'N/A'}
 - Strategy: ${t.strategy || 'No strategy tagged'}
 - Entry Time: ${t.entryTime || 'N/A'}
-- Exit Time: ${t.exitTime || 'N/A'}
-- Hold Time: ${t.holdTime || 'N/A'}
 
-Analyze this SPECIFIC trade and produce 2-3 pinpoint insights. These insights should be behavioral, psychological, or technical. Look for patterns like: "Time in Drawdown", "Leaving money on the table", "Good R-Multiple discipline", "Quick exit (panic sell)", "Revenge entry pattern", etc.
+Analyze this SPECIFIC trade and produce 2-3 behavioral/psychological/technical insights.
+Examples: "Time in Drawdown", "Leaving money on table", "Good R discipline", "Quick exit (panic)", "Revenge entry".
 
-Return valid JSON with this EXACT structure:
+Return valid JSON:
 {
   "insights": [
     {
-      "icon": "alert" or "info" or "success",
-      "title": "Short Insight Title (3-5 words max)",
-      "description": "One specific, actionable sentence explaining this insight with reference to the exact trade data."
+      "icon": "alert|info|success",
+      "title": "Short Title (3-5 words)",
+      "description": "One specific sentence under 25 words with actual trade data."
     }
   ],
-  "score": <number 0-100 representing this trade's quality/discipline score>
-}
-
-Rules:
-- Maximum 3 insights
-- Each description must be under 25 words and reference actual trade data
-- Be specific and actionable, not generic
-- Use "alert" icon for risks/warnings, "success" for positives, "info" for neutral observations`;
+  "score": <0-100 trade quality score>
+}`;
 
       parsed = await callGemini(prompt, apiKey);
 
@@ -116,84 +134,64 @@ Rules:
       });
     }
 
-    // --- MODE: Daily Session Analysis (from Day View / Dashboard) ---
+    // --- MODE: Daily Session Analysis ---
     const totalTrades = trades.length;
     const wins = trades.filter((t: any) => parseFloat(t.netPnl || '0') > 0).length;
     const losses = trades.filter((t: any) => parseFloat(t.netPnl || '0') < 0).length;
-    const breakEvens = totalTrades - wins - losses;
     const totalPnl = trades.reduce((sum: number, t: any) => sum + parseFloat(t.netPnl || '0'), 0);
-    const avgPnl = totalTrades > 0 ? totalPnl / totalTrades : 0;
     const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
     const bestTrade = Math.max(...trades.map((t: any) => parseFloat(t.netPnl || '0')));
     const worstTrade = Math.min(...trades.map((t: any) => parseFloat(t.netPnl || '0')));
-    const rMultiples = trades.filter((t: any) => t.rMultiple && !isNaN(parseFloat(t.rMultiple))).map((t: any) => parseFloat(t.rMultiple));
-    const avgRMultiple = rMultiples.length > 0 ? rMultiples.reduce((a: number, b: number) => a + b, 0) / rMultiples.length : null;
 
-    // Check for behavioral red flags
-    const hasRevengeTrading = (() => {
-      // Check if there are consecutive losses followed by more trades
-      let consecutiveLosses = 0;
-      let maxConsecutiveLosses = 0;
-      for (const t of trades) {
-        if (parseFloat(t.netPnl || '0') < 0) { consecutiveLosses++; maxConsecutiveLosses = Math.max(maxConsecutiveLosses, consecutiveLosses); }
-        else { consecutiveLosses = 0; }
-      }
-      return maxConsecutiveLosses >= 3;
-    })();
+    const grossProfit = trades.reduce((s: number, t: any) => s + Math.max(0, parseFloat(t.netPnl || '0')), 0);
+    const grossLoss = Math.abs(trades.reduce((s: number, t: any) => s + Math.min(0, parseFloat(t.netPnl || '0')), 0));
+    const profitFactor = grossLoss === 0 ? 0 : grossProfit / grossLoss;
 
-    const profitFactor = (() => {
-      const grossProfit = trades.reduce((s: number, t: any) => s + Math.max(0, parseFloat(t.netPnl || '0')), 0);
-      const grossLoss = Math.abs(trades.reduce((s: number, t: any) => s + Math.min(0, parseFloat(t.netPnl || '0')), 0));
-      return grossLoss === 0 ? 0 : grossProfit / grossLoss;
-    })();
+    let consecutiveLosses = 0;
+    let maxConsecutiveLosses = 0;
+    for (const t of trades) {
+      if (parseFloat(t.netPnl || '0') < 0) { consecutiveLosses++; maxConsecutiveLosses = Math.max(maxConsecutiveLosses, consecutiveLosses); }
+      else consecutiveLosses = 0;
+    }
 
     const tradeDetails = trades.slice(0, 30).map((t: any, i: number) => {
       const pnl = parseFloat(t.netPnl || '0');
-      return `  ${i + 1}. ${t.symbol || 'N/A'} ${t.side || ''} P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}${t.rMultiple ? ` R:${t.rMultiple}` : ''}${t.strategy ? ` [${t.strategy}]` : ''}`;
+      return `  ${i + 1}. ${t.symbol || 'N/A'} ${t.side || ''} P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}${t.rMultiple ? ` R:${t.rMultiple}` : ''}`;
     }).join('\n');
 
-    prompt = `You are an elite trading performance coach (like TradeZella's AI) analyzing a trader's full daily session for ${date}.
+    prompt = `You are an elite trading performance coach analyzing a trader's full daily session for ${date}.
 
-SESSION OVERVIEW:
-- Total Trades: ${totalTrades} | Wins: ${wins} | Losses: ${losses} | Break-Even: ${breakEvens}
-- Win Rate: ${winRate.toFixed(1)}%
+SESSION:
+- Total Trades: ${totalTrades} | Wins: ${wins} | Losses: ${losses}
+- Win Rate: ${winRate.toFixed(1)}% | Profit Factor: ${profitFactor.toFixed(2)}
 - Total P&L: ${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}
-- Profit Factor: ${profitFactor.toFixed(2)}
-- Best trade: +$${bestTrade.toFixed(2)} | Worst trade: $${worstTrade.toFixed(2)}
-- Avg P&L/trade: $${avgPnl.toFixed(2)}
-${avgRMultiple !== null ? `- Average R-Multiple: ${avgRMultiple.toFixed(2)}R` : ''}
-- Revenge trading signals: ${hasRevengeTrading ? 'YES (3+ consecutive losses detected)' : 'No'}
+- Best: +$${bestTrade.toFixed(2)} | Worst: $${worstTrade.toFixed(2)}
+- Max consecutive losses: ${maxConsecutiveLosses}
 
-TRADE-BY-TRADE LOG:
+TRADES:
 ${tradeDetails}
 
-Produce 3-5 behavioral insights for this session. Common insight types to look for:
-- "Overtrading" (too many trades vs usual 3-5)
-- "Revenge Trading" (trading after consecutive losses)
-- "Tilt Session" (many losses, short intervals, emotional pattern)
-- "Deep in Drawdown" (majority of session in negative territory)
-- "Left Money on the Table" (exits too early based on best vs actual)
-- "Giving Away Profits" (was up, then gave back - look at P&L sequence)
-- "Discipline Maintained" (positive insights if they kept good risk management)
+Produce 3-5 behavioral insights. Look for:
+- Overtrading (many trades > usual)
+- Revenge Trading (trading after 3+ consecutive losses)
+- Tilt Session (many losses, short intervals, emotional spiral)
+- Deep in Drawdown (session mostly negative)
+- Left Money on the Table (gave back profits)
+- Giving Away Profits (was up then lost it all)
+- Discipline Maintained (positive if risk management was good)
 
-Return valid JSON with this EXACT structure:
+Return valid JSON:
 {
   "insights": [
     {
-      "icon": "alert" or "info" or "success",
+      "icon": "alert|info|success",
       "title": "Insight Title (3-5 words)",
-      "description": "One specific sentence with concrete numbers from the session data."
+      "description": "One specific sentence under 25 words with concrete session numbers."
     }
   ],
   "assessment": "One overall sentence about this trading day.",
-  "score": <number 0-100 for this day's discipline quality>
-}
-
-Rules:
-- 3-5 insights maximum
-- Each description under 25 words, referencing actual session metrics
-- Brutal honesty: if they lost $489 revenge trading 48 times, say it clearly
-- Use "alert" for red-flag behaviors, "success" for positives, "info" for neutral`;
+  "score": <0-100 discipline score>
+}`;
 
     parsed = await callGemini(prompt, apiKey);
 
@@ -204,14 +202,13 @@ Rules:
     });
 
   } catch (error: any) {
-    console.error('AI Coach technical error:', error);
+    console.error('AI Coach error:', error);
     return NextResponse.json({
       insights: [
-        { icon: "alert", title: "Analysis Failed", description: error.message }
+        { icon: 'alert', title: 'Analysis Failed', description: error.message }
       ],
-      assessment: "Diagnostic Error: " + error.message,
+      assessment: 'Error: ' + error.message,
       score: null,
-      error: error.message,
-    }, { status: 500 });
+    }, { status: 200 }); // return 200 so the UI still renders
   }
 }

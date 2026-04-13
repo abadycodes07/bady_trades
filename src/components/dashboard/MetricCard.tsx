@@ -201,8 +201,6 @@ export function MetricCard({
             "relative overflow-hidden transition-all duration-300 group",
             "bg-card border-border shadow-2xl",
             "hover:bg-muted/10",
-            color === 'green' && "border-[#22c55e]/25 shadow-[0_0_20px_rgba(34,197,94,0.12)]",
-            color === 'red' && "border-[#ef4444]/25 shadow-[0_0_20px_rgba(239,68,68,0.12)]",
             "flex flex-col justify-center items-center text-center p-4 h-full",
             className
         )}>

@@ -66,27 +66,26 @@ export const DetailStatsPanel: React.FC<DetailStatsPanelProps> = ({ trade, class
           <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Net P&L</span>
           <Settings className="h-4 w-4 text-muted-foreground/30 hover:text-foreground cursor-pointer transition-colors" />
         </div>
-        <div className={cn(
-          "text-3xl font-black tracking-tighter leading-none",
-          isWin ? "text-[var(--win-green)]" : "text-[var(--loss-red)]"
-        )}>
+        <div
+          className="text-3xl font-black tracking-tighter leading-none"
+          style={{ color: isWin ? '#22c55e' : '#ef4444' }}
+        >
           {isWin ? '+' : ''}${Math.abs(parseFloat(trade.NetPnL || '0')).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       </div>
 
       {/* 2. Primary Stats List */}
       <div className="flex flex-col gap-0.5 py-3 border-y border-border/40">
-        <StatRow label="Side" value={trade.Side?.toUpperCase()} color={trade.Side?.toLowerCase() === 'buy' ? 'text-[var(--win-green)]' : 'text-[var(--loss-red)]'} />
+        <StatRow label="Side" value={trade.Side?.toUpperCase()} color={trade.Side?.toLowerCase() === 'buy' ? 'text-[#22c55e]' : 'text-[#ef4444]'} />
         <StatRow label="Account" value={trade.Account || 'Live Account'} />
         <StatRow label="Forex traded" value={trade.Qty || '0.10'} />
-        <StatRow label="Pips" value={pips > 0 ? `+${pips.toFixed(1)}` : pips.toFixed(1)} color={pips > 0 ? 'text-[var(--win-green)]' : 'text-[var(--loss-red)]'} />
+        <StatRow label="Pips" value={pips > 0 ? `+${pips.toFixed(1)}` : pips.toFixed(1)} color={pips > 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'} />
         <StatRow label="Return Per Pip" value={`$${(Math.abs(parseFloat(trade.NetPnL || '0')) / (Math.abs(pips) || 1)).toFixed(2)}`} />
         <StatRow label="Commissions & Fees" value={`$${(parseFloat(trade.Commissions || '0') + parseFloat(trade.Fees || '0')).toFixed(2)}`} />
         <StatRow label="Total Swap" value="$0.00" />
         <StatRow label="Net ROI" value={`${trade.ROI || '0.00'}%`} color="text-muted-foreground/60" />
-        <StatRow label="Gross P&L" value={`$${parseFloat(trade.GrossPnl || '0').toFixed(2)}`} />
-        <StatRow label="Adjusted Cost" value={`$${(parseFloat(trade.Price || '0') * parseFloat(trade.Qty || '0')).toLocaleString()}`} />
-        <StatRow label="Strategy" value={trade.Strategy || 'Scalp-v1'} isActionable={true} />
+        <StatRow label="Gross P&L" value={`${parseFloat(trade.GrossPnl||'0') >= 0 ? '+' : ''}$${parseFloat(trade.GrossPnl || '0').toFixed(2)}`} color={parseFloat(trade.GrossPnl||'0') >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'} />
+        <StatRow label="Strategy" value={trade.Strategy || '—'} isActionable={true} />
       </div>
 
       {/* 3. Baddie Scale */}

@@ -148,13 +148,10 @@ export default function DayViewPage() {
                                 <div className="px-5 py-4 flex items-center justify-between border-b border-[var(--stats-card-border)] bg-[var(--stats-card)]">
                                     <div className="flex items-center gap-3">
                                         <div className="flex items-baseline gap-2">
-                                            <h3 className="text-[14px] font-bold text-[var(--foreground)] tracking-tight">{format(day.date, 'E, MMM dd, yyyy')}</h3>
-                                            <span className="text-[var(--foreground)]/20 text-[10px] mx-1">•</span>
-                                            <span className={cn(
-                                                "text-xs font-bold tracking-tight",
-                                                isWin ? "text-[var(--win-green)]" : "text-[var(--loss-red)]"
-                                            )}>
-                                                Net P&L {isWin ? '+' : '-'}${Math.abs(day.netPnl).toFixed(2)}
+                                            <h3 className="text-[14px] font-bold text-foreground tracking-tight">{format(day.date, 'E, MMM dd, yyyy')}</h3>
+                                            <span className="text-foreground/20 text-[10px] mx-1">•</span>
+                                            <span style={{ color: isWin ? '#22c55e' : '#ef4444' }} className="text-xs font-bold tracking-tight">
+                                                Net P&L {isWin ? '+' : ''}${day.netPnl.toFixed(2)}
                                             </span>
                                         </div>
                                     </div>
@@ -178,39 +175,41 @@ export default function DayViewPage() {
                                         <RunningPnLChart trades={day.trades} className="h-[160px] mt-2 mb-1" chartId={day.dateKey} />
                                     </div>
                                     
-                                    {/* Right Side: Stats */}
-                                    <div className="flex-1 min-w-[280px] grid grid-cols-2 gap-y-7 gap-x-4 pt-4 shrink-0">
-                                        <div className="flex flex-col gap-1.5">
-                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Trades ({day.trades.length})</p>
-                                        <div className="flex flex-wrap gap-2 mt-1">
-                                           {day.trades.map((t, idx) => (
-                                              <button key={idx} onClick={() => window.location.href = `/trades/${t.id}`} className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[var(--stats-card-hover)] hover:brightness-110 border border-[var(--stats-card-border)] rounded-md text-[var(--foreground)]/80 text-[10px] font-bold tracking-wider transition-none">
-                                                  <PlayCircle className="h-3 w-3 text-indigo-400" /> {t.Symbol}
-                                              </button>
-                                           ))}
-                                        </div>
-                                    </div>
-                                        <div className="flex flex-col gap-1.5">
+                                    {/* Right Side: Stats — TradeZella style */}
+                                    <div className="flex-1 min-w-[260px] grid grid-cols-2 gap-y-5 gap-x-6 pt-2 shrink-0">
+                                        {/* Gross P&L */}
+                                        <div className="flex flex-col gap-1">
                                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Gross P&L</p>
-                                            <p className="text-[16px] font-bold text-[var(--foreground)] tracking-tight">
-                                                {day.grossPnl >= 0 ? '' : '-'}${Math.abs(day.grossPnl).toFixed(2)}
+                                            <p className="text-[18px] font-bold tracking-tight" style={{ color: day.grossPnl >= 0 ? '#22c55e' : '#ef4444' }}>
+                                                {day.grossPnl >= 0 ? '+' : ''}${day.grossPnl.toFixed(2)}
                                             </p>
-                                            <div className="mt-3 flex flex-col gap-1">
-                                                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Volume</p>
-                                                 <p className="text-[12px] font-bold text-[var(--foreground)]">{day.volume > 0 ? day.volume : '0.00'}</p>
-                                            </div>
                                         </div>
-                                        <div className="flex flex-col gap-1.5">
+                                        {/* Winners / Losers */}
+                                        <div className="flex flex-col gap-1">
                                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Winners / Losers</p>
-                                            <p className="text-[16px] font-bold text-[var(--foreground)] tracking-tight">{day.wins} / {day.losses}</p>
-                                            <div className="mt-3 flex flex-col gap-1">
-                                                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Profit Factor</p>
-                                                 <p className="text-[12px] font-bold text-[var(--foreground)]">{profitFactor}</p>
-                                            </div>
+                                            <p className="text-[18px] font-bold text-foreground tracking-tight">{day.wins} / {day.losses}</p>
                                         </div>
-                                        <div className="flex flex-col gap-1.5">
+                                        {/* Win Rate */}
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Win Rate</p>
+                                            <p className="text-[18px] font-bold tracking-tight" style={{ color: winRate >= 50 ? '#22c55e' : '#ef4444' }}>
+                                                {winRate.toFixed(0)}%
+                                            </p>
+                                        </div>
+                                        {/* Profit Factor */}
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Profit Factor</p>
+                                            <p className="text-[18px] font-bold text-foreground tracking-tight">{profitFactor}</p>
+                                        </div>
+                                        {/* Commissions */}
+                                        <div className="flex flex-col gap-1">
                                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Commissions</p>
-                                            <p className="text-[16px] font-bold text-[var(--foreground)] tracking-tight">${day.commissions.toFixed(2)}</p>
+                                            <p className="text-[16px] font-bold text-foreground tracking-tight">${day.commissions.toFixed(2)}</p>
+                                        </div>
+                                        {/* Volume */}
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Volume</p>
+                                            <p className="text-[16px] font-bold text-foreground tracking-tight">{day.volume > 0 ? day.volume.toFixed(2) : '0.00'}</p>
                                         </div>
                                     </div>
                                 </div>
